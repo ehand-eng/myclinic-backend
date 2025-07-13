@@ -31,7 +31,7 @@ const Header = () => {
           <div className="flex items-center space-x-2">
             <Calendar className="h-6 w-6 text-medical-600" />
             <Link to="/admin/dashboard" className="font-bold text-xl text-medical-800">
-              DocSpot Connect
+              MyClinic
             </Link>
           </div>
           

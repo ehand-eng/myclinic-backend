@@ -275,7 +275,7 @@ export const TimeSlotService = {
     }
   },
   
-  // Updated method to get available time slots with appointment numbers
+  // Get available time slots for a doctor at a dispensary on a specific date
   getAvailableTimeSlots: async (
     doctorId: string,
     dispensaryId: string,
@@ -299,6 +299,48 @@ export const TimeSlotService = {
     } catch (error) {
       console.error('Error fetching available time slots:', error);
       throw new Error('Failed to fetch available time slots');
+    }
+  },
+
+  // Get next 5 available days with time slots for a doctor-dispensary pair
+  getNextAvailableDays: async (
+    doctorId: string,
+    dispensaryId: string
+  ): Promise<{
+    available: boolean;
+    availableDays: Array<{
+      date: string;
+      dayName: string;
+      startTime: string;
+      endTime: string;
+      bookingsDone: number;
+      nextAppointmentNumber: number;
+      maxPatients: number;
+      maxPossibleAppointments: number;
+      minutesPerPatient: number;
+      sessionInfo: {
+        startTime: string;
+        endTime: string;
+        minutesPerPatient: number;
+        maxPatients: number;
+      };
+      isModified: boolean;
+      isFullyBooked: boolean;
+      remainingSlots: number;
+    }>;
+    totalAvailableDays: number;
+  }> => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await axios.get(
+        `${API_URL}/timeslots/next-available/${doctorId}/${dispensaryId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching next available days:', error);
+      throw new Error('Failed to fetch next available days');
     }
   },
 
@@ -443,6 +485,44 @@ export const TimeSlotService = {
     } catch (error) {
       console.error('Error deleting doctor-dispensary fees:', error);
       throw new Error('Failed to delete doctor-dispensary fees');
+    }
+  },
+
+  // Assign or update doctor-dispensary fees (POST)
+  assignDoctorDispensaryFees: async (
+    doctorId: string,
+    dispensaryId: string,
+    fees: TimeSlotFees
+  ): Promise<DoctorDispensaryFee> => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await axios.post(
+        `${API_URL}/doctor-dispensaries/assign-fees`,
+        {
+          doctorId,
+          dispensaryId,
+          doctorFee: fees.doctorFee,
+          dispensaryFee: fees.dispensaryFee,
+          bookingCommission: fees.bookingCommission,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return {
+        ...response.data,
+        _id: response.data._id,
+        doctorId: response.data.doctorId,
+        doctorName: response.data.doctorName,
+        dispensaryId: response.data.dispensaryId,
+        dispensaryName: response.data.dispensaryName,
+        doctorFee: response.data.doctorFee || 0,
+        dispensaryFee: response.data.dispensaryFee || 0,
+        bookingCommission: response.data.bookingCommission || 0,
+        createdAt: new Date(response.data.createdAt),
+        updatedAt: new Date(response.data.updatedAt)
+      };
+    } catch (error) {
+      console.error('Error assigning doctor-dispensary fees:', error);
+      throw new Error('Failed to assign doctor-dispensary fees');
     }
   },
 };

@@ -304,7 +304,7 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
                     <div key={doctor.id} className="flex items-center space-x-2">
                       <Checkbox
                         id={`doctor-${doctor.id}`}
-                        checked={selectedDoctors.includes(doctor.id)}
+                        checked={JSON.stringify(selectedDoctors).includes(doctor.id)}
                         onCheckedChange={() => handleSelectedDoctorsChange(doctor.id)}
                       />
                       <label

@@ -257,12 +257,14 @@ export const ReportService = {
   },
 
   // Get daily bookings report
-  getDailyBookings: async (date: Date): Promise<DailyBookingSummary> => {
+  getDailyBookings: async (startDate: string, endDate: string): Promise<DailyBookingSummary> => {
     try {
       const token = localStorage.getItem('auth_token');
-      const formattedDate = date.toISOString().split('T')[0];
+      const params = new URLSearchParams();
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
       const response = await axios.get(
-        `${API_URL}/reports/daily-bookings?date=${formattedDate}`,
+        `${API_URL}/reports/daily-bookings?${params.toString()}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       return response.data;
@@ -306,5 +308,25 @@ export const ReportService = {
       console.error('Error fetching doctor performance:', error);
       throw new Error('Failed to fetch doctor performance report');
     }
+  },
+
+  // For daily bookings with params
+  getDailyBookingsWithParams: async (params: any) => {
+    const token = localStorage.getItem('auth_token');
+    const search = new URLSearchParams(params).toString();
+    const response = await axios.get(`${API_URL}/reports/daily-bookings?${search}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  },
+
+  // For advance bookings
+  getAdvanceBookings: async (params: any) => {
+    const token = localStorage.getItem('auth_token');
+    const search = new URLSearchParams(params).toString();
+    const response = await axios.get(`${API_URL}/reports/advance-bookings?${search}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
   }
 };

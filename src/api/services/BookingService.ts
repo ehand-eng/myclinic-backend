@@ -18,6 +18,8 @@ export interface BookingCreateParams {
     bookingCommission: number;
     totalFee: number;
   };
+  bookedUser?: string;
+  bookedBy?: string;
 }
 
 export interface BookingSummary {
@@ -47,6 +49,8 @@ export interface BookingSummary {
     totalAmount: number;
   };
   symptoms?: string;
+  bookedUser?: string;
+  bookedBy?: string;
   createdAt: Date;
 }
 
@@ -192,9 +196,29 @@ export const BookingService = {
       const day = String(booking.bookingDate.getDate()).padStart(2, '0');
       const formattedDate = `${year}-${month}-${day}`;
       
+      // Determine bookedUser and bookedBy
+      let bookedUser = 'online';
+      let bookedBy = 'ONLINE';
+      
+      // Check if user is logged in
+      if (token) {
+        try {
+          const userStr = localStorage.getItem('current_user');
+          if (userStr) {
+            const user = JSON.parse(userStr);
+            bookedUser = user.id || user._id || 'online';
+            bookedBy = user.role ? user.role.toUpperCase() : 'ONLINE';
+          }
+        } catch (error) {
+          console.warn('Error parsing user data, using default values:', error);
+        }
+      }
+      
       const bookingToSend = {
         ...booking,
         bookingDate: formattedDate,
+        bookedUser,
+        bookedBy,
       };
       
       const response = await axios.post(

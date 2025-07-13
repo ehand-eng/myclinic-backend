@@ -94,6 +94,8 @@ export interface Booking extends BaseModel {
   patientName: string;
   patientPhone: string;
   patientEmail?: string;
+  bookedUser?: string;
+  bookedBy?: string;
 }
 
 // User role enum

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
+import Header from '@/components/Header';
 
 const BookingSummary = () => {
   const { transactionId } = useParams();
@@ -46,6 +47,8 @@ const BookingSummary = () => {
   }
 
   return (
+    <div className="flex flex-col min-h-screen">
+      <Header />
     <div className="container mx-auto py-8">
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
@@ -129,6 +132,7 @@ const BookingSummary = () => {
           </div>
         </CardContent>
       </Card>
+    </div>
     </div>
   );
 };

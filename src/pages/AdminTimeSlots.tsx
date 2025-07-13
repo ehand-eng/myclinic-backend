@@ -20,42 +20,63 @@ const AdminTimeSlots = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchDoctors = async () => {
       try {
         setIsLoading(true);
         const userStr = localStorage.getItem('current_user');
         const user = userStr ? JSON.parse(userStr) : null;
         if (user?.dispensaryIds && user.dispensaryIds.length > 0) {
-          console.log(user.dispensaryIds);
-          const [doctorsData, dispensariesData] = await Promise.all([
-            DoctorService.getDoctorsByDispensaryIds(user.dispensaryIds),
-            DispensaryService.getDispensariesByIds(user.dispensaryIds)
-          ]);
-          console.log("::::::::: "+JSON.stringify(doctorsData));
+          const doctorsData = await DoctorService.getDoctorsByDispensaryIds(user.dispensaryIds);
           setDoctors(doctorsData);
-          setDispensaries(dispensariesData);
         } else {
-          const [doctorsData, dispensariesData] = await Promise.all([
-            DoctorService.getAllDoctors(),
-            DispensaryService.getAllDispensaries()
-          ]);
+          const doctorsData = await DoctorService.getAllDoctors();
           setDoctors(doctorsData);
-          setDispensaries(dispensariesData);
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching doctors:', error);
         toast({
           title: 'Error',
-          description: 'Failed to load doctors and dispensaries data',
+          description: 'Failed to load doctors',
           variant: 'destructive'
         });
       } finally {
         setIsLoading(false);
       }
     };
-    
-    fetchData();
+    fetchDoctors();
   }, [toast]);
+
+  // Load dispensaries when doctor is selected
+  useEffect(() => {
+    const fetchDispensaries = async () => {
+      if (!selectedDoctor) {
+        setDispensaries([]);
+        setSelectedDispensary('');
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const dispensariesData = await DispensaryService.getDispensariesByDoctorId(selectedDoctor);
+        setDispensaries(dispensariesData);
+        // Reset selected dispensary if not in new list
+        if (selectedDispensary && !dispensariesData.some(d => d.id === selectedDispensary)) {
+          setSelectedDispensary('');
+        }
+      } catch (error) {
+        console.error('Error fetching dispensaries:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load dispensaries for selected doctor',
+          variant: 'destructive'
+        });
+        setDispensaries([]);
+        setSelectedDispensary('');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchDispensaries();
+  }, [selectedDoctor, toast]);
 
   const handleManageTimeSlots = () => {
     if (!selectedDoctor || !selectedDispensary) {
@@ -117,10 +138,10 @@ const AdminTimeSlots = () => {
                 <Select 
                   value={selectedDispensary} 
                   onValueChange={setSelectedDispensary}
-                  disabled={isLoading}
+                  disabled={isLoading || !selectedDoctor || dispensaries.length === 0}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a dispensary" />
+                    <SelectValue placeholder={!selectedDoctor ? "Select Doctor First" : dispensaries.length === 0 ? "No Dispensaries Available" : "Select a dispensary"} />
                   </SelectTrigger>
                   <SelectContent>
                     {dispensaries.map(dispensary => (

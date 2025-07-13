@@ -79,6 +79,7 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
           const doctorData = await DoctorService.getDoctorById(doctorId);
           if (doctorData) {
             const dispensaryIds = doctorData.dispensaries || [];
+            console.log("selected dis "+JSON.stringify(dispensaryIds));
             setSelectedDispensaries(dispensaryIds);
             form.reset({
               name: doctorData.name,
@@ -295,7 +296,7 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
                     <div key={dispensary.id} className="flex items-center space-x-2">
                       <Checkbox
                         id={`dispensary-${dispensary.id}`}
-                        checked={selectedDispensaries.includes(dispensary.id)}
+                        checked={JSON.stringify(selectedDispensaries).includes(dispensary.id)}
                         onCheckedChange={() => handleSelectedDispensariesChange(dispensary.id)}
                       />
                       <label

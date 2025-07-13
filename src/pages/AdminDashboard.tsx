@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle,CardDescription,CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from "@/hooks/use-toast";
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -17,328 +19,429 @@ import {
   AlertCircle,
   Clock,
   DollarSign,
-  Activity
+  Activity,
+  Loader2,
+  Shield
 } from 'lucide-react';
 import { User, UserRole, Doctor, Dispensary } from '@/api/models';
 import { AuthService, DoctorService, DispensaryService, BookingService } from '@/api/services';
 import UserManagement from '@/components/admin/UserManagement';
 import RoleAssignment from '@/components/admin/RoleAssignment';
 import ReportGenerator from '@/components/admin/ReportGenerator';
-import DoctorDispensaryFeeManager from '@/components/admin/DoctorDispensaryFeeManager';
-import { toast } from 'sonner';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import AdminFeeManage from './AdminFeeManage';
+// import DoctorDispensaryFeeManager from '@/components/AdminF';
+
+// Get API URL from environment variables with fallback
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+// Detect environment - local by default
+const IS_LOVABLE_ENVIRONMENT = window.location.hostname.includes('lovableproject.com') || 
+                              window.location.hostname.includes('lovable.app');
+// Force local development mode if needed
+const LOCAL_DEV_MODE = false;
 
 const AdminDashboard = () => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [totalUsers, setTotalUsers] = useState<number>(0);
-  const [totalDoctors, setTotalDoctors] = useState<number>(0);
-  const [totalDispensaries, setTotalDispensaries] = useState<number>(0);
-  const [totalAppointments, setTotalAppointments] = useState<number>(0);
-  const [monthlyRevenue, setMonthlyRevenue] = useState<number>(0);
-  const [weeklyActivity, setWeeklyActivity] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
-  const [recentSignups, setRecentSignups] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("overview");
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchAdminData = async () => {
+    // Check authentication on component mount
+    const checkAuth = async () => {
       setIsLoading(true);
-      setError(null);
+      console.log('Checking authentication...');
 
-      try {
-        // Fetch current user
-        const token = AuthService.getToken();
-        if (!token) {
-          throw new Error('Not authenticated');
-        }
-
-        const decodedToken = JSON.parse(atob(token.split('.')[1]));
-        const userId = decodedToken.userId;
-
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api'}/users/${userId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch user');
-        }
-
-        const userData = await response.json();
-        setCurrentUser(userData);
-
-        // Fetch dashboard stats
-        const statsResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api'}/admin/dashboard-stats`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (!statsResponse.ok) {
-          throw new Error('Failed to fetch dashboard stats');
-        }
-
-        const statsData = await statsResponse.json();
-        setTotalUsers(statsData.totalUsers);
-        setTotalDoctors(statsData.totalDoctors);
-        setTotalDispensaries(statsData.totalDispensaries);
-        setTotalAppointments(statsData.totalAppointments);
-        setMonthlyRevenue(statsData.monthlyRevenue);
-        setWeeklyActivity(statsData.weeklyActivity);
-        setRecentSignups(statsData.recentSignups);
-
-      } catch (err: any) {
-        console.error('Error fetching admin data:', err);
-        setError(err.message || 'Failed to fetch data');
-        toast.error(err.message || 'Failed to fetch data');
-        AuthService.logout();
-        window.location.href = '/';
-      } finally {
+      //try {
+        // Get token from local storage
+        const token = localStorage.getItem('auth_token');
+        const userStr = localStorage.getItem("current_user");
+        setCurrentUser(userStr ? JSON.parse(userStr) : null);
+        console.log(">>>>>. current user");
+        console.log(currentUser);
+        console.log("=======================");
+        console.log('Auth token found:', !!token);
         setIsLoading(false);
-      }
+        if (!token) {
+          console.log('No auth token in localStorage');
+          navigate('/login', { replace: true });
+        }
     };
 
-    fetchAdminData();
-  }, []);
+    checkAuth();
+  }, [navigate, toast]);
 
-  const hasPermission = (requiredRole: UserRole): boolean => {
-    if (!currentUser) return false;
-    
-    // Super admin has all permissions
-    if (currentUser.role === UserRole.SUPER_ADMIN) return true;
-    
-    // Hospital admin has specific permissions
-    if (currentUser.role === UserRole.HOSPITAL_ADMIN) {
-      return requiredRole === UserRole.HOSPITAL_ADMIN || requiredRole === UserRole.DOCTOR || requiredRole === UserRole.PATIENT;
-    }
-    
-    return currentUser.role === requiredRole;
+  const handleLogout = () => {
+    console.log("lLLLLLLLLLLL");
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('current_user');
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out"
+    });
+    navigate('/login', { replace: true });
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="mr-2 h-8 w-8 animate-spin" />
-        Loading...
-      </div>
-    );
+ // Check if user has a specific permission
+ const hasPermission = (permission: string) => {
+  if (IS_LOVABLE_ENVIRONMENT || LOCAL_DEV_MODE) {
+    // In development mode, allow all permissions
+    return true;
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {error}
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
+  if (!currentUser || !currentUser.permissions) {
+    return false;
   }
 
+  return currentUser.permissions.includes(permission);
+};
+
+if (isLoading) {
   return (
-    <div className="container mx-auto py-10">
-      <h1 className="text-3xl font-bold text-gray-800 mb-5">
-        Admin Dashboard
-      </h1>
-
-      {/* Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-blue-500" />
-              Total Users
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-700">{totalUsers}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Stethoscope className="h-5 w-5 text-green-500" />
-              Total Doctors
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-700">{totalDoctors}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-purple-500" />
-              Total Dispensaries
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-700">{totalDispensaries}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-orange-500" />
-              Total Appointments
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-700">{totalAppointments}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Revenue and Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <Card className="bg-green-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-green-500" />
-              Monthly Revenue
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-700">${monthlyRevenue}</div>
-            <p className="text-sm text-gray-500">
-              <TrendingUp className="h-4 w-4 inline-block mr-1" />
-              32% increase from last month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-red-500" />
-              Weekly Activity
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <BarChart3 className="h-48 w-full text-gray-400" />
-            <div className="text-sm text-gray-500 text-center">
-              Past 7 Days
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Signups */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserCheck className="h-5 w-5 text-purple-500" />
-            Recent Signups
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="min-w-full leading-normal">
-              <thead>
-                <tr>
-                  <th className="px-5 py-3 border-b-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th className="px-5 py-3 border-b-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-5 py-3 border-b-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Role
-                  </th>
-                  <th className="px-5 py-3 border-b-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Signed Up
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentSignups.map((user) => (
-                  <tr key={user.id}>
-                    <td className="px-5 py-5 border-b text-sm">
-                      <div className="flex items-center">
-                        <div className="ml-3">
-                          <p className="text-gray-900 whitespace-no-wrap">
-                            {user.name}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-5 py-5 border-b text-sm">
-                      <p className="text-gray-900 whitespace-no-wrap">{user.email}</p>
-                    </td>
-                    <td className="px-5 py-5 border-b text-sm">
-                      <Badge>{user.role}</Badge>
-                    </td>
-                    <td className="px-5 py-5 border-b text-sm">
-                      <p className="text-gray-900 whitespace-no-wrap">
-                        <Clock className="h-4 w-4 inline-block mr-1" />
-                        Just now
-                      </p>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Tabs for Management */}
-      <Tabs defaultValue="users" className="w-full">
-        <TabsList>
-          {hasPermission(UserRole.SUPER_ADMIN) && (
-            <TabsTrigger value="users">
-              <Users className="h-4 w-4 mr-1" />
-              User Management
-            </TabsTrigger>
-          )}
-          {hasPermission(UserRole.SUPER_ADMIN) && (
-            <TabsTrigger value="roles">
-              <Shield className="h-4 w-4 mr-1" />
-              Role Assignment
-            </TabsTrigger>
-          )}
-          {hasPermission(UserRole.HOSPITAL_ADMIN) && (
-            <TabsTrigger value="fees">
-              <DollarSign className="h-4 w-4 mr-1" />
-              Doctor Fees
-            </TabsTrigger>
-          )}
-          {hasPermission(UserRole.HOSPITAL_ADMIN) && (
-            <TabsTrigger value="reports">
-              <ClipboardList className="h-4 w-4 mr-1" />
-              Reports
-            </TabsTrigger>
-          )}
-        </TabsList>
-        
-        {hasPermission(UserRole.SUPER_ADMIN) && (
-          <TabsContent value="users">
-            <UserManagement />
-          </TabsContent>
-        )}
-        {hasPermission(UserRole.SUPER_ADMIN) && (
-          <TabsContent value="roles">
-            <RoleAssignment />
-          </TabsContent>
-        )}
-        {hasPermission(UserRole.HOSPITAL_ADMIN) && (
-          <TabsContent value="fees">
-            <DoctorDispensaryFeeManager />
-          </TabsContent>
-        )}
-        {hasPermission(UserRole.HOSPITAL_ADMIN) && (
-          <TabsContent value="reports">
-            <ReportGenerator />
-          </TabsContent>
-        )}
-      </Tabs>
+    <div className="flex flex-col min-h-screen">
+      <Header />
+      <main className="flex-grow flex items-center justify-center">
+        <p className="text-xl">Loading dashboard...</p>
+      </main>
+      <Footer />
     </div>
   );
+}
+
+return (
+  <div className="flex flex-col min-h-screen">
+    <Header />
+    
+    <main className="flex-grow container mx-auto px-4 py-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+        {/* <div>
+          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <p className="text-gray-500">
+            Welcome  {currentUser?.name} ({currentUser?.role.replace('_', ' ')})
+          </p>
+        </div> */}
+        
+        {/* <div className="mt-4 md:mt-0 space-x-2">
+          <Button onClick={() => navigate('/admin/profile')} variant="outline">
+            Profile
+          </Button>
+          <Button onClick={handleLogout} variant="outline" className="bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700">
+            Logout
+          </Button>
+        </div> */}
+      </div>
+      
+      <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-2 md:grid-cols-7 mb-8">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          {currentUser?.role === UserRole.SUPER_ADMIN && (
+            <TabsTrigger value="dispensaries">Dispensaries</TabsTrigger>)}
+          {currentUser?.role === UserRole.SUPER_ADMIN && (
+            <TabsTrigger value="doctors">Doctors</TabsTrigger>)}
+          {(currentUser?.role === UserRole.SUPER_ADMIN || currentUser?.role === UserRole.HOSPITAL_ADMIN) && (
+            <TabsTrigger value="timeslots">TimeSlots</TabsTrigger>)}
+          {(currentUser?.role === UserRole.SUPER_ADMIN || currentUser?.role === UserRole.HOSPITAL_ADMIN) && (
+            <TabsTrigger value="bookings">Bookings</TabsTrigger>)}
+          {(currentUser?.role === UserRole.SUPER_ADMIN || currentUser?.role === UserRole.HOSPITAL_ADMIN) && (
+            <TabsTrigger value="reports">Reports</TabsTrigger>)}
+          {currentUser?.role === UserRole.SUPER_ADMIN && (
+            <TabsTrigger value="fee-management">Fee Management</TabsTrigger>)}
+          {currentUser?.role === UserRole.SUPER_ADMIN && (
+            <TabsTrigger value="user-dispensary">Assign Users</TabsTrigger>)}
+        </TabsList>
+        
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Dispensaries
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">4</div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Active Doctors
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">3</div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Today's Appointments
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">12</div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Completed Appointments
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">45</div>
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Add a new Time Slot Management card */}
+          
+          
+          {/* More dashboard content based on role */}
+          {currentUser?.role === UserRole.SUPER_ADMIN && (
+            <div className="mt-8">
+              <Card>
+                <CardHeader>
+                  <CardTitle>System Administration</CardTitle>
+                  <CardDescription>Manage users and system settings</CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <Button onClick={() => navigate('/admin/users')} className="w-full">
+                    Manage Users
+                  </Button>
+                  <Button onClick={() => navigate('/admin/roles')} className="w-full">
+                    Manage Roles
+                  </Button>
+                  <Button onClick={() => navigate('/admin/settings')} className="w-full">
+                    System Settings
+                  </Button>
+                  <Button onClick={() => navigate('/admin/user-dispensary')} className="w-full">
+                    User-Dispensary Assignment
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+          
+          {currentUser?.role === UserRole.HOSPITAL_ADMIN && (
+            <div className="mt-8">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Dispensary Management</CardTitle>
+                  <CardDescription>Manage your dispensary operations</CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <Button onClick={() => navigate('/admin/doctors')} className="w-full">
+                    Manage Doctors
+                  </Button>
+                  <Button onClick={() => navigate('/admin/dispensary/timeslots')} className="w-full">
+                    Manage Time Slots
+                  </Button>
+                  <Button onClick={() => navigate('/admin/dispensary/staff')} className="w-full">
+                    Manage Staff
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+          
+          {currentUser?.role === UserRole.hospital_staff && (
+            <div className="mt-8">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Patient Management</CardTitle>
+                  <CardDescription>Manage patient check-ins and appointments</CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Button onClick={() => navigate('/admin/patients/check-in')} className="w-full">
+                    Patient Check-In
+                  </Button>
+                  <Button onClick={() => navigate('/admin/appointments')} className="w-full">
+                    Today's Appointments
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="dispensaries" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Dispensaries Management</CardTitle>
+              <CardDescription>View and manage all dispensaries in the system</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p>Manage dispensary locations, contact information, and associated doctors.</p>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button onClick={() => navigate('/admin/dispensaries')} className="bg-medical-600 hover:bg-medical-700">
+                View All Dispensaries
+              </Button>
+              <Button onClick={() => navigate('/admin/dispensaries/create')} variant="outline">
+                Add New Dispensary
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="doctors" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Doctors Management</CardTitle>
+              <CardDescription>View and manage all doctors in the system</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p>Manage doctor profiles, specializations, qualifications, and dispensary assignments.</p>
+            </CardContent>
+            <CardFooter className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center justify-between">
+              <Button onClick={() => navigate('/admin/doctors')} className="bg-medical-600 hover:bg-medical-700">
+                View All Doctors
+              </Button>
+              <Button onClick={() => navigate('/admin/doctors/create')} variant="outline">
+                Add New Doctor
+              </Button>
+              <Button onClick={() => navigate('/admin/time-slots')} variant="outline">
+                Manage Time Slots
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="timeslots" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Time Slot Management</CardTitle>
+              <CardDescription>
+                Manage doctor time slots and availability at dispensaries
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 gap-4">
+              <Button onClick={() => navigate('/admin/time-slots')} className="bg-medical-600 hover:bg-medical-700">
+                Manage Time Slots
+              </Button>
+            </CardContent>
+          </Card>
+          </TabsContent>
+        
+        <TabsContent value="bookings" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Bookings Management</CardTitle>
+              <CardDescription>View and manage all bookings in the system</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p>Bookings list will be displayed here based on user role permissions.</p>
+            </CardContent>
+            <CardFooter>
+              <Button onClick={() => navigate('/admin/bookings')}>View All Bookings</Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="reports" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Reports</CardTitle>
+              <CardDescription>Generate and view system reports</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <Button onClick={() => navigate('/reports/daily-bookings')}>
+                  Daily Bookings Report
+                </Button>
+                <Button onClick={() => navigate('/reports/monthly-summary')}>
+                  Monthly Summary Report
+                </Button>
+                <Button onClick={() => navigate('/reports/doctor-performance')}>
+                  Doctor Performance Report
+                </Button>
+                {currentUser?.role === UserRole.SUPER_ADMIN && (
+                  <Button onClick={() => navigate('/reports/dispensary-revenue')}>
+                    Dispensary Revenue Report
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="fee-management" className="space-y-6">
+          <AdminFeeManage />
+        </TabsContent>
+
+        <TabsContent value="user-dispensary" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>User-Dispensary Assignment</CardTitle>
+              <CardDescription>
+                Manage user assignments to dispensaries and their roles
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <Button 
+                  onClick={() => navigate('/admin/user-dispensary')}
+                  className="w-full bg-medical-600 hover:bg-medical-700"
+                >
+                  Manage Assignments
+                </Button>
+                <Button 
+                  onClick={() => navigate('/admin/users')}
+                  className="w-full"
+                >
+                  Manage Users
+                </Button>
+                <Button 
+                  onClick={() => navigate('/admin/dispensaries')}
+                  className="w-full"
+                >
+                  Manage Dispensaries
+                </Button>
+              </div>
+            </CardContent>
+            <CardFooter className="flex flex-col space-y-4">
+              <div className="text-sm text-muted-foreground">
+                <p>Quick Actions:</p>
+                <ul className="list-disc list-inside mt-2">
+                  <li>Assign users to dispensaries</li>
+                  <li>Manage user roles and permissions</li>
+                  <li>View current assignments</li>
+                  <li>Update or remove assignments</li>
+                </ul>
+              </div>
+            </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Assignments</CardTitle>
+              <CardDescription>
+                Latest user-dispensary assignments and changes
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* This would be populated with actual data */}
+                <div className="text-sm text-muted-foreground">
+                  No recent assignments to display
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </main>
+    
+    <Footer />
+  </div>
+);
 };
 
 export default AdminDashboard;
