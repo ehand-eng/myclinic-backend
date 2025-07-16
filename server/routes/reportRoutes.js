@@ -377,17 +377,17 @@ router.post('/generate/dispensary-revenue', async (req, res) => {
 // Get daily bookings report
 router.get('/daily-bookings', validateJwt, async (req, res) => {
   try {
-    const { date, dispensaryId } = req.query;
-    const startDate = moment(date).startOf('day').toDate();
-    const endDate = moment(date).endOf('day').toDate();
+    let { date, dispensaryId, doctorId, timeSlot } = req.query;
+    if (!date) return res.status(400).json({ message: 'date is required' });
 
-    const query = {
-      bookingDate: { $gte: startDate, $lte: endDate }
-    };
+    // Parse as UTC
+    const start = new Date(date + 'T00:00:00.000Z');
+    const end = new Date(date + 'T23:59:59.999Z');
+    const query = { bookingDate: { $gte: start, $lte: end } };
 
-    if (dispensaryId) {
-      query.dispensaryId = dispensaryId;
-    }
+    if (dispensaryId) query.dispensaryId = dispensaryId;
+    if (doctorId) query.doctorId = doctorId;
+    if (timeSlot) query.timeSlot = timeSlot;
 
     const bookings = await Booking.find(query)
       .populate('doctorId', 'name specialization')
@@ -406,13 +406,16 @@ router.get('/daily-bookings', validateJwt, async (req, res) => {
         patientPhone: booking.patientPhone,
         status: booking.status,
         doctor: booking.doctorId,
+        doctorName: booking.doctorId && booking.doctorId.name ? booking.doctorId.name : '',
         dispensary: booking.dispensaryId,
+        dispensaryName: booking.dispensaryId && booking.dispensaryId.name ? booking.dispensaryId.name : '',
         checkedInTime: booking.checkedInTime,
-        completedTime: booking.completedTime
+        completedTime: booking.completedTime,
+        bookingDate: booking.bookingDate,
       }))
     };
 
-    res.json(summary);
+    res.status(200).json(summary);
   } catch (error) {
     console.error('Daily bookings report error:', error);
     res.status(500).json({ message: 'Failed to generate daily bookings report' });
@@ -536,6 +539,51 @@ router.get('/doctor-performance', validateJwt, async (req, res) => {
   } catch (error) {
     console.error('Doctor performance report error:', error);
     res.status(500).json({ message: 'Failed to generate doctor performance report' });
+  }
+});
+
+router.get('/advance-bookings', validateJwt, async (req, res) => {
+  try {
+    let { startDate, endDate, dispensaryId, doctorId } = req.query;
+    if (!startDate || !endDate) return res.status(400).json({ message: 'startDate and endDate are required' });
+
+    const start = new Date(startDate + 'T00:00:00.000Z');
+    const end = new Date(endDate + 'T23:59:59.999Z');
+    const query = { bookingDate: { $gte: start, $lte: end } };
+
+    if (dispensaryId) query.dispensaryId = dispensaryId;
+    if (doctorId) query.doctorId = doctorId;
+    console.log(query);
+    const bookings = await Booking.find(query)
+      .populate('doctorId', 'name specialization')
+      .populate('dispensaryId', 'name address')
+      .sort({ bookingDate: 1 });
+
+    const summary = {
+      total: bookings.length,
+      completed: bookings.filter(b => b.status === 'completed').length,
+      cancelled: bookings.filter(b => b.status === 'cancelled').length,
+      noShow: bookings.filter(b => b.status === 'no_show').length,
+      bookings: bookings.map(booking => ({
+        id: booking._id,
+        timeSlot: booking.timeSlot,
+        patientName: booking.patientName,
+        patientPhone: booking.patientPhone,
+        status: booking.status,
+        doctor: booking.doctorId,
+        doctorName: booking.doctorId && booking.doctorId.name ? booking.doctorId.name : '',
+        dispensary: booking.dispensaryId,
+        dispensaryName: booking.dispensaryId && booking.dispensaryId.name ? booking.dispensaryId.name : '',
+        checkedInTime: booking.checkedInTime,
+        completedTime: booking.completedTime,
+        bookingDate: booking.bookingDate,
+      }))
+    };
+    console.log(summary);
+    res.status(200).json(summary);
+  } catch (error) {
+    console.error('Advance bookings report error:', error);
+    res.status(500).json({ message: 'Failed to generate advance bookings report' });
   }
 });
 

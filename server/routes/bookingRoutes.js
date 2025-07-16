@@ -222,6 +222,19 @@ router.post('/', async (req, res) => {
     const timeSlot = `${estimatedHours}:${estimatedMinutes}-${endHours}:${endMinutes}`;
     
     // Create the booking
+    let bookedUser = 'online';
+    let bookedBy = 'ONLINE';
+
+    // If you use JWT auth and have req.user, use that:
+    if (req.user) {
+      bookedUser = req.user.id || req.user._id || 'online';
+      bookedBy = req.user.role ? req.user.role.toUpperCase() : 'ONLINE';
+    } else if (req.body.bookedUser && req.body.bookedBy) {
+      // Optionally allow frontend to send these fields
+      bookedUser = req.body.bookedUser;
+      bookedBy = req.body.bookedBy;
+    }
+
     const booking = new Booking({
       patientId,
       doctorId,
@@ -238,7 +251,9 @@ router.post('/', async (req, res) => {
       patientPhone,
       patientEmail,
       transactionId,
-      fees
+      fees,
+      bookedUser,
+      bookedBy,
     });
     
     await booking.save();
@@ -483,6 +498,8 @@ router.get('/summary/:transactionId', async (req, res) => {
         totalAmount: feeInfo.doctorFee + feeInfo.dispensaryFee + feeInfo.bookingCommission
       } : null,
       symptoms: booking.symptoms,
+      bookedUser: booking.bookedUser,
+      bookedBy: booking.bookedBy,
       createdAt: booking.createdAt
     };
 

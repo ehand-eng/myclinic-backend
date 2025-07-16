@@ -3,7 +3,8 @@ const router = express.Router();
 const Dispensary = require('../models/Dispensary');
 const Doctor = require('../models/Doctor');
 
-// Get all dispensaries
+/**Get all dispensaries
+ */
 router.get('/', async (req, res) => {
   try {
     const dispensaries = await Dispensary.find().populate('doctors', 'name specialization');
@@ -14,7 +15,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get dispensary by ID
+/**Get dispensary by ID
+ */
 router.get('/:id', async (req, res) => {
   try {
     const dispensary = await Dispensary.findById(req.params.id).populate('doctors', 'name specialization');
@@ -121,10 +123,11 @@ router.put('/:id', async (req, res) => {
     if (!dispensary) {
       return res.status(404).json({ message: 'Dispensary not found' });
     }
-    
+    console.log("======== dispensary ============== "+JSON.stringify(dispensary));
     // Handle doctor associations if they've changed
     if (req.body.doctors && JSON.stringify(dispensary.doctors) !== JSON.stringify(req.body.doctors)) {
       // Remove dispensary from old doctors that are not in the new list
+      console.log("-----------inside "+JSON.stringify(dispensary.doctors));
       for (const oldDocId of dispensary.doctors) {
         if (!req.body.doctors.includes(oldDocId.toString())) {
           const doctor = await Doctor.findById(oldDocId);
@@ -137,6 +140,7 @@ router.put('/:id', async (req, res) => {
       
       // Add dispensary to new doctors
       for (const newDocId of req.body.doctors) {
+        console.log("!!!!!!!!!!!! new doctor !!!!!!!!!! "+newDocId)
         if (!dispensary.doctors.map(id => id.toString()).includes(newDocId)) {
           const doctor = await Doctor.findById(newDocId);
           if (doctor && !doctor.dispensaries.map(id => id.toString()).includes(dispensary._id.toString())) {

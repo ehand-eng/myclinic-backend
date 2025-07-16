@@ -291,6 +291,179 @@ router.get('/available/:doctorId/:dispensaryId/:date', async (req, res) => {
   }
 });
 
+// New endpoint to get next 5 available days with time slots
+router.get('/next-available/:doctorId/:dispensaryId', async (req, res) => {
+  try {
+    const { doctorId, dispensaryId } = req.params;
+    const logger = require('../utils/logger');
+    
+    logger.info('Fetching next 5 available days', {
+      requestId: req.requestId,
+      doctorId,
+      dispensaryId
+    });
+
+    // Get all time slot configurations for this doctor-dispensary pair
+    const timeSlotConfigs = await TimeSlotConfig.find({
+      doctorId: doctorId,
+      dispensaryId: dispensaryId
+    });
+
+    if (!timeSlotConfigs || timeSlotConfigs.length === 0) {
+      logger.warn('No time slot configurations found', {
+        requestId: req.requestId,
+        doctorId,
+        dispensaryId
+      });
+      return res.status(200).json({
+        available: false,
+        message: 'No schedule found for this doctor at this dispensary'
+      });
+    }
+
+    const BookingModel = mongoose.models.Booking || mongoose.model('Booking', new mongoose.Schema({}));
+    const availableDays = [];
+    let daysChecked = 0;
+    const maxDaysToCheck = 30; // Check up to 30 days to find 5 available days
+
+    // Start from today
+    let currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+
+    while (availableDays.length < 5 && daysChecked < maxDaysToCheck) {
+      const dayOfWeek = currentDate.getDay();
+      
+      // Find configuration for this day of week
+      const timeSlotConfig = timeSlotConfigs.find(config => config.dayOfWeek === dayOfWeek);
+      
+      if (timeSlotConfig) {
+        // Check if there's an absent/modified session for this specific date
+        const absentSlot = await AbsentTimeSlot.findOne({
+          doctorId: doctorId,
+          dispensaryId: dispensaryId,
+          date: {
+            $gte: new Date(currentDate),
+            $lte: new Date(currentDate.getTime() + 24 * 60 * 60 * 1000 - 1)
+          }
+        });
+
+        // Skip if completely absent
+        if (absentSlot && !absentSlot.isModifiedSession) {
+          currentDate.setDate(currentDate.getDate() + 1);
+          daysChecked++;
+          continue;
+        }
+
+        // Determine session parameters
+        let startTime, endTime, minutesPerPatient, maxPatients;
+        let isModified = false;
+
+        if (absentSlot && absentSlot.isModifiedSession) {
+          startTime = absentSlot.startTime;
+          endTime = absentSlot.endTime;
+          maxPatients = absentSlot.maxPatients || timeSlotConfig.maxPatients;
+          minutesPerPatient = absentSlot.minutesPerPatient || timeSlotConfig.minutesPerPatient;
+          isModified = true;
+        } else {
+          startTime = timeSlotConfig.startTime;
+          endTime = timeSlotConfig.endTime;
+          maxPatients = timeSlotConfig.maxPatients;
+          minutesPerPatient = timeSlotConfig.minutesPerPatient;
+        }
+
+        // Get existing bookings for this date
+        const existingBookings = await BookingModel.find({
+          doctorId: doctorId,
+          dispensaryId: dispensaryId,
+          bookingDate: {
+            $gte: new Date(currentDate),
+            $lte: new Date(currentDate.getTime() + 24 * 60 * 60 * 1000 - 1)
+          },
+          status: { $ne: 'cancelled' }
+        }).sort({ appointmentNumber: 1 });
+
+        // Calculate bookings done and next appointment number
+        const bookingsDone = existingBookings.length;
+        const nextAppointmentNumber = bookingsDone + 1;
+        
+        // Check if there's still capacity for more bookings
+        const hasAvailableSlots = bookingsDone < maxPatients;
+
+        // Calculate total session duration in minutes
+        const [startHour, startMinute] = startTime.split(':').map(Number);
+        const [endHour, endMinute] = endTime.split(':').map(Number);
+        const totalSessionMinutes = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
+        
+        // Calculate max possible appointments based on time and minutes per patient
+        // const maxPossibleAppointments = Math.min(
+        //   maxPatients,
+        //   Math.floor(totalSessionMinutes / minutesPerPatient)
+        // );
+
+        // Only add this day if there are available slots
+        if (hasAvailableSlots && nextAppointmentNumber <= maxPossibleAppointments) {
+          const dateString = currentDate.toISOString().split('T')[0];
+          const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek];
+          
+          availableDays.push({
+            date: dateString,
+            dayName: dayName,
+            startTime: startTime,
+            endTime: endTime,
+            bookingsDone: bookingsDone,
+            nextAppointmentNumber: nextAppointmentNumber,
+            maxPatients: maxPatients,
+            // maxPossibleAppointments: maxPossibleAppointments,
+            minutesPerPatient: minutesPerPatient,
+            sessionInfo: {
+              startTime,
+              endTime,
+              minutesPerPatient,
+              maxPatients
+            },
+            isModified,
+            isFullyBooked: bookingsDone >= maxPatients,
+            remainingSlots: maxPatients - bookingsDone
+          });
+        }
+      }
+
+      // Move to next day
+      currentDate.setDate(currentDate.getDate() + 1);
+      daysChecked++;
+    }
+
+    logger.info('Successfully fetched next available days', {
+      requestId: req.requestId,
+      doctorId,
+      dispensaryId,
+      availableDaysCount: availableDays.length,
+      daysChecked
+    });
+
+    res.status(200).json({
+      available: availableDays.length > 0,
+      availableDays: availableDays,
+      totalAvailableDays: availableDays.length
+    });
+
+  } catch (error) {
+    const logger = require('../utils/logger');
+    logger.error('Error fetching next available days', {
+      requestId: req.requestId,
+      doctorId: req.params.doctorId,
+      dispensaryId: req.params.dispensaryId,
+      error: error.message,
+      stack: error.stack
+    });
+    
+    res.status(500).json({
+      message: 'Error fetching next available days',
+      error: error.message
+    });
+  }
+});
+
 // Get fees for a time slot
 router.get('/fees/:timeSlotId', async (req, res) => {
   try {

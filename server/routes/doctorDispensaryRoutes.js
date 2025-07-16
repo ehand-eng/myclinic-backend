@@ -134,10 +134,13 @@ router.get('/dispensary/:dispensaryId/fees', async (req, res) => {
 });
 
 // Update fees for a specific doctor-dispensary combination
-router.put('/fees/:doctorId/:dispensaryId', validateJwt, requireRole([ROLES.SUPER_ADMIN, ROLES.hospital_admin]), async (req, res) => {
+// router.put('/fees/:doctorId/:dispensaryId', requireRole([ROLES.SUPER_ADMIN, ROLES.hospital_admin]), async (req, res) => {
+  router.put('/fees/:doctorId/:dispensaryId', async (req, res) => {
   try {
+    console.log("...............fees put ...........");
     const { doctorId, dispensaryId } = req.params;
     const { doctorFee, dispensaryFee, bookingCommission } = req.body;
+    console.log("************* doctorId ********** "+doctorId +" dispensaryId "+dispensaryId);
 
     // Find and update the doctor-dispensary combination
     const doctorDispensary = await DoctorDispensary.findOneAndUpdate(

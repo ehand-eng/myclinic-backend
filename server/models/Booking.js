@@ -78,6 +78,14 @@ const bookingSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
+  bookedUser: {
+    type: String,
+    default: 'online'
+  },
+  bookedBy: {
+    type: String,
+    default: 'ONLINE'
+  },
   createdAt: {
     type: Date,
     default: Date.now

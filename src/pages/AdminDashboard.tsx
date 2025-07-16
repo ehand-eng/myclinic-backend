@@ -340,7 +340,7 @@ return (
               <p>Bookings list will be displayed here based on user role permissions.</p>
             </CardContent>
             <CardFooter>
-              <Button onClick={() => navigate('/admin/bookings')}>View All Bookings</Button>
+              <Button onClick={() => navigate('/booking')}>View All Bookings</Button>
             </CardFooter>
           </Card>
         </TabsContent>
