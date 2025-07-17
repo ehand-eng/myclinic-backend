@@ -401,7 +401,7 @@ router.get('/next-available/:doctorId/:dispensaryId', async (req, res) => {
         // );
 
         // Only add this day if there are available slots
-        if (hasAvailableSlots && nextAppointmentNumber <= maxPossibleAppointments) {
+        if (hasAvailableSlots && nextAppointmentNumber <= maxPatients) {
           const dateString = currentDate.toISOString().split('T')[0];
           const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek];
           
