@@ -80,7 +80,7 @@ router.post('/login', async (req, res) => {
       roleNames = roleResponse.data.map(role => role.name);
     }
     console.log('Logged user has role :', JSON.stringify(roleResponse, null, 2));
-    let userRole = 'hospital_staff';
+    let userRole = '';
     if (roleNames.includes('super_admin')) {
       userRole = 'super_admin';
     } else if (roleNames.includes('hospital_admin')) {

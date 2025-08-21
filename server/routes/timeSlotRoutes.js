@@ -328,8 +328,9 @@ router.get('/next-available/:doctorId/:dispensaryId', async (req, res) => {
 
     // Start from today
     let currentDate = new Date();
+    console.log("--------- first current date ----------- "+currentDate);
     currentDate.setHours(0, 0, 0, 0);
-
+    const now = new Date();
     while (availableDays.length < 5 && daysChecked < maxDaysToCheck) {
       const dayOfWeek = currentDate.getDay();
       
@@ -353,9 +354,9 @@ router.get('/next-available/:doctorId/:dispensaryId', async (req, res) => {
           daysChecked++;
           continue;
         }
-
+        console.log("11111 current date 11111 "+currentDate);
         // Determine session parameters
-        let startTime, endTime, minutesPerPatient, maxPatients;
+        let startTime, endTime, minutesPerPatient, maxPatients, bookingCutoverTime;
         let isModified = false;
 
         if (absentSlot && absentSlot.isModifiedSession) {
@@ -363,14 +364,35 @@ router.get('/next-available/:doctorId/:dispensaryId', async (req, res) => {
           endTime = absentSlot.endTime;
           maxPatients = absentSlot.maxPatients || timeSlotConfig.maxPatients;
           minutesPerPatient = absentSlot.minutesPerPatient || timeSlotConfig.minutesPerPatient;
+          bookingCutoverTime = absentSlot.bookingCutoverTime || timeSlotConfig.bookingCutoverTime || 60;
           isModified = true;
         } else {
           startTime = timeSlotConfig.startTime;
           endTime = timeSlotConfig.endTime;
           maxPatients = timeSlotConfig.maxPatients;
           minutesPerPatient = timeSlotConfig.minutesPerPatient;
+          bookingCutoverTime = timeSlotConfig.bookingCutoverTime || 60;
         }
-
+        console.log("startTime :"+startTime +" endTime :"+endTime);
+        // Calculate session start Date object
+        const [startHour, startMinute] = startTime.split(':').map(Number);
+        const sessionStart = new Date(currentDate);
+        sessionStart.setHours(startHour, startMinute, 0, 0);
+        // Booking cutover time
+        const cutover = new Date(sessionStart.getTime() - bookingCutoverTime * 60000);
+        console.log("+++++++++++ cutover time ++++++ "+cutover);
+        console.log("?????? "+currentDate);
+        let isToday = currentDate.toDateString() === now.toDateString();
+        // If today and now > cutover, skip this day
+        console.log("mmmmmmm istoday mmmmmmmmm "+isToday + " cccc "+currentDate);
+        console.log(" FFFFF : "+currentDate);
+        if (isToday && now > cutover) {
+          currentDate.setDate(currentDate.getDate() + 1);
+          console.log("!!!!!!!!! now > cutover !!!! "+currentDate);
+          daysChecked++;
+          continue;
+        }
+        console.log('ddddd '+currentDate);
         // Get existing bookings for this date
         const existingBookings = await BookingModel.find({
           doctorId: doctorId,
@@ -381,30 +403,24 @@ router.get('/next-available/:doctorId/:dispensaryId', async (req, res) => {
           },
           status: { $ne: 'cancelled' }
         }).sort({ appointmentNumber: 1 });
-
         // Calculate bookings done and next appointment number
         const bookingsDone = existingBookings.length;
         const nextAppointmentNumber = bookingsDone + 1;
-        
         // Check if there's still capacity for more bookings
         const hasAvailableSlots = bookingsDone < maxPatients;
-
         // Calculate total session duration in minutes
-        const [startHour, startMinute] = startTime.split(':').map(Number);
         const [endHour, endMinute] = endTime.split(':').map(Number);
         const totalSessionMinutes = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
-        
-        // Calculate max possible appointments based on time and minutes per patient
-        // const maxPossibleAppointments = Math.min(
-        //   maxPatients,
-        //   Math.floor(totalSessionMinutes / minutesPerPatient)
-        // );
-
         // Only add this day if there are available slots
         if (hasAvailableSlots && nextAppointmentNumber <= maxPatients) {
-          const dateString = currentDate.toISOString().split('T')[0];
+          console.log("before &&&&&&&&&&&&&& "+currentDate);
+          const year = currentDate.getFullYear();
+          const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+          const day = String(currentDate.getDate()).padStart(2, '0');
+          const dateString = `${year}-${month}-${day}`;
+          // const dateString = currentDate.toISOString().split('T')[0];
+          console.log("zzzzzzzzzzzzzzz dateString zzzzzzz "+dateString);
           const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek];
-          
           availableDays.push({
             date: dateString,
             dayName: dayName,

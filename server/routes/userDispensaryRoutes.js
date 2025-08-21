@@ -97,38 +97,32 @@ router.delete('/unassign', async (req, res) => {
     const { userId, dispensaryId } = req.body;
 
     // Get user from our database
-    const user = await User.findOne({ auth0Id: userId });
+    console.log('userId >>>>>>>>>>> nnnnnnnnnn : ', userId);
+    const user = await User.findById(userId);
+    console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!  : ', JSON.stringify(user));
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Remove dispensary from user's assignments
-    user.dispensaryIds = user.dispensaryIds.filter(id => id !== dispensaryId);
-
-    // If user has no dispensaries left, set role to basic user
-    if (user.dispensaryIds.length === 0) {
-      user.role = 'user';
-    }
-
-    await user.save();
-
-    // Update Auth0 user metadata
+    // Delete user from Auth0 first
     try {
-      await auth0Management.users.update({ id: userId }, {
-        app_metadata: {
-          dispensaryIds: user.dispensaryIds,
-          role: user.role
-        }
-      });
+      if (user.auth0Id) {
+        await auth0Management.users.delete({ id: user.auth0Id });
+        console.log('User deleted from Auth0 successfully');
+      }
     } catch (auth0Error) {
-      console.error('Error updating Auth0 user:', auth0Error);
-      // Continue even if Auth0 update fails
+      console.error('Error deleting user from Auth0:', auth0Error);
+      // Continue even if Auth0 deletion fails
     }
 
-    res.json({ message: 'User removed from dispensary successfully', user });
+    // Delete user from our database
+    await User.findByIdAndDelete(userId);
+    console.log('User deleted from database successfully');
+
+    res.json({ message: 'User deleted successfully' });
   } catch (error) {
-    console.error('Error removing user from dispensary:', error);
-    res.status(500).json({ message: 'Failed to remove user from dispensary' });
+    console.error('Error deleting user:', error);
+    res.status(500).json({ message: 'Failed to delete user' });
   }
 });
 
@@ -181,12 +175,14 @@ router.put('/update-role', validateJwt, requireRole([ROLES.SUPER_ADMIN]), async 
 
     // Update Auth0 user metadata
     try {
-      await auth0Management.users.update({ id: userId }, {
-        app_metadata: {
-          dispensaryIds: user.dispensaryIds,
-          role: user.role
-        }
-      });
+      if (user.auth0Id) {
+        await auth0Management.users.update({ id: user.auth0Id }, {
+          app_metadata: {
+            dispensaryIds: user.dispensaryIds,
+            role: user.role
+          }
+        });
+      }
     } catch (auth0Error) {
       console.error('Error updating Auth0 user:', auth0Error);
       // Continue even if Auth0 update fails

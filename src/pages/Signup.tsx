@@ -63,8 +63,8 @@ const Signup = () => {
       });
 
       // Store the token
-      localStorage.setItem('auth_token', response.data.access_token);
-      localStorage.setItem('current_user', JSON.stringify(response.data.user));
+      //localStorage.setItem('auth_token', response.data.access_token);
+      //localStorage.setItem('current_user', JSON.stringify(response.data.user));
 
       toast({
         title: "Success",
@@ -72,7 +72,8 @@ const Signup = () => {
       });
 
       // Redirect to dashboard
-      navigate('/admin/dashboard');
+      // navigate('/admin/dashboard');
+      navigate('/login');
     } catch (error: any) {
       toast({
         title: "Error",

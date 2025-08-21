@@ -34,6 +34,11 @@ const timeSlotConfigSchema = new mongoose.Schema({
     type: Number,
     default: 15,
     required: true
+  },
+  bookingCutoverTime: {
+    type: Number,
+    default: 60, // minutes before session start when online booking closes
+    required: false
   }
 }, { 
   timestamps: {

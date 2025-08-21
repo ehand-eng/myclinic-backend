@@ -101,9 +101,11 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId }: BookingFormProps)
   // Filter dispensaries when doctor changes
   useEffect(() => {
     const fetchDoctorDispensaries = async () => {
+      console.log("=================== find dispensaries by doctor =========== selectedDispensary  "+selectedDispensary);
       if (!selectedDoctor) return;
-      
+      if(selectedDispensary) return;
       try {
+        console.log("calling dispensaries");
         setIsLoading(true);
         const doctorDispensaries = await DispensaryService.getDispensariesByDoctorId(selectedDoctor);
         setDispensaries(doctorDispensaries);
@@ -125,10 +127,12 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId }: BookingFormProps)
   // Filter doctors when dispensary changes
   useEffect(() => {
     const fetchDispensaryDoctors = async () => {
+      console.log("======= find doctors by dispensary== selectedDispensary : "+selectedDispensary);
       if (!selectedDispensary) return;
-      
+      if(selectedDoctor) return;
       try {
         setIsLoading(true);
+        console.log("calling doctors......")
         const dispensaryDoctors = await DoctorService.getDoctorsByDispensaryId(selectedDispensary);
         setDoctors(dispensaryDoctors);
         

@@ -136,7 +136,8 @@ return (
       
       <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid grid-cols-2 md:grid-cols-7 mb-8">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
+        {currentUser?.role === UserRole.SUPER_ADMIN && (
+          <TabsTrigger value="overview">Overview</TabsTrigger>)}
           {currentUser?.role === UserRole.SUPER_ADMIN && (
             <TabsTrigger value="dispensaries">Dispensaries</TabsTrigger>)}
           {currentUser?.role === UserRole.SUPER_ADMIN && (
