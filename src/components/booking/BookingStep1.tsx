@@ -22,6 +22,10 @@ interface BookingStep1Props {
   availability: TimeSlotAvailability | null;
   isLoading: boolean;
   onContinue: () => void;
+  readOnly?: {
+    doctor?: boolean;
+    dispensary?: boolean;
+  };
 }
 
 const BookingStep1: React.FC<BookingStep1Props> = ({
@@ -35,7 +39,8 @@ const BookingStep1: React.FC<BookingStep1Props> = ({
   setSelectedDate,
   availability,
   isLoading,
-  onContinue
+  onContinue,
+  readOnly
 }) => {
   return (
     <>
@@ -45,7 +50,7 @@ const BookingStep1: React.FC<BookingStep1Props> = ({
           <Select
             value={selectedDoctor}
             onValueChange={setSelectedDoctor}
-            disabled={isLoading}
+            disabled={isLoading || readOnly?.doctor}
           >
             <SelectTrigger id="doctor" className="w-full">
               <SelectValue placeholder="Choose a doctor" />
@@ -65,7 +70,7 @@ const BookingStep1: React.FC<BookingStep1Props> = ({
           <Select
             value={selectedDispensary}
             onValueChange={setSelectedDispensary}
-            disabled={isLoading}
+            disabled={isLoading || readOnly?.dispensary}
           >
             <SelectTrigger id="dispensary" className="w-full">
               <SelectValue placeholder="Choose a dispensary" />

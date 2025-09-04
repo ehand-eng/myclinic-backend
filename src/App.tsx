@@ -28,6 +28,7 @@ import Signup from './pages/Signup';
 import AdminFeeManage from './pages/AdminFeeManage';
 import MobileHome from './pages/MobileHome';
 import TimeSlotManagement from './pages/TimeSlotManagement';
+import CustomRoleManagement from './pages/admin/CustomRoleManagement';
 import { Dashboard } from '@mui/icons-material';
 
 const App = () => {
@@ -56,6 +57,7 @@ const App = () => {
         <Route path="/admin/dispensaries/edit/:id" element={<EditDispensary />} />
         <Route path="/admin/dispensaries/view/:id" element={<ViewDispensary />} />
         <Route path="/admin/user-dispensary" element={<UserDispensaryAssignment />} />
+        <Route path="/admin/roles" element={<CustomRoleManagement />} />
         <Route path='/admin/fees' element={<AdminFeeManage/>}/>
         
         {/* Specific Routes */}

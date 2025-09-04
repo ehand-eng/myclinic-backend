@@ -5,8 +5,142 @@ const TimeSlotConfig = require('../models/TimeSlotConfig');
 const AbsentTimeSlot = require('../models/AbsentTimeSlot');
 const DoctorDispensary = require('../models/DoctorDispensary');
 const mongoose = require('mongoose');
+const roleMiddleware = require('../middleware/roleMiddleware');
 
-// Get all bookings
+// Search bookings - restricted to Super Admin and Dispensary Admin only
+router.get('/search', roleMiddleware.requireAdvancedBookingAccess, async (req, res) => {
+  try {
+    console.log("======== bookingRoutes ============== "+req.query);
+    const { query, searchType } = req.query;
+    
+    // Validate required parameters
+    if (!query || !query.trim()) {
+      return res.status(400).json({ 
+        message: 'Search query is required',
+        example: '/api/bookings/search?query=0773837922&searchType=phone'
+      });
+    }
+
+    if (!searchType) {
+      return res.status(400).json({ 
+        message: 'searchType parameter is required',
+        validTypes: ['id', 'transactionId', 'phone', 'name'],
+        example: '/api/bookings/search?query=0773837922&searchType=phone'
+      });
+    }
+
+    const trimmedQuery = query.trim();
+    let searchCriteria = {};
+    
+    // Build search criteria based on searchType - NEVER cast to ObjectId unless searchType is "id"
+    switch (searchType) {
+      case 'id':
+        // Only cast to ObjectId when specifically searching by _id
+        if (!mongoose.Types.ObjectId.isValid(trimmedQuery)) {
+          return res.status(400).json({ 
+            message: 'Invalid booking ID format. Must be a valid MongoDB ObjectId.',
+            example: '507f1f77bcf86cd799439011'
+          });
+        }
+        searchCriteria = { _id: new mongoose.Types.ObjectId(trimmedQuery) };
+        break;
+        
+      case 'transactionId':
+        // Exact match for transaction ID
+        searchCriteria = { transactionId: trimmedQuery };
+        break;
+        
+      case 'phone':
+        // Exact or partial match for phone number
+        searchCriteria = { patientPhone: { $regex: trimmedQuery, $options: 'i' } };
+        break;
+        
+      case 'name':
+        // Case-insensitive partial match for patient name
+        searchCriteria = { patientName: { $regex: trimmedQuery, $options: 'i' } };
+        break;
+        
+      default:
+        return res.status(400).json({ 
+          message: `Invalid searchType: "${searchType}"`,
+          validTypes: ['id', 'transactionId', 'phone', 'name'],
+          example: '/api/bookings/search?query=0773837922&searchType=phone'
+        });
+    }
+
+    console.log(`Searching bookings with criteria:`, JSON.stringify(searchCriteria));
+
+    // Execute the search query
+    const bookings = await Booking.find(searchCriteria)
+      .populate('doctorId', 'name specialization')
+      .populate('dispensaryId', 'name address')
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .lean(); // Use lean() for better performance
+
+    // Handle no results case
+    if (!bookings || bookings.length === 0) {
+      return res.status(200).json({ 
+        message: 'No bookings found',
+        searchType,
+        query: trimmedQuery,
+        count: 0,
+        results: []
+      });
+    }
+
+    // Format the results safely
+    const searchResults = bookings.map(booking => ({
+      _id: booking._id,
+      transactionId: booking.transactionId || 'N/A',
+      patientName: booking.patientName || 'Unknown',
+      patientPhone: booking.patientPhone || 'N/A',
+      patientEmail: booking.patientEmail || null,
+      doctorName: booking.doctorId?.name || 'Unknown Doctor',
+      doctorSpecialization: booking.doctorId?.specialization || 'Unknown',
+      dispensaryName: booking.dispensaryId?.name || 'Unknown Dispensary',
+      dispensaryAddress: booking.dispensaryId?.address || 'Unknown Address',
+      bookingDate: booking.bookingDate,
+      estimatedTime: booking.estimatedTime || 'N/A',
+      appointmentNumber: booking.appointmentNumber || 0,
+      status: booking.status || 'unknown',
+      symptoms: booking.symptoms || null,
+      createdAt: booking.createdAt
+    }));
+
+    // Return successful response
+    res.status(200).json({
+      message: `Found ${searchResults.length} booking${searchResults.length !== 1 ? 's' : ''}`,
+      searchType,
+      query: trimmedQuery,
+      count: searchResults.length,
+      results: searchResults
+    });
+
+  } catch (error) {
+    console.error('Error in booking search:', error);
+    
+    // Handle specific MongoDB errors
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        message: 'Invalid search parameters',
+        error: 'Data type mismatch in search query',
+        searchType: req.query.searchType,
+        query: req.query.query
+      });
+    }
+
+    // Generic error response
+    res.status(500).json({ 
+      message: 'Server error during booking search',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+      searchType: req.query.searchType,
+      count: 0,
+      results: []
+    });
+  }
+});
+
 router.get('/', async (req, res) => {
   try {
     const bookings = await Booking.find().sort({ bookingDate: -1 });
@@ -47,6 +181,7 @@ router.get('/doctor/:doctorId/dispensary/:dispensaryId/date/:date', async (req, 
 // Get a specific booking
 router.get('/:id', async (req, res) => {
   try {
+    console.log("======== booking ============== "+req.params.id);
     const booking = await Booking.findById(req.params.id);
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
@@ -452,8 +587,11 @@ router.get('/next-available/:doctorId/:dispensaryId/:date', async (req, res) => 
   }
 });
 
-// Get booking summary by transaction ID
-router.get('/summary/:transactionId', async (req, res) => {
+// Search bookings by multiple criteria
+
+
+// Get booking summary by transaction ID - restricted to Super Admin and Dispensary Admin only
+router.get('/summary/:transactionId', roleMiddleware.requireAdvancedBookingAccess, async (req, res) => {
   try {
     const booking = await Booking.findOne({ transactionId: req.params.transactionId })
       .populate('doctorId', 'name specialization')
@@ -472,6 +610,7 @@ router.get('/summary/:transactionId', async (req, res) => {
 
     // Format the summary data
     const summary = {
+      _id: booking._id,
       transactionId: booking.transactionId,
       bookingDate: booking.bookingDate,
       timeSlot: booking.timeSlot,
@@ -507,6 +646,165 @@ router.get('/summary/:transactionId', async (req, res) => {
   } catch (error) {
     console.error('Error getting booking summary:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Adjust booking to new date/time - restricted to Super Admin and Dispensary Admin only
+router.patch('/:id/adjust', roleMiddleware.requireAdvancedBookingAccess, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newDate, doctorId, dispensaryId } = req.body;
+
+    // Find the existing booking
+    const existingBooking = await Booking.findById(id);
+    if (!existingBooking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    // Check if booking can be adjusted (only scheduled bookings)
+    if (existingBooking.status !== 'scheduled') {
+      return res.status(400).json({ 
+        message: 'Only scheduled bookings can be adjusted' 
+      });
+    }
+
+    // Parse the new date
+    const parsedDate = new Date(newDate);
+    const dayOfWeek = parsedDate.getDay();
+    
+    // Get the time slot configuration for the new date
+    const timeSlotConfig = await TimeSlotConfig.findOne({
+      doctorId: doctorId || existingBooking.doctorId,
+      dispensaryId: dispensaryId || existingBooking.dispensaryId,
+      dayOfWeek
+    });
+    
+    if (!timeSlotConfig) {
+      return res.status(400).json({ 
+        message: 'No time slot configuration found for this doctor and dispensary on the new date' 
+      });
+    }
+
+    // Check if there's a modified session for the new date
+    const startOfDay = new Date(parsedDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(parsedDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const absentSlot = await AbsentTimeSlot.findOne({
+      doctorId: doctorId || existingBooking.doctorId,
+      dispensaryId: dispensaryId || existingBooking.dispensaryId,
+      date: {
+        $gte: startOfDay,
+        $lte: endOfDay
+      }
+    });
+    
+    // If completely absent, return an error
+    if (absentSlot && !absentSlot.isModifiedSession) {
+      return res.status(400).json({ 
+        message: 'Doctor is not available on the new date' 
+      });
+    }
+    
+    // Determine session parameters
+    let startTime, endTime, maxPatients, minutesPerPatient;
+    
+    if (absentSlot && absentSlot.isModifiedSession) {
+      startTime = absentSlot.startTime;
+      endTime = absentSlot.endTime;
+      maxPatients = absentSlot.maxPatients || timeSlotConfig.maxPatients;
+      minutesPerPatient = absentSlot.minutesPerPatient || timeSlotConfig.minutesPerPatient;
+    } else {
+      startTime = timeSlotConfig.startTime;
+      endTime = timeSlotConfig.endTime;
+      maxPatients = timeSlotConfig.maxPatients;
+      minutesPerPatient = timeSlotConfig.minutesPerPatient || 15;
+    }
+    
+    // Find existing bookings for the new date (excluding the current booking being adjusted)
+    const existingBookings = await Booking.find({
+      _id: { $ne: id }, // Exclude current booking
+      doctorId: doctorId || existingBooking.doctorId,
+      dispensaryId: dispensaryId || existingBooking.dispensaryId,
+      bookingDate: {
+        $gte: startOfDay,
+        $lte: endOfDay
+      },
+      status: { $ne: 'cancelled' }
+    }).sort({ appointmentNumber: 1 });
+    
+    // If all slots are booked for the new date
+    if (existingBookings.length >= maxPatients) {
+      return res.status(400).json({ 
+        message: 'All appointments for the new date are booked' 
+      });
+    }
+    
+    // Find the next available appointment number for the new date
+    let nextAppointmentNumber = 1;
+    const bookedAppointments = new Set();
+    existingBookings.forEach(booking => {
+      bookedAppointments.add(booking.appointmentNumber);
+    });
+    
+    while (bookedAppointments.has(nextAppointmentNumber) && nextAppointmentNumber <= maxPatients) {
+      nextAppointmentNumber++;
+    }
+    
+    // Calculate the estimated time for the new appointment
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const appointmentOffset = (nextAppointmentNumber - 1) * minutesPerPatient;
+    
+    const appointmentDateTime = new Date(parsedDate);
+    appointmentDateTime.setHours(startHour, startMinute, 0, 0);
+    appointmentDateTime.setMinutes(appointmentDateTime.getMinutes() + appointmentOffset);
+    
+    const estimatedHours = appointmentDateTime.getHours().toString().padStart(2, '0');
+    const estimatedMinutes = appointmentDateTime.getMinutes().toString().padStart(2, '0');
+    const estimatedTime = `${estimatedHours}:${estimatedMinutes}`;
+    
+    // Calculate the time slot range
+    const endOfAppointment = new Date(appointmentDateTime);
+    endOfAppointment.setMinutes(endOfAppointment.getMinutes() + minutesPerPatient);
+    
+    const endHours = endOfAppointment.getHours().toString().padStart(2, '0');
+    const endMinutes = endOfAppointment.getMinutes().toString().padStart(2, '0');
+    
+    const timeSlot = `${estimatedHours}:${estimatedMinutes}-${endHours}:${endMinutes}`;
+    
+    // Update the existing booking with new date/time information
+    const updatedBooking = await Booking.findByIdAndUpdate(
+      id,
+      {
+        doctorId: doctorId || existingBooking.doctorId,
+        dispensaryId: dispensaryId || existingBooking.dispensaryId,
+        bookingDate: parsedDate,
+        timeSlot,
+        appointmentNumber: nextAppointmentNumber,
+        estimatedTime,
+        // Keep all other fields the same (patient info, fees, etc.)
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedBooking) {
+      return res.status(500).json({ message: 'Failed to update booking' });
+    }
+
+    console.log("Booking adjusted successfully:", updatedBooking);
+    res.status(200).json({
+      message: 'Booking adjusted successfully',
+      booking: updatedBooking
+    });
+    
+  } catch (error) {
+    console.error('Error adjusting booking:', error);
+    res.status(500).json({ 
+      message: 'Error adjusting booking', 
+      error: error.message 
+    });
   }
 });
 

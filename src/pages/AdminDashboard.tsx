@@ -28,9 +28,19 @@ import { AuthService, DoctorService, DispensaryService, BookingService } from '@
 import UserManagement from '@/components/admin/UserManagement';
 import RoleAssignment from '@/components/admin/RoleAssignment';
 import ReportGenerator from '@/components/admin/ReportGenerator';
+import CustomRoleAssignment from '@/components/admin/CustomRoleAssignment';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import AdminFeeManage from './AdminFeeManage';
+import { 
+  isSuperAdmin, 
+  canManageDispensaries, 
+  canManageDoctors, 
+  canManageTimeslots, 
+  canManageBookings, 
+  canViewReports, 
+  canManageFees 
+} from '@/lib/roleUtils';
 // import DoctorDispensaryFeeManager from '@/components/AdminF';
 
 // Get API URL from environment variables with fallback
@@ -59,9 +69,12 @@ const AdminDashboard = () => {
         // Get token from local storage
         const token = localStorage.getItem('auth_token');
         const userStr = localStorage.getItem("current_user");
-        setCurrentUser(userStr ? JSON.parse(userStr) : null);
+        const user = userStr ? JSON.parse(userStr) : null;
+        setCurrentUser(user);
         console.log(">>>>>. current user");
-        console.log(currentUser);
+        console.log(user);
+        console.log("User role:", user?.role);
+        console.log("Role type:", typeof user?.role);
         console.log("=======================");
         console.log('Auth token found:', !!token);
         setIsLoading(false);
@@ -136,21 +149,20 @@ return (
       
       <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid grid-cols-2 md:grid-cols-7 mb-8">
-        {currentUser?.role === UserRole.SUPER_ADMIN && (
-          <TabsTrigger value="overview">Overview</TabsTrigger>)}
-          {currentUser?.role === UserRole.SUPER_ADMIN && (
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          {canManageDispensaries(currentUser?.role) && (
             <TabsTrigger value="dispensaries">Dispensaries</TabsTrigger>)}
-          {currentUser?.role === UserRole.SUPER_ADMIN && (
+          {canManageDoctors(currentUser?.role) && (
             <TabsTrigger value="doctors">Doctors</TabsTrigger>)}
-          {(currentUser?.role === UserRole.SUPER_ADMIN || currentUser?.role === UserRole.HOSPITAL_ADMIN) && (
+          {canManageTimeslots(currentUser?.role) && (
             <TabsTrigger value="timeslots">TimeSlots</TabsTrigger>)}
-          {(currentUser?.role === UserRole.SUPER_ADMIN || currentUser?.role === UserRole.HOSPITAL_ADMIN) && (
+          {canManageBookings(currentUser?.role) && (
             <TabsTrigger value="bookings">Bookings</TabsTrigger>)}
-          {(currentUser?.role === UserRole.SUPER_ADMIN || currentUser?.role === UserRole.HOSPITAL_ADMIN) && (
+          {canViewReports(currentUser?.role) && (
             <TabsTrigger value="reports">Reports</TabsTrigger>)}
-          {currentUser?.role === UserRole.SUPER_ADMIN && (
+          {canManageFees(currentUser?.role) && (
             <TabsTrigger value="fee-management">Fee Management</TabsTrigger>)}
-          {currentUser?.role === UserRole.SUPER_ADMIN && (
+          {isSuperAdmin(currentUser?.role) && (
             <TabsTrigger value="user-dispensary">Assign Users</TabsTrigger>)}
         </TabsList>
         
@@ -205,7 +217,7 @@ return (
           
           
           {/* More dashboard content based on role */}
-          {currentUser?.role === UserRole.SUPER_ADMIN && (
+          {isSuperAdmin(currentUser?.role) && (
             <div className="mt-8">
               <Card>
                 <CardHeader>
@@ -363,7 +375,7 @@ return (
                 <Button onClick={() => navigate('/reports/doctor-performance')}>
                   Doctor Performance Report
                 </Button>
-                {currentUser?.role === UserRole.SUPER_ADMIN && (
+                {isSuperAdmin(currentUser?.role) && (
                   <Button onClick={() => navigate('/reports/dispensary-revenue')}>
                     Dispensary Revenue Report
                   </Button>
@@ -378,64 +390,30 @@ return (
         </TabsContent>
 
         <TabsContent value="user-dispensary" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>User-Dispensary Assignment</CardTitle>
-              <CardDescription>
-                Manage user assignments to dispensaries and their roles
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Button 
-                  onClick={() => navigate('/admin/user-dispensary')}
-                  className="w-full bg-medical-600 hover:bg-medical-700"
-                >
-                  Manage Assignments
-                </Button>
-                <Button 
-                  onClick={() => navigate('/admin/users')}
-                  className="w-full"
-                >
-                  Manage Users
-                </Button>
-                <Button 
-                  onClick={() => navigate('/admin/dispensaries')}
-                  className="w-full"
-                >
-                  Manage Dispensaries
-                </Button>
-              </div>
-            </CardContent>
-            <CardFooter className="flex flex-col space-y-4">
-              <div className="text-sm text-muted-foreground">
-                <p>Quick Actions:</p>
-                <ul className="list-disc list-inside mt-2">
-                  <li>Assign users to dispensaries</li>
-                  <li>Manage user roles and permissions</li>
-                  <li>View current assignments</li>
-                  <li>Update or remove assignments</li>
-                </ul>
-              </div>
-            </CardFooter>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Assignments</CardTitle>
-              <CardDescription>
-                Latest user-dispensary assignments and changes
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {/* This would be populated with actual data */}
-                <div className="text-sm text-muted-foreground">
-                  No recent assignments to display
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <Tabs defaultValue="manage-users" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="manage-users">Manage Users</TabsTrigger>
+              <TabsTrigger value="assign-roles">Assign Roles</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="manage-users" className="space-y-4">
+              <CustomRoleAssignment />
+            </TabsContent>
+            
+            <TabsContent value="assign-roles" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Role Assignment Management</CardTitle>
+                  <CardDescription>
+                    View and manage existing user-role assignments
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <RoleAssignment />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </TabsContent>
       </Tabs>
     </main>

@@ -23,6 +23,7 @@ export interface BookingCreateParams {
 }
 
 export interface BookingSummary {
+  _id: string;
   transactionId: string;
   bookingDate: Date;
   timeSlot: string;
@@ -249,9 +250,23 @@ export const BookingService = {
   getBookingSummary: async (transactionId: string): Promise<BookingSummary> => {
     try {
       const token = localStorage.getItem('auth_token');
+      
+      // Get user role for role-based access control
+      const userStr = localStorage.getItem('current_user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      const userRole = user?.role || '';
+      
+      const headers: any = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      if (userRole) {
+        headers['X-User-Role'] = userRole;
+      }
+      
       const response = await axios.get(
         `${API_URL}/bookings/summary/${transactionId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers }
       );
       
       return {
@@ -363,5 +378,43 @@ export const BookingService = {
       { headers: { Authorization: `Bearer ${token}` } }
     );
     return response.data;
+  },
+
+  // Search bookings by multiple criteria
+  searchBookings: async (query: string, searchType?: 'transactionId' | 'phone' | 'name'): Promise<any[]> => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const params = new URLSearchParams({ query });
+      if (searchType) {
+        params.append('searchType', searchType);
+      }
+      
+      // Get user role for role-based access control
+      const userStr = localStorage.getItem('current_user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      const userRole = user?.role || '';
+      
+      const headers: any = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      if (userRole) {
+        headers['X-User-Role'] = userRole;
+      }
+      
+      const response = await axios.get(
+        `${API_URL}/bookings/search?${params}`,
+        { headers }
+      );
+      
+      return response.data.results.map((booking: any) => ({
+        ...booking,
+        bookingDate: new Date(booking.bookingDate),
+        createdAt: new Date(booking.createdAt)
+      }));
+    } catch (error) {
+      console.error('Error searching bookings:', error);
+      throw new Error('Failed to search bookings');
+    }
   }
 };

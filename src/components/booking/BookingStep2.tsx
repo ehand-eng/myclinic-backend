@@ -86,19 +86,19 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
             <div className="space-y-1">
               <div className="flex justify-between">
                 <span>Doctor Fee</span>
-                <span>${fees.doctorFee}</span>
+                <span>Rs {fees.doctorFee}</span>
               </div>
               <div className="flex justify-between">
                 <span>Dispensary Fee</span>
-                <span>${fees.dispensaryFee}</span>
+                <span>Rs {fees.dispensaryFee}</span>
               </div>
               <div className="flex justify-between">
                 <span>Booking Commission</span>
-                <span>${fees.bookingCommission}</span>
+                <span>Rs {fees.bookingCommission}</span>
               </div>
               <div className="flex justify-between font-semibold border-t pt-2 mt-2">
                 <span>Total</span>
-                <span>${fees.totalFee}</span>
+                <span>Rs {fees.totalFee}</span>
               </div>
             </div>
           )}

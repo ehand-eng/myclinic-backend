@@ -10,12 +10,16 @@ require('dotenv').config();
 const doctorRoutes = require('./routes/doctorRoutes');
 const dispensaryRoutes = require('./routes/dispensaryRoutes');
 const authRoutes = require('./routes/authRoutes');
+const customAuthRoutes = require('./routes/customAuthRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 const timeSlotRoutes = require('./routes/timeSlotRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const userDispensary = require('./routes/userDispensaryRoutes');
 const userRoutes = require('./routes/userRoutes');
 const doctorDispensaryRoutes = require('./routes/doctorDispensaryRoutes');
+const cleanFeeRoutes = require('./routes/cleanFeeRoutes');
+const feeManagementRoutes = require('./routes/feeManagementRoutes');
 
 // Create Express app
 const app = express();
@@ -36,13 +40,17 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/doctor-re
 // Routes
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/dispensaries', dispensaryRoutes);
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authRoutes); // Keep for backward compatibility during migration
+app.use('/api/custom-auth', customAuthRoutes); // New custom authentication
+app.use('/api/admin', adminRoutes); // New admin routes
 app.use('/api/timeslots', timeSlotRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/user-dispensary', userDispensary);
 app.use('/api/users', userRoutes);
 app.use('/api/doctor-dispensaries', doctorDispensaryRoutes);
+// app.use('/api', cleanFeeRoutes); // Clean fee management routes
+app.use('/api/fees', feeManagementRoutes); // Fixed fee management routes with real DB
 
 // Base route
 app.get('/api', (req, res) => {

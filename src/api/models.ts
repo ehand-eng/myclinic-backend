@@ -100,8 +100,11 @@ export interface Booking extends BaseModel {
 
 // User role enum
 export enum UserRole {
-  SUPER_ADMIN = 'super_admin',
+  SUPER_ADMIN = 'super-admin',
   HOSPITAL_ADMIN = 'hospital_admin',
+  DISPENSARY_ADMIN = 'dispensary-admin',
+  DISPENSARY_STAFF = 'dispensary-staff',
+  DOCTOR = 'doctor',
   hospital_staff = 'hospital_staff'
 }
 

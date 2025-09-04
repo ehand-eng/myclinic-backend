@@ -19,6 +19,7 @@ router.get('/', async (req, res) => {
  */
 router.get('/:id', async (req, res) => {
   try {
+    console.log("======== dispensary ============== "+req.params.id);
     const dispensary = await Dispensary.findById(req.params.id).populate('doctors', 'name specialization');
     if (!dispensary) {
       return res.status(404).json({ message: 'Dispensary not found' });

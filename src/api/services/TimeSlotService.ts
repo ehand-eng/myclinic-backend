@@ -80,10 +80,8 @@ export const TimeSlotService = {
   // Get time slots for a doctor at a specific dispensary
   getTimeSlotConfigsByDoctor: async (doctorId: string, dispensaryId: string): Promise<TimeSlotConfig[]> => {
     try {
-      const token = localStorage.getItem('auth_token');
       const response = await axios.get(
-        `${API_URL}/timeslots/config/doctor/${doctorId}/dispensary/${dispensaryId}`, 
-        { headers: { Authorization: `Bearer ${token}` } }
+        `${API_URL}/timeslots/config/doctor/${doctorId}/dispensary/${dispensaryId}`
       );
       
       return response.data.map((slot: any) => ({
@@ -395,10 +393,7 @@ export const TimeSlotService = {
   // Get all dispensaries
   getAllDispensaries: async (): Promise<Dispensary[]> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.get(`${API_URL}/dispensaries`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axios.get(`${API_URL}/dispensaries`);
       return response.data.map((dispensary: any) => ({
         ...dispensary,
         _id: dispensary._id,
@@ -416,10 +411,8 @@ export const TimeSlotService = {
   // Get all doctor-dispensary fees
   getDoctorDispensaryFees: async (dispensaryId: string): Promise<DoctorDispensaryFee[]> => {
     try {
-      const token = localStorage.getItem('auth_token');
       const response = await axios.get(
-        `${API_URL}/doctor-dispensaries/fees/${dispensaryId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        `${API_URL}/doctor-dispensaries/fees/${dispensaryId}`
       );
       
       return response.data.map((fee: any) => ({
@@ -448,11 +441,9 @@ export const TimeSlotService = {
     fees: TimeSlotFees
   ): Promise<DoctorDispensaryFee> => {
     try {
-      const token = localStorage.getItem('auth_token');
       const response = await axios.put(
         `${API_URL}/doctor-dispensaries/fees/${doctorId}/${dispensaryId}`,
-        fees,
-        { headers: { Authorization: `Bearer ${token}` } }
+        fees
       );
       
       return {
@@ -477,10 +468,8 @@ export const TimeSlotService = {
   // Delete/reset doctor-dispensary fees
   deleteDoctorDispensaryFees: async (doctorId: string, dispensaryId: string): Promise<void> => {
     try {
-      const token = localStorage.getItem('auth_token');
       await axios.delete(
-        `${API_URL}/doctor-dispensaries/fees/${doctorId}/${dispensaryId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        `${API_URL}/doctor-dispensaries/fees/${doctorId}/${dispensaryId}`
       );
     } catch (error) {
       console.error('Error deleting doctor-dispensary fees:', error);
@@ -495,7 +484,6 @@ export const TimeSlotService = {
     fees: TimeSlotFees
   ): Promise<DoctorDispensaryFee> => {
     try {
-      const token = localStorage.getItem('auth_token');
       const response = await axios.post(
         `${API_URL}/doctor-dispensaries/assign-fees`,
         {
@@ -504,8 +492,7 @@ export const TimeSlotService = {
           doctorFee: fees.doctorFee,
           dispensaryFee: fees.dispensaryFee,
           bookingCommission: fees.bookingCommission,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
+        }
       );
       return {
         ...response.data,

@@ -3,7 +3,6 @@ const router = express.Router();
 const DoctorDispensary = require('../models/DoctorDispensary');
 const Doctor = require('../models/Doctor');
 const Dispensary = require('../models/Dispensary');
-const { validateJwt, requireRole, ROLES } = require('../middleware/authMiddleware');
 
 // Get fee information for a doctor-dispensary combination
 router.get('/doctor/:doctorId/dispensary/:dispensaryId', async (req, res) => {
@@ -178,7 +177,7 @@ router.get('/dispensary/:dispensaryId/fees', async (req, res) => {
 });
 
 // Delete/reset fees for a specific doctor-dispensary combination
-router.delete('/fees/:doctorId/:dispensaryId', validateJwt, requireRole([ROLES.SUPER_ADMIN, ROLES.hospital_admin]), async (req, res) => {
+router.delete('/fees/:doctorId/:dispensaryId', async (req, res) => {
   try {
     const { doctorId, dispensaryId } = req.params;
 
@@ -205,21 +204,109 @@ router.delete('/fees/:doctorId/:dispensaryId', validateJwt, requireRole([ROLES.S
   }
 });
 
-// Add this route after other fee routes
+// Get specific fee configuration by doctorId and dispensaryId
 router.get('/fees/:doctorId/:dispensaryId', async (req, res) => {
-  const { doctorId, dispensaryId } = req.params;
   try {
-    const docDisp = await DoctorDispensary.findOne({ doctorId, dispensaryId });
-    if (!docDisp) return res.status(404).json({ message: 'Fee config not found' });
-    const { doctorFee, dispensaryFee, bookingCommission } = docDisp;
-    res.json({
-      doctorFee,
-      dispensaryFee,
-      bookingCommission,
-      totalFee: (doctorFee || 0) + (dispensaryFee || 0) + (bookingCommission || 0)
-    });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    const { doctorId, dispensaryId } = req.params;
+    
+    const docDisp = await DoctorDispensary.findOne({ doctorId, dispensaryId })
+      .populate('doctorId', 'name')
+      .populate('dispensaryId', 'name');
+      
+    if (!docDisp) {
+      return res.status(404).json({ message: 'Fee configuration not found' });
+    }
+    
+    const response = {
+      _id: docDisp._id,
+      doctorId: docDisp.doctorId._id,
+      doctorName: docDisp.doctorId.name,
+      dispensaryId: docDisp.dispensaryId._id,
+      dispensaryName: docDisp.dispensaryId.name,
+      doctorFee: docDisp.doctorFee || 0,
+      dispensaryFee: docDisp.dispensaryFee || 0,
+      bookingCommission: docDisp.bookingCommission || 0,
+      totalFee: (docDisp.doctorFee || 0) + (docDisp.dispensaryFee || 0) + (docDisp.bookingCommission || 0),
+      createdAt: docDisp.createdAt,
+      updatedAt: docDisp.updatedAt
+    };
+    
+    res.json(response);
+  } catch (error) {
+    console.error('Error fetching fee configuration:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Update specific fee by ID (PATCH route)
+router.patch('/fees/:feeId', async (req, res) => {
+  try {
+    const { feeId } = req.params;
+    const { doctorFee, dispensaryFee, bookingCommission } = req.body;
+    
+    // Validate input
+    if (doctorFee !== undefined && (isNaN(doctorFee) || doctorFee < 0)) {
+      return res.status(400).json({ message: 'Invalid doctor fee' });
+    }
+    if (dispensaryFee !== undefined && (isNaN(dispensaryFee) || dispensaryFee < 0)) {
+      return res.status(400).json({ message: 'Invalid dispensary fee' });
+    }
+    if (bookingCommission !== undefined && (isNaN(bookingCommission) || bookingCommission < 0)) {
+      return res.status(400).json({ message: 'Invalid booking commission' });
+    }
+    
+    const updateData = {};
+    if (doctorFee !== undefined) updateData.doctorFee = Number(doctorFee);
+    if (dispensaryFee !== undefined) updateData.dispensaryFee = Number(dispensaryFee);
+    if (bookingCommission !== undefined) updateData.bookingCommission = Number(bookingCommission);
+    updateData.updatedAt = new Date();
+    
+    const updatedFee = await DoctorDispensary.findByIdAndUpdate(
+      feeId,
+      updateData,
+      { new: true }
+    ).populate('doctorId', 'name')
+     .populate('dispensaryId', 'name');
+    
+    if (!updatedFee) {
+      return res.status(404).json({ message: 'Fee configuration not found' });
+    }
+    
+    const response = {
+      _id: updatedFee._id,
+      doctorId: updatedFee.doctorId._id,
+      doctorName: updatedFee.doctorId.name,
+      dispensaryId: updatedFee.dispensaryId._id,
+      dispensaryName: updatedFee.dispensaryId.name,
+      doctorFee: updatedFee.doctorFee || 0,
+      dispensaryFee: updatedFee.dispensaryFee || 0,
+      bookingCommission: updatedFee.bookingCommission || 0,
+      createdAt: updatedFee.createdAt,
+      updatedAt: updatedFee.updatedAt
+    };
+    
+    res.json(response);
+  } catch (error) {
+    console.error('Error updating fee configuration:', error);
+    res.status(500).json({ message: 'Failed to update fee configuration', error: error.message });
+  }
+});
+
+// Delete fee configuration by ID
+router.delete('/fees/:feeId', async (req, res) => {
+  try {
+    const { feeId } = req.params;
+    
+    const deletedFee = await DoctorDispensary.findByIdAndDelete(feeId);
+    
+    if (!deletedFee) {
+      return res.status(404).json({ message: 'Fee configuration not found' });
+    }
+    
+    res.json({ message: 'Fee configuration deleted successfully', deletedId: feeId });
+  } catch (error) {
+    console.error('Error deleting fee configuration:', error);
+    res.status(500).json({ message: 'Failed to delete fee configuration', error: error.message });
   }
 });
 

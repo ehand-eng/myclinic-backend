@@ -35,15 +35,26 @@ const Login = () => {
     try {
       setIsLoading(true);
       
-      const response = await axios.post(`${API_URL}/auth/login`, {
-        username,
-        password
-      });
+      // Try custom auth first, fallback to Auth0 for backward compatibility
+      let response;
+      try {
+        response = await axios.post(`${API_URL}/custom-auth/login`, {
+          email: username,
+          password
+        });
+      } catch (customAuthError) {
+        // Fallback to Auth0 authentication
+        response = await axios.post(`${API_URL}/auth/login`, {
+          username,
+          password
+        });
+      }
 
       // Store the token and user info
-      const { access_token, user } = response.data;
-      localStorage.setItem('auth_token', access_token);
+      const { token, access_token, user } = response.data;
+      localStorage.setItem('auth_token', token || access_token);
       localStorage.setItem('current_user', JSON.stringify(user));
+      
       toast({
         title: 'Login Successful',
         description: 'Welcome back!'

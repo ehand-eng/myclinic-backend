@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Menu, X, Calendar, User, Phone } from 'lucide-react';
 import { useState } from 'react';
+import { getRoleDisplayName } from '@/lib/roleUtils';
 
 const Header = () => {
   const isMobile = useIsMobile();
@@ -107,7 +108,7 @@ const Header = () => {
                 <div className="flex items-center gap-4">
                   <span className="text-sm text-gray-700">
                     <strong>{user.email}</strong>
-                    {" "}({user.role && user.role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())})
+                    {user.role && ` (${getRoleDisplayName(user.role)})`}
                   </span>
                   <button
                     onClick={handleProfile}

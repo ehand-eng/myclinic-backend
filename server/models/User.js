@@ -13,17 +13,20 @@ const userSchema = new mongoose.Schema({
   },
   passwordHash: { 
     type: String, 
-    required: false  // Not required with Auth0
+    required: function() {
+      // Required unless user has auth0Id (for backward compatibility during migration)
+      return !this.auth0Id;
+    }
   },
   auth0Id: {
     type: String,
     required: false
   },
-  // role: { 
-  //   type: String, 
-  //   required: true,
-  //   enum: ['super_admin', 'hospital_admin', 'hospital_staff']
-  // },
+  role: { 
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Role',
+    required: false // Will be required after migration complete
+  },
   dispensaryIds: [{ 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Dispensary' 

@@ -30,7 +30,7 @@ const RoleAssignment = () => {
           return;
         }
 
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api'}/users`, {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/users`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -41,7 +41,13 @@ const RoleAssignment = () => {
         }
 
         const data = await response.json();
-        setUsers(data);
+        const mappedUsers = data.map((user: any) => ({
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role || 'patient'
+        }));
+        setUsers(mappedUsers);
       } catch (error: any) {
         console.error('Error fetching users:', error);
         setError(error.message || 'Failed to fetch users');
@@ -92,7 +98,7 @@ const RoleAssignment = () => {
     }
   };
 
-  const handleRoleChange = async (userId: string, newRole: UserRole) => {
+  const handleRoleChange = async (userId: string, newRole: string) => {
     try {
       setIsUpdating(true);
       
@@ -102,7 +108,7 @@ const RoleAssignment = () => {
         return;
       }
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api'}/users/${userId}/role`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/users/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -122,8 +128,8 @@ const RoleAssignment = () => {
         )
       );
 
-      // If role is changed to HOSPITAL_ADMIN, show dispensary assignment
-      if (newRole === UserRole.HOSPITAL_ADMIN) {
+      // If role is changed to dispensary-admin, show dispensary assignment
+      if (newRole === 'dispensary-admin') {
         setSelectedUserId(userId);
         setShowDispensaryAssignment(true);
       }
@@ -176,15 +182,17 @@ const RoleAssignment = () => {
     setAssignedDispensaryId(null);
   };
 
-  const getRoleBadgeColor = (role: UserRole) => {
+  const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case UserRole.SUPER_ADMIN:
+      case 'super-admin':
         return 'bg-red-100 text-red-800';
-      case UserRole.HOSPITAL_ADMIN:
+      case 'dispensary-admin':
         return 'bg-blue-100 text-blue-800';
-      case UserRole.DOCTOR:
+      case 'dispensary-staff':
         return 'bg-green-100 text-green-800';
-      case UserRole.PATIENT:
+      case 'doctor':
+        return 'bg-purple-100 text-purple-800';
+      case 'patient':
         return 'bg-gray-100 text-gray-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -233,15 +241,16 @@ const RoleAssignment = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Select onValueChange={(newRole) => handleRoleChange(user.id, newRole as UserRole)}>
+                      <Select onValueChange={(newRole) => handleRoleChange(user.id, newRole)}>
                         <SelectTrigger className="w-[180px]">
                           <SelectValue placeholder="Change Role" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value={UserRole.SUPER_ADMIN}>Super Admin</SelectItem>
-                          <SelectItem value={UserRole.HOSPITAL_ADMIN}>Hospital Admin</SelectItem>
-                          <SelectItem value={UserRole.DOCTOR}>Doctor</SelectItem>
-                          <SelectItem value={UserRole.PATIENT}>Patient</SelectItem>
+                          <SelectItem value="super-admin">Super Admin</SelectItem>
+                          <SelectItem value="dispensary-admin">Dispensary Admin</SelectItem>
+                          <SelectItem value="dispensary-staff">Dispensary Staff</SelectItem>
+                          <SelectItem value="doctor">Doctor</SelectItem>
+                          <SelectItem value="patient">Patient</SelectItem>
                         </SelectContent>
                       </Select>
                     </TableCell>
