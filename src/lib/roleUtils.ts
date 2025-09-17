@@ -32,6 +32,10 @@ export const isDoctor = (userRole: string | undefined): boolean => {
   return hasRole(userRole, ['doctor']);
 };
 
+export const isChannelPartner = (userRole: string | undefined): boolean => {
+  return hasRole(userRole, ['channel-partner']);
+};
+
 export const canManageUsers = (userRole: string | undefined): boolean => {
   return isSuperAdmin(userRole);
 };
@@ -52,6 +56,14 @@ export const canManageBookings = (userRole: string | undefined): boolean => {
   return isSuperAdmin(userRole) || isDispensaryAdmin(userRole) || isDispensaryStaff(userRole);
 };
 
+export const canCreateBookings = (userRole: string | undefined): boolean => {
+  return isSuperAdmin(userRole) || isDispensaryAdmin(userRole) || isDispensaryStaff(userRole) || isChannelPartner(userRole);
+};
+
+export const canViewOwnReports = (userRole: string | undefined): boolean => {
+  return isChannelPartner(userRole);
+};
+
 export const canViewReports = (userRole: string | undefined): boolean => {
   return isSuperAdmin(userRole) || isDispensaryAdmin(userRole);
 };
@@ -68,7 +80,8 @@ export const getRoleDisplayName = (role: string): string => {
     'hospital_admin': 'Hospital Administrator',
     'dispensary-staff': 'Dispensary Staff',
     'hospital_staff': 'Hospital Staff',
-    'doctor': 'Doctor'
+    'doctor': 'Doctor',
+    'channel-partner': 'Channel Partner'
   };
   
   return roleMap[role] || role.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());

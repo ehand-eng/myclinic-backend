@@ -31,6 +31,7 @@ interface Fee {
   doctorFee: number;
   dispensaryFee: number;
   onlineFee: number;
+  channelPartnerFee: number;
   doctorName: string;
   dispensaryName: string;
   dispensaryAddress: string;
@@ -51,7 +52,8 @@ const SimpleFeeManagement: React.FC = () => {
     dispensaryId: '',
     doctorFee: '',
     dispensaryFee: '',
-    onlineFee: ''
+    onlineFee: '',
+    channelPartnerFee: ''
   });
 
   // Update modal state
@@ -60,7 +62,8 @@ const SimpleFeeManagement: React.FC = () => {
   const [updateForm, setUpdateForm] = useState({
     doctorFee: '',
     dispensaryFee: '',
-    onlineFee: ''
+    onlineFee: '',
+    channelPartnerFee: ''
   });
 
   // Load doctors when component mounts
@@ -123,7 +126,8 @@ const SimpleFeeManagement: React.FC = () => {
       dispensaryId: '',
       doctorFee: '',
       dispensaryFee: '',
-      onlineFee: ''
+      onlineFee: '',
+      channelPartnerFee: ''
     });
     console.log('🧹 Cleared previous data');
     
@@ -218,7 +222,7 @@ const SimpleFeeManagement: React.FC = () => {
     e.preventDefault();
     
     if (!selectedDoctorId || !feeForm.dispensaryId || !feeForm.doctorFee || !feeForm.dispensaryFee || !feeForm.onlineFee) {
-      toast.error('Please fill in all fields');
+      toast.error('Please fill in all required fields');
       return;
     }
 
@@ -230,6 +234,7 @@ const SimpleFeeManagement: React.FC = () => {
         doctorFee: parseFloat(feeForm.doctorFee),
         dispensaryFee: parseFloat(feeForm.dispensaryFee),
         onlineFee: parseFloat(feeForm.onlineFee),
+        channelPartnerFee: parseFloat(feeForm.channelPartnerFee) || 0,
       };
       
       console.log('📡 Creating fee:', requestData);
@@ -254,7 +259,8 @@ const SimpleFeeManagement: React.FC = () => {
         dispensaryId: '',
         doctorFee: '',
         dispensaryFee: '',
-        onlineFee: ''
+        onlineFee: '',
+        channelPartnerFee: ''
       });
       
       // Reload fees
@@ -274,13 +280,14 @@ const SimpleFeeManagement: React.FC = () => {
       doctorFee: fee.doctorFee.toString(),
       dispensaryFee: fee.dispensaryFee.toString(),
       onlineFee: fee.onlineFee.toString(),
+      channelPartnerFee: (fee.channelPartnerFee || 0).toString(),
     });
     setShowUpdateModal(true);
   };
 
   const handleUpdateSubmit = async () => {
     if (!selectedDoctorId || !updateFeeId || !updateForm.doctorFee || !updateForm.dispensaryFee || !updateForm.onlineFee) {
-      toast.error('Please fill in all fields');
+      toast.error('Please fill in all required fields');
       return;
     }
 
@@ -291,6 +298,7 @@ const SimpleFeeManagement: React.FC = () => {
         doctorFee: parseFloat(updateForm.doctorFee),
         dispensaryFee: parseFloat(updateForm.dispensaryFee),
         onlineFee: parseFloat(updateForm.onlineFee),
+        channelPartnerFee: parseFloat(updateForm.channelPartnerFee) || 0,
       };
       
       const response = await fetch(`${API_BASE_URL}/api/fees/${selectedDoctorId}/${updateFeeId}`, {
@@ -534,6 +542,20 @@ const SimpleFeeManagement: React.FC = () => {
                     disabled={loading}
                   />
                 </div>
+
+                <div>
+                  <Label htmlFor="channel-partner-fee">Channel Partner Fee (Rs)</Label>
+                  <Input
+                    id="channel-partner-fee"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={feeForm.channelPartnerFee}
+                    onChange={(e) => setFeeForm(prev => ({ ...prev, channelPartnerFee: e.target.value }))}
+                    placeholder="Enter channel partner fee (optional)"
+                    disabled={loading}
+                  />
+                </div>
               </div>
 
               <div className="mt-4">
@@ -582,6 +604,7 @@ const SimpleFeeManagement: React.FC = () => {
                       <TableHead className="text-right">Doctor Fee</TableHead>
                       <TableHead className="text-right">Dispensary Fee</TableHead>
                       <TableHead className="text-right">Online Fee</TableHead>
+                      <TableHead className="text-right">Channel Partner Fee</TableHead>
                       <TableHead className="text-right">Total</TableHead>
                       <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
@@ -594,6 +617,7 @@ const SimpleFeeManagement: React.FC = () => {
                         <TableCell className="text-right font-mono">Rs {fee.doctorFee}</TableCell>
                         <TableCell className="text-right font-mono">Rs {fee.dispensaryFee}</TableCell>
                         <TableCell className="text-right font-mono">Rs {fee.onlineFee}</TableCell>
+                        <TableCell className="text-right font-mono">Rs {fee.channelPartnerFee || 0}</TableCell>
                         <TableCell className="text-right font-mono font-semibold">
                           Rs {fee.doctorFee + fee.dispensaryFee + fee.onlineFee}
                         </TableCell>
@@ -674,6 +698,19 @@ const SimpleFeeManagement: React.FC = () => {
                 step="0.01"
                 value={updateForm.onlineFee}
                 onChange={(e) => setUpdateForm(prev => ({ ...prev, onlineFee: e.target.value }))}
+                disabled={loading}
+              />
+            </div>
+            <div>
+              <Label htmlFor="update-channel-partner-fee">Channel Partner Fee (Rs)</Label>
+              <Input
+                id="update-channel-partner-fee"
+                type="number"
+                min="0"
+                step="0.01"
+                value={updateForm.channelPartnerFee}
+                onChange={(e) => setUpdateForm(prev => ({ ...prev, channelPartnerFee: e.target.value }))}
+                placeholder="Optional"
                 disabled={loading}
               />
             </div>

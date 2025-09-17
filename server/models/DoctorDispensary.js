@@ -19,9 +19,15 @@ const doctorDispensarySchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  channelPartnerFee: {
+    type: Number,
+    default: 0,
+    description: 'Fee paid to channel partners for bookings they create'
+  },
   bookingCommission: {
     type: Number,
-    default: 0
+    default: 0,
+    description: 'Platform commission = onlineBookingFee - channelPartnerFee (when booked by channel partner)'
   },
   isActive: {
     type: Boolean,

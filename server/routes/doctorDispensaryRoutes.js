@@ -30,11 +30,17 @@ router.get('/doctor/:doctorId/dispensary/:dispensaryId', async (req, res) => {
 // Create or update fee information for a doctor-dispensary combination
 router.post('/assign-fees', async (req, res) => {
   try {
-    const { doctorId, dispensaryId, doctorFee, dispensaryFee, bookingCommission } = req.body;
+    const { doctorId, dispensaryId, doctorFee, dispensaryFee, bookingCommission, channelPartnerFee } = req.body;
     
     // Validate required fields
     if (!doctorId || !dispensaryId || doctorFee === undefined || dispensaryFee === undefined || bookingCommission === undefined) {
       return res.status(400).json({ message: 'All fields are required' });
+    }
+    
+    // Validate channelPartnerFee (should default to 0 if not provided and must be non-negative)
+    const validatedChannelPartnerFee = channelPartnerFee !== undefined ? Number(channelPartnerFee) : 0;
+    if (validatedChannelPartnerFee < 0) {
+      return res.status(400).json({ message: 'Channel partner fee must be non-negative' });
     }
     
     // Check if doctor and dispensary exist
@@ -52,6 +58,7 @@ router.post('/assign-fees', async (req, res) => {
         doctorFee: Number(doctorFee),
         dispensaryFee: Number(dispensaryFee),
         bookingCommission: Number(bookingCommission),
+        channelPartnerFee: validatedChannelPartnerFee,
         isActive: true
       },
       { upsert: true, new: true }
@@ -121,6 +128,7 @@ router.get('/dispensary/:dispensaryId/fees', async (req, res) => {
       doctorFee: dd.doctorFee || 0,
       dispensaryFee: dd.dispensaryFee || 0,
       bookingCommission: dd.bookingCommission || 0,
+      channelPartnerFee: dd.channelPartnerFee || 0,
       createdAt: dd.createdAt,
       updatedAt: dd.updatedAt
     }));
@@ -138,8 +146,14 @@ router.get('/dispensary/:dispensaryId/fees', async (req, res) => {
   try {
     console.log("...............fees put ...........");
     const { doctorId, dispensaryId } = req.params;
-    const { doctorFee, dispensaryFee, bookingCommission } = req.body;
+    const { doctorFee, dispensaryFee, bookingCommission, channelPartnerFee } = req.body;
     console.log("************* doctorId ********** "+doctorId +" dispensaryId "+dispensaryId);
+
+    // Validate channelPartnerFee (should default to 0 if not provided and must be non-negative)
+    const validatedChannelPartnerFee = channelPartnerFee !== undefined ? Number(channelPartnerFee) : 0;
+    if (validatedChannelPartnerFee < 0) {
+      return res.status(400).json({ message: 'Channel partner fee must be non-negative' });
+    }
 
     // Find and update the doctor-dispensary combination
     const doctorDispensary = await DoctorDispensary.findOneAndUpdate(
@@ -148,6 +162,7 @@ router.get('/dispensary/:dispensaryId/fees', async (req, res) => {
         doctorFee,
         dispensaryFee,
         bookingCommission,
+        channelPartnerFee: validatedChannelPartnerFee,
         updatedAt: new Date()
       },
       { new: true }
@@ -167,6 +182,7 @@ router.get('/dispensary/:dispensaryId/fees', async (req, res) => {
       doctorFee: doctorDispensary.doctorFee || 0,
       dispensaryFee: doctorDispensary.dispensaryFee || 0,
       bookingCommission: doctorDispensary.bookingCommission || 0,
+      channelPartnerFee: doctorDispensary.channelPartnerFee || 0,
       createdAt: doctorDispensary.createdAt,
       updatedAt: doctorDispensary.updatedAt
     });
@@ -226,6 +242,7 @@ router.get('/fees/:doctorId/:dispensaryId', async (req, res) => {
       doctorFee: docDisp.doctorFee || 0,
       dispensaryFee: docDisp.dispensaryFee || 0,
       bookingCommission: docDisp.bookingCommission || 0,
+      channelPartnerFee: docDisp.channelPartnerFee || 0,
       totalFee: (docDisp.doctorFee || 0) + (docDisp.dispensaryFee || 0) + (docDisp.bookingCommission || 0),
       createdAt: docDisp.createdAt,
       updatedAt: docDisp.updatedAt
@@ -242,7 +259,7 @@ router.get('/fees/:doctorId/:dispensaryId', async (req, res) => {
 router.patch('/fees/:feeId', async (req, res) => {
   try {
     const { feeId } = req.params;
-    const { doctorFee, dispensaryFee, bookingCommission } = req.body;
+    const { doctorFee, dispensaryFee, bookingCommission, channelPartnerFee } = req.body;
     
     // Validate input
     if (doctorFee !== undefined && (isNaN(doctorFee) || doctorFee < 0)) {
@@ -254,11 +271,15 @@ router.patch('/fees/:feeId', async (req, res) => {
     if (bookingCommission !== undefined && (isNaN(bookingCommission) || bookingCommission < 0)) {
       return res.status(400).json({ message: 'Invalid booking commission' });
     }
+    if (channelPartnerFee !== undefined && (isNaN(channelPartnerFee) || channelPartnerFee < 0)) {
+      return res.status(400).json({ message: 'Invalid channel partner fee' });
+    }
     
     const updateData = {};
     if (doctorFee !== undefined) updateData.doctorFee = Number(doctorFee);
     if (dispensaryFee !== undefined) updateData.dispensaryFee = Number(dispensaryFee);
     if (bookingCommission !== undefined) updateData.bookingCommission = Number(bookingCommission);
+    if (channelPartnerFee !== undefined) updateData.channelPartnerFee = Number(channelPartnerFee);
     updateData.updatedAt = new Date();
     
     const updatedFee = await DoctorDispensary.findByIdAndUpdate(
@@ -281,6 +302,7 @@ router.patch('/fees/:feeId', async (req, res) => {
       doctorFee: updatedFee.doctorFee || 0,
       dispensaryFee: updatedFee.dispensaryFee || 0,
       bookingCommission: updatedFee.bookingCommission || 0,
+      channelPartnerFee: updatedFee.channelPartnerFee || 0,
       createdAt: updatedFee.createdAt,
       updatedAt: updatedFee.updatedAt
     };

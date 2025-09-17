@@ -220,6 +220,7 @@ router.post('/', async (req, res) => {
     } = req.body;
 
     console.log("Received booking request:", req.body);
+    console.log("======== user ============== "+req.user);
     
     // Generate a temporary patientId if not provided
     const patientId = req.body.patientId || `temp-${patientPhone}`;
@@ -356,19 +357,98 @@ router.post('/', async (req, res) => {
     
     const timeSlot = `${estimatedHours}:${estimatedMinutes}-${endHours}:${endMinutes}`;
     
-    // Create the booking
+    // Create the booking with role-based logic
     let bookedUser = 'online';
     let bookedBy = 'ONLINE';
 
-    // If you use JWT auth and have req.user, use that:
-    if (req.user) {
+    // Check for user role from multiple sources (for flexibility)
+    console.log("Incoming booking request role sources:", {
+      reqUser: req.user,
+      headerRole: req.headers['x-user-role'],
+      bodyRole: req.body.userRole,
+      bookedUser: req.body.bookedUser
+    });
+
+    let userRole = null;
+    if (req.user && req.user.role) {
+      userRole = req.user.role.toLowerCase();
       bookedUser = req.user.id || req.user._id || 'online';
-      bookedBy = req.user.role ? req.user.role.toUpperCase() : 'ONLINE';
-    } else if (req.body.bookedUser && req.body.bookedBy) {
-      // Optionally allow frontend to send these fields
-      bookedUser = req.body.bookedUser;
-      bookedBy = req.body.bookedBy;
+    } else if (req.headers['x-user-role']) {
+      userRole = req.headers['x-user-role'].toLowerCase();
+      bookedUser = req.body.bookedUser || req.user?.id || 'online';
+    } else if (req.body.userRole) {
+      userRole = req.body.userRole.toLowerCase();
+      bookedUser = req.body.bookedUser || 'online';
     }
+    
+    console.log("======== userRole ===  11111 =========== "+userRole);
+    // Set bookedBy based on role
+    if (userRole === 'channel-partner' || userRole === 'channel partner') {
+      bookedBy = 'CHANNEL-PARTNER';
+      bookedUser = req.body.bookedUser || req.user?.id || bookedUser;
+    } else if (userRole === 'super-admin' || userRole === 'super admin') {
+      bookedBy = 'SUPER-ADMIN';
+    } else if (userRole === 'dispensary-admin' || userRole === 'dispensary admin') {
+      bookedBy = 'DISPENSARY-ADMIN';
+    } else if (userRole === 'dispensary-staff' || userRole === 'dispensary staff') {
+      bookedBy = 'DISPENSARY-STAFF';
+    }
+
+    console.log(`Final booking role assignment:`, {
+      userRole,
+      bookedBy,
+      bookedUser,
+      isChannelPartner: bookedBy === 'CHANNEL-PARTNER'
+    });
+
+    // Handle channel partner fee calculation and ensure correct totalFee calculation
+    let processedFees = { ...fees };
+    
+    // Get channel partner fee configuration from DoctorDispensary for all bookings
+    const feeConfig = await DoctorDispensary.findOne({
+      doctorId,
+      dispensaryId,
+      isActive: true
+    });
+
+    if (bookedBy === 'CHANNEL-PARTNER' && feeConfig && feeConfig.channelPartnerFee > 0) {
+      // For channel partner bookings: reduce bookingCommission by channelPartnerFee
+      const originalBookingCommission = processedFees.bookingCommission || 0;
+      const channelPartnerFee = feeConfig.channelPartnerFee;
+      const adjustedBookingCommission = Math.max(0, originalBookingCommission - channelPartnerFee);
+
+      processedFees = {
+        ...processedFees,
+        channelPartnerFee: channelPartnerFee,
+        bookingCommission: adjustedBookingCommission
+      };
+
+      console.log(`Channel partner fee applied - Fee: ${channelPartnerFee}, Adjusted commission: ${adjustedBookingCommission}`);
+    } else {
+      // For non-channel partner bookings: ensure channelPartnerFee is 0
+      processedFees = {
+        ...processedFees,
+        channelPartnerFee: 0
+      };
+    }
+
+    // Always recalculate totalFee using the correct formula:
+    // totalFee = doctorFee + dispensaryFee + channelPartnerFee + bookingCommission
+    const doctorFee = processedFees.doctorFee || 0;
+    const dispensaryFee = processedFees.dispensaryFee || 0;
+    const channelPartnerFee = processedFees.channelPartnerFee || 0;
+    const bookingCommission = processedFees.bookingCommission || 0;
+    
+    processedFees.totalFee = doctorFee + dispensaryFee + channelPartnerFee + bookingCommission;
+    
+    console.log(`Final fee calculation:`, {
+      doctorFee,
+      dispensaryFee,
+      channelPartnerFee,
+      bookingCommission,
+      totalFee: processedFees.totalFee,
+      bookedBy
+    });
 
     const booking = new Booking({
       patientId,
@@ -386,7 +466,7 @@ router.post('/', async (req, res) => {
       patientPhone,
       patientEmail,
       transactionId,
-      fees,
+      fees: processedFees,
       bookedUser,
       bookedBy,
     });

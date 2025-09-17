@@ -20,6 +20,7 @@ const userRoutes = require('./routes/userRoutes');
 const doctorDispensaryRoutes = require('./routes/doctorDispensaryRoutes');
 const cleanFeeRoutes = require('./routes/cleanFeeRoutes');
 const feeManagementRoutes = require('./routes/feeManagementRoutes');
+const channelPartnerRoutes = require('./routes/channelPartnerRoutes');
 
 // Create Express app
 const app = express();
@@ -51,6 +52,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/doctor-dispensaries', doctorDispensaryRoutes);
 // app.use('/api', cleanFeeRoutes); // Clean fee management routes
 app.use('/api/fees', feeManagementRoutes); // Fixed fee management routes with real DB
+app.use('/api/channel-partners', channelPartnerRoutes); // Channel partner routes
 
 // Base route
 app.get('/api', (req, res) => {

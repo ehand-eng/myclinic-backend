@@ -23,8 +23,8 @@ const roleMiddleware = {
       
       console.log(`Role check for advanced booking features - User role: ${userRole}`);
       
-      // Define allowed roles for advanced booking features
-      const allowedRoles = ['super admin', 'dispensary admin'];
+      // Define allowed roles for advanced booking features (booking search, adjustment, status check)
+      const allowedRoles = ['super-admin', 'dispensary-admin','channel-partner'];
       
       if (!userRole) {
         return res.status(401).json({
@@ -104,6 +104,106 @@ const roleMiddleware = {
         });
       }
     };
+  },
+
+  // Check if user can create bookings (includes channel partners)
+  requireBookingCreationAccess: (req, res, next) => {
+    try {
+      const user = req.user || req.body.user;
+      let userRole = null;
+      
+      if (user && user.role) {
+        userRole = user.role.toLowerCase();
+      } else {
+        userRole = req.headers['x-user-role'] || req.body.userRole;
+        if (userRole) {
+          userRole = userRole.toLowerCase();
+        }
+      }
+      
+      console.log(`Role check for booking creation - User role: ${userRole}`);
+      
+      // Define allowed roles for booking creation
+      const allowedRoles = ['super admin', 'dispensary admin', 'dispensary staff', 'channel partner'];
+      
+      if (!userRole) {
+        return res.status(401).json({
+          message: 'Authentication required',
+          error: 'No user role provided',
+          requiredRoles: allowedRoles
+        });
+      }
+      
+      if (!allowedRoles.includes(userRole)) {
+        return res.status(403).json({
+          message: 'Access denied',
+          error: `Role '${userRole}' is not authorized to create bookings`,
+          requiredRoles: allowedRoles,
+          userRole: userRole
+        });
+      }
+      
+      req.userRole = userRole;
+      next();
+      
+    } catch (error) {
+      console.error('Error in booking creation role check:', error);
+      return res.status(500).json({
+        message: 'Server error during role verification',
+        error: error.message
+      });
+    }
+  },
+
+  // Check if user can view their own reports (channel partners can only see their own)
+  requireOwnReportsAccess: (req, res, next) => {
+    try {
+      const user = req.user || req.body.user;
+      let userRole = null;
+      
+      if (user && user.role) {
+        userRole = user.role.toLowerCase();
+      } else {
+        userRole = req.headers['x-user-role'] || req.body.userRole;
+        if (userRole) {
+          userRole = userRole.toLowerCase();
+        }
+      }
+      
+      console.log(`Role check for reports access - User role: ${userRole}`);
+      
+      // Define allowed roles for reports access
+      const allowedRoles = ['super admin', 'dispensary admin', 'channel partner'];
+      
+      if (!userRole) {
+        return res.status(401).json({
+          message: 'Authentication required',
+          error: 'No user role provided',
+          requiredRoles: allowedRoles
+        });
+      }
+      
+      if (!allowedRoles.includes(userRole)) {
+        return res.status(403).json({
+          message: 'Access denied',
+          error: `Role '${userRole}' is not authorized to view reports`,
+          requiredRoles: allowedRoles,
+          userRole: userRole
+        });
+      }
+      
+      // Set flag for channel partners to only see their own data
+      req.isChannelPartner = userRole === 'channel partner';
+      req.userRole = userRole;
+      next();
+      
+    } catch (error) {
+      console.error('Error in reports role check:', error);
+      return res.status(500).json({
+        message: 'Server error during role verification',
+        error: error.message
+      });
+    }
   }
 };
 

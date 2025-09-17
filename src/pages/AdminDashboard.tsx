@@ -34,11 +34,14 @@ import Footer from '@/components/Footer';
 import AdminFeeManage from './AdminFeeManage';
 import { 
   isSuperAdmin, 
+  isChannelPartner,
   canManageDispensaries, 
   canManageDoctors, 
   canManageTimeslots, 
   canManageBookings, 
+  canCreateBookings,
   canViewReports, 
+  canViewOwnReports,
   canManageFees 
 } from '@/lib/roleUtils';
 // import DoctorDispensaryFeeManager from '@/components/AdminF';
@@ -158,7 +161,9 @@ return (
             <TabsTrigger value="timeslots">TimeSlots</TabsTrigger>)}
           {canManageBookings(currentUser?.role) && (
             <TabsTrigger value="bookings">Bookings</TabsTrigger>)}
-          {canViewReports(currentUser?.role) && (
+          {canCreateBookings(currentUser?.role) && !canManageBookings(currentUser?.role) && (
+            <TabsTrigger value="create-booking">Create Booking</TabsTrigger>)}
+          {(canViewReports(currentUser?.role) || canViewOwnReports(currentUser?.role)) && (
             <TabsTrigger value="reports">Reports</TabsTrigger>)}
           {canManageFees(currentUser?.role) && (
             <TabsTrigger value="fee-management">Fee Management</TabsTrigger>)}
@@ -282,6 +287,25 @@ return (
               </Card>
             </div>
           )}
+          
+          {isChannelPartner(currentUser?.role) && (
+            <div className="mt-8">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Channel Partner Operations</CardTitle>
+                  <CardDescription>Create bookings and view your performance reports</CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Button onClick={() => navigate('/booking')} className="w-full bg-medical-600 hover:bg-medical-700">
+                    Create New Booking
+                  </Button>
+                  <Button onClick={() => setActiveTab('reports')} className="w-full">
+                    View My Reports
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </TabsContent>
         
         <TabsContent value="dispensaries" className="space-y-4">
@@ -357,30 +381,63 @@ return (
             </CardFooter>
           </Card>
         </TabsContent>
+
+        <TabsContent value="create-booking" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Create Booking</CardTitle>
+              <CardDescription>Create new bookings for patients</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p>Access the booking system to create appointments for any doctor and dispensary.</p>
+            </CardContent>
+            <CardFooter>
+              <Button onClick={() => navigate('/booking')} className="bg-medical-600 hover:bg-medical-700">
+                Create New Booking
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
         
         <TabsContent value="reports" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Reports</CardTitle>
-              <CardDescription>Generate and view system reports</CardDescription>
+              <CardDescription>
+                {isChannelPartner(currentUser?.role) 
+                  ? "View your booking performance and commission reports" 
+                  : "Generate and view system reports"}
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Button onClick={() => navigate('/reports/daily-bookings')}>
-                  Daily Bookings Report
-                </Button>
-                <Button onClick={() => navigate('/reports/monthly-summary')}>
-                  Monthly Summary Report
-                </Button>
-                <Button onClick={() => navigate('/reports/doctor-performance')}>
-                  Doctor Performance Report
-                </Button>
-                {isSuperAdmin(currentUser?.role) && (
-                  <Button onClick={() => navigate('/reports/dispensary-revenue')}>
-                    Dispensary Revenue Report
+              {isChannelPartner(currentUser?.role) ? (
+                <div className="text-center py-8">
+                  <Button 
+                    onClick={() => navigate('/reports/channel-partner')}
+                    className="bg-medical-600 hover:bg-medical-700"
+                    size="lg"
+                  >
+                    View My Reports
                   </Button>
-                )}
-              </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <Button onClick={() => navigate('/reports/daily-bookings')}>
+                    Daily Bookings Report
+                  </Button>
+                  <Button onClick={() => navigate('/reports/monthly-summary')}>
+                    Monthly Summary Report
+                  </Button>
+                  <Button onClick={() => navigate('/reports/doctor-performance')}>
+                    Doctor Performance Report
+                  </Button>
+                  {isSuperAdmin(currentUser?.role) && (
+                    <Button onClick={() => navigate('/reports/dispensary-revenue')}>
+                      Dispensary Revenue Report
+                    </Button>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

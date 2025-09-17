@@ -70,6 +70,7 @@ const bookingSchema = new mongoose.Schema({
   fees: {
     doctorFee: { type: Number, default: 0 },
     dispensaryFee: { type: Number, default: 0 },
+    channelPartnerFee: { type: Number, default: 0 },
     bookingCommission: { type: Number, default: 0 },
     totalFee: { type: Number, default: 0 }
   },
@@ -84,6 +85,7 @@ const bookingSchema = new mongoose.Schema({
   },
   bookedBy: {
     type: String,
+    enum: ['ONLINE', 'DISPENSARY-ADMIN', 'DISPENSARY-STAFF', 'SUPER-ADMIN', 'CHANNEL-PARTNER'],
     default: 'ONLINE'
   },
   createdAt: {

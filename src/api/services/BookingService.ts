@@ -208,7 +208,20 @@ export const BookingService = {
           if (userStr) {
             const user = JSON.parse(userStr);
             bookedUser = user.id || user._id || 'online';
-            bookedBy = user.role ? user.role.toUpperCase() : 'ONLINE';
+            
+            // Normalize role names for bookedBy field
+            const userRole = user.role?.toLowerCase().replace(/[-_]/g, '-') || '';
+            if (userRole === 'channel-partner') {
+              bookedBy = 'CHANNEL-PARTNER';
+            } else if (userRole === 'super-admin') {
+              bookedBy = 'SUPER-ADMIN';
+            } else if (userRole === 'dispensary-admin' || userRole === 'hospital-admin') {
+              bookedBy = 'DISPENSARY-ADMIN';
+            } else if (userRole === 'dispensary-staff' || userRole === 'hospital-staff') {
+              bookedBy = 'DISPENSARY-STAFF';
+            } else {
+              bookedBy = user.role ? user.role.toUpperCase() : 'ONLINE';
+            }
           }
         } catch (error) {
           console.warn('Error parsing user data, using default values:', error);
@@ -222,10 +235,32 @@ export const BookingService = {
         bookedBy,
       };
       
+      // Build headers with authentication and user role
+      const headers: any = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      
+      // Add user role header for backend role identification
+      if (token) {
+        try {
+          const userStr = localStorage.getItem('current_user');
+          if (userStr) {
+            const user = JSON.parse(userStr);
+            const userRole = user.role || '';
+            if (userRole) {
+              headers['X-User-Role'] = userRole;
+            }
+          }
+        } catch (error) {
+          console.warn('Error parsing user data for headers:', error);
+        }
+      }
+      
       const response = await axios.post(
         `${API_URL}/bookings`, 
         bookingToSend,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers }
       );
       
       return {

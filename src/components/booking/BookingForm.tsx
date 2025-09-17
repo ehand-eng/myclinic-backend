@@ -73,8 +73,8 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId }: BookingFormProps)
           const role = user.role.toLowerCase();
           setUserRole(role);
           
-          // Allow access to advanced features for Super Admin and Dispensary Admin only
-          const allowedRoles = ['super admin', 'dispensary admin'];
+          // Allow access to advanced features for Super Admin, Dispensary Admin, and Channel Partner
+          const allowedRoles = ['super admin', 'dispensary admin', 'channel partner'];
           const hasAccess = allowedRoles.includes(role);
           setCanAccessAdvancedFeatures(hasAccess);
           

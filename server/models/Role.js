@@ -5,7 +5,7 @@ const roleSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    enum: ['super-admin', 'dispensary-admin', 'dispensary-staff', 'doctor']
+    enum: ['super-admin', 'dispensary-admin', 'dispensary-staff', 'doctor', 'channel-partner']
   },
   displayName: {
     type: String,
@@ -27,7 +27,8 @@ const roleSchema = new mongoose.Schema({
       'manage:timeslots',
       'create:bookings',
       'view:bookings',
-      'update:bookings'
+      'update:bookings',
+      'view:own-reports'
     ]
   }],
   isActive: {

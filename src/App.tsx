@@ -22,6 +22,7 @@ import Callback from './pages/Callback';
 import DailyBookings from '@/pages/reports/DailyBookings';
 import MonthlySummary from '@/pages/reports/MonthlySummary';
 import DoctorPerformance from '@/pages/reports/DoctorPerformance';
+import ChannelPartnerReports from '@/pages/reports/ChannelPartnerReports';
 import UserDispensaryAssignment from '@/pages/UserDispensaryAssignment';
 // import DoctorDispensaryFeeManager from './components/admin/DoctorDispensaryFeeManager';
 import Signup from './pages/Signup';
@@ -70,6 +71,7 @@ const App = () => {
         <Route path="/reports/daily-bookings" element={<DailyBookings />} />
         <Route path="/reports/monthly-summary" element={<MonthlySummary />} />
         <Route path="/reports/doctor-performance" element={<DoctorPerformance />} />
+        <Route path="/reports/channel-partner" element={<ChannelPartnerReports />} />
         
         {/* Catch All - 404 */}
         <Route path="*" element={<NotFound />} />

@@ -127,6 +127,7 @@ router.get('/:doctorId', async (req, res) => {
       dispensaryId: config.dispensaryId._id.toString(),
       doctorFee: config.doctorFee || 0,
       dispensaryFee: config.dispensaryFee || 0,
+      channelPartnerFee: config.channelPartnerFee || 0,
       onlineFee: config.bookingCommission || 0,
       doctorName: config.doctorId.name,
       doctorSpecialization: config.doctorId.specialization,
@@ -152,10 +153,10 @@ router.post('/:doctorId', async (req, res) => {
   try {
     console.log("======== doctor-dispensaries/fees ============== "+req.params.doctorId);
     const { doctorId } = req.params;
-    const { dispensaryId, doctorFee, dispensaryFee, onlineFee } = req.body;
+    const { dispensaryId, doctorFee, dispensaryFee, onlineFee, channelPartnerFee } = req.body;
     
     console.log(`Creating fee for doctor ${doctorId}, dispensary ${dispensaryId}`);
-    console.log('Fee data:', { doctorFee, dispensaryFee, onlineFee });
+    console.log('Fee data:', { doctorFee, dispensaryFee, onlineFee, channelPartnerFee: channelPartnerFee || 0 });
     
     // Validate inputs
     if (!dispensaryId) {
@@ -166,7 +167,7 @@ router.post('/:doctorId', async (req, res) => {
       return res.status(400).json({ message: 'All fee fields are required' });
     }
     
-    if (doctorFee < 0 || dispensaryFee < 0 || onlineFee < 0) {
+    if (doctorFee < 0 || dispensaryFee < 0 || onlineFee < 0 || (channelPartnerFee && channelPartnerFee < 0)) {
       return res.status(400).json({ message: 'Fee amounts cannot be negative' });
     }
     
@@ -201,6 +202,7 @@ router.post('/:doctorId', async (req, res) => {
       dispensaryId,
       doctorFee: Number(doctorFee),
       dispensaryFee: Number(dispensaryFee),
+      channelPartnerFee: Number(channelPartnerFee || 0),
       bookingCommission: Number(onlineFee),
       isActive: true
     });
@@ -219,6 +221,7 @@ router.post('/:doctorId', async (req, res) => {
       dispensaryId: populatedFee.dispensaryId._id.toString(),
       doctorFee: populatedFee.doctorFee,
       dispensaryFee: populatedFee.dispensaryFee,
+      channelPartnerFee: populatedFee.channelPartnerFee || 0,
       onlineFee: populatedFee.bookingCommission,
       doctorName: populatedFee.doctorId.name,
       doctorSpecialization: populatedFee.doctorId.specialization,
@@ -244,10 +247,10 @@ router.put('/:doctorId/:feeId', async (req, res) => {
   try {
     console.log("==== put ==== fees ============== "+req.params.doctorId);
     const { doctorId, feeId } = req.params;
-    const { doctorFee, dispensaryFee, onlineFee } = req.body;
+    const { doctorFee, dispensaryFee, onlineFee, channelPartnerFee } = req.body;
     
     console.log(`Updating fee ${feeId} for doctor ${doctorId}`);
-    console.log('New fee data:', { doctorFee, dispensaryFee, onlineFee });
+    console.log('New fee data:', { doctorFee, dispensaryFee, onlineFee, channelPartnerFee: channelPartnerFee || 0 });
     
     // Validate inputs
     if (doctorFee === undefined || dispensaryFee === undefined || onlineFee === undefined) {
@@ -268,6 +271,7 @@ router.put('/:doctorId/:feeId', async (req, res) => {
       {
         doctorFee: Number(doctorFee),
         dispensaryFee: Number(dispensaryFee),
+        channelPartnerFee: Number(channelPartnerFee || 0),
         bookingCommission: Number(onlineFee),
         updatedAt: new Date()
       },
@@ -290,6 +294,7 @@ router.put('/:doctorId/:feeId', async (req, res) => {
       dispensaryId: updatedFee.dispensaryId._id.toString(),
       doctorFee: updatedFee.doctorFee,
       dispensaryFee: updatedFee.dispensaryFee,
+      channelPartnerFee: updatedFee.channelPartnerFee || 0,
       onlineFee: updatedFee.bookingCommission,
       doctorName: updatedFee.doctorId.name,
       doctorSpecialization: updatedFee.doctorId.specialization,
