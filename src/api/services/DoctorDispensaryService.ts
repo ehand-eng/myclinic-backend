@@ -1,5 +1,6 @@
 
 import axios from 'axios';
+import api from '../../lib/axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
@@ -35,11 +36,9 @@ export const DoctorDispensaryService = {
   // Get fee information for a specific doctor-dispensary combination
   getFeeInfo: async (doctorId: string, dispensaryId: string): Promise<DoctorDispensaryFee> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.get(
-        `${API_URL}/doctor-dispensary/doctor/${doctorId}/dispensary/${dispensaryId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+            const response = await api.get(
+        `/doctor-dispensary/doctor/${doctorId}/dispensary/${dispensaryId}`,
+              );
       return {
         ...response.data,
         createdAt: new Date(response.data.createdAt),
@@ -54,12 +53,10 @@ export const DoctorDispensaryService = {
   // Assign or update fees for a doctor-dispensary combination
   assignFees: async (feeData: FeeAssignmentRequest): Promise<DoctorDispensaryFee> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.post(
-        `${API_URL}/doctor-dispensary/assign-fees`,
+            const response = await api.post(
+        `/doctor-dispensary/assign-fees`,
         feeData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+              );
       return {
         ...response.data,
         createdAt: new Date(response.data.createdAt),
@@ -74,11 +71,9 @@ export const DoctorDispensaryService = {
   // Get all fee configurations for a doctor
   getDoctorFees: async (doctorId: string): Promise<DoctorDispensaryFee[]> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.get(
-        `${API_URL}/doctor-dispensary/doctor/${doctorId}/fees`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+            const response = await api.get(
+        `/doctor-dispensary/doctor/${doctorId}/fees`,
+              );
       return response.data.map((fee: any) => ({
         ...fee,
         createdAt: new Date(fee.createdAt),
@@ -93,11 +88,9 @@ export const DoctorDispensaryService = {
   // Get all fee configurations for a dispensary
   getDispensaryFees: async (dispensaryId: string): Promise<DoctorDispensaryFee[]> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.get(
-        `${API_URL}/doctor-dispensary/dispensary/${dispensaryId}/fees`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+            const response = await api.get(
+        `/doctor-dispensary/dispensary/${dispensaryId}/fees`,
+              );
       return response.data.map((fee: any) => ({
         ...fee,
         createdAt: new Date(fee.createdAt),

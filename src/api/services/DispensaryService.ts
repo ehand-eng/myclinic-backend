@@ -1,5 +1,6 @@
 
 import axios from 'axios';
+import api from '../../lib/axios';
 import { Dispensary, Doctor } from '../models';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -8,10 +9,7 @@ export const DispensaryService = {
   // Get all dispensaries
   getAllDispensaries: async (): Promise<Dispensary[]> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.get(`${API_URL}/dispensaries`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get('/dispensaries');
       
       return response.data.map((dispensary: any) => ({
         ...dispensary,
@@ -28,10 +26,7 @@ export const DispensaryService = {
   // Get dispensary by ID
   getDispensaryById: async (id: string): Promise<Dispensary | null> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.get(`${API_URL}/dispensaries/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get(`/dispensaries/${id}`);
       
       if (!response.data) return null;
       
@@ -48,11 +43,9 @@ export const DispensaryService = {
   },
 
   getDispensariesByIds: async (ids: string[]):Promise<Dispensary[]> => {
-    const token = localStorage.getItem('auth_token');
-    const response = await axios.post(
-      `${API_URL}/dispensaries/by-ids`,
-      { ids },
-      { headers: { Authorization: `Bearer ${token}` } }
+    const response = await api.post(
+      '/dispensaries/by-ids',
+      { ids }
     );
     console.log(response.data);
     if (!response.data) return null;
@@ -68,10 +61,7 @@ export const DispensaryService = {
   // Get dispensaries by doctor ID
   getDispensariesByDoctorId: async (doctorId: string): Promise<Dispensary[]> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.get(`${API_URL}/dispensaries/doctor/${doctorId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get(`/dispensaries/doctor/${doctorId}`);
       
       return response.data.map((dispensary: any) => ({
         ...dispensary,
@@ -92,7 +82,7 @@ export const DispensaryService = {
     radiusKm: number = 10
   ): Promise<Dispensary[]> => {
     try {
-      const response = await axios.get(`${API_URL}/dispensaries/location/nearby`, {
+      const response = await api.get('/dispensaries/location/nearby', {
         params: { latitude, longitude, radiusKm }
       });
       
@@ -111,10 +101,7 @@ export const DispensaryService = {
   // Add a new dispensary
   addDispensary: async (dispensary: Omit<Dispensary, 'id' | 'createdAt' | 'updatedAt'>): Promise<Dispensary> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.post(`${API_URL}/dispensaries`, dispensary, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.post('/dispensaries', dispensary);
       
       return {
         ...response.data,
@@ -131,10 +118,7 @@ export const DispensaryService = {
   // Update dispensary
   updateDispensary: async (id: string, dispensary: Partial<Dispensary>): Promise<Dispensary | null> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.put(`${API_URL}/dispensaries/${id}`, dispensary, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.put(`/dispensaries/${id}`, dispensary);
       
       if (!response.data) return null;
       
@@ -153,10 +137,7 @@ export const DispensaryService = {
   // Delete dispensary
   deleteDispensary: async (id: string): Promise<boolean> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      await axios.delete(`${API_URL}/dispensaries/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.delete(`/dispensaries/${id}`);
       return true;
     } catch (error) {
       console.error(`Error deleting dispensary with ID ${id}:`, error);

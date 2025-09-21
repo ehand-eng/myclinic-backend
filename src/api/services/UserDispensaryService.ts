@@ -1,4 +1,5 @@
 import axios from 'axios';
+import api from '../../lib/axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
@@ -51,8 +52,7 @@ export const UserDispensaryService = {
   // Get all users with their dispensary assignments
   getAllUsers: async (): Promise<UserWithDispensaryInfo[]> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.get(`${API_URL}/auth/users`, {
+            const response = await api.get(`/auth/users`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -73,8 +73,7 @@ export const UserDispensaryService = {
   // Get all dispensaries
   getAllDispensaries: async (): Promise<Dispensary[]> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.get(`${API_URL}/dispensaries`, {
+            const response = await api.get(`/dispensaries`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       return response.data.map((dispensary: any) => ({
@@ -91,8 +90,7 @@ export const UserDispensaryService = {
   // Get users by dispensary
   getUsersByDispensary: async (dispensaryId: string): Promise<UserWithDispensaryInfo[]> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.get(`${API_URL}/user-dispensary/dispensary/${dispensaryId}/users`, {
+            const response = await api.get(`/user-dispensary/dispensary/${dispensaryId}/users`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       return response.data.map((user: any) => ({
@@ -110,8 +108,7 @@ export const UserDispensaryService = {
   // Get all user-dispensary assignments
   getAllAssignments: async (): Promise<UserDispensaryAssignment[]> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.get(`${API_URL}/user-dispensary/assignments`, {
+            const response = await api.get(`/user-dispensary/assignments`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       return response.data;
@@ -129,12 +126,10 @@ export const UserDispensaryService = {
   ): Promise<UserWithDispensaryInfo> => {
     try {
       console.log("trying to call assign users"); 
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.post(
-        `${API_URL}/user-dispensary/assign`,
+            const response = await api.post(
+        `/user-dispensary/assign`,
         { userId, dispensaryId, role },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+              );
       return {
         ...response.data.user,
         lastLogin: new Date(response.data.user.lastLogin),
@@ -154,12 +149,10 @@ export const UserDispensaryService = {
     role: 'hospital_admin' | 'hospital_staff'
   ): Promise<UserWithDispensaryInfo> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.put(
-        `${API_URL}/user-dispensary/update-role`,
+            const response = await api.put(
+        `/user-dispensary/update-role`,
         { userId, dispensaryId, role },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+              );
       return {
         ...response.data.user,
         lastLogin: new Date(response.data.user.lastLogin),
@@ -175,9 +168,8 @@ export const UserDispensaryService = {
   // Remove user from dispensary
   removeUserFromDispensary: async (userId: string, dispensaryId: string): Promise<UserWithDispensaryInfo> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.delete(
-        `${API_URL}/user-dispensary/unassign`,
+            const response = await api.delete(
+        `/user-dispensary/unassign`,
         {
           data: { userId, dispensaryId },
           headers: { Authorization: `Bearer ${token}` }

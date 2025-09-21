@@ -9,6 +9,7 @@ import { CalendarIcon, DownloadIcon, BarChart3 } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { isChannelPartner } from '@/lib/roleUtils';
+import api from '@/lib/axios';
 
 const ChannelPartnerReports = () => {
   const navigate = useNavigate();
@@ -81,23 +82,24 @@ const ChannelPartnerReports = () => {
     setIsGeneratingReport(true);
     
     try {
-      const token = localStorage.getItem('auth_token');
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const response = await fetch(
-        `${API_URL}/channel-partners/reports?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to generate report');
+      // Get user ID for channel partner filtering
+      const userStr = localStorage.getItem('current_user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      const userId = user?.id || user?._id || '';
+      
+      // Build query parameters
+      const params = new URLSearchParams({
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate
+      });
+      
+      if (userId) {
+        params.append('userId', userId);
       }
-
-      const data = await response.json();
+      
+      // Use axios interceptor (automatically includes headers)
+      const response = await api.get(`/channel-partners/reports?${params}`);
+      const data = response.data;
       setReports(data.reportData || []);
       
       toast({

@@ -1,5 +1,5 @@
 import { Booking, BookingStatus } from '../models';
-import axios from 'axios';
+import api from '../../lib/axios';
 import { TimeSlotService, AvailableTimeSlot, TimeSlotAvailability } from './TimeSlotService';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -63,12 +63,10 @@ export const BookingService = {
     date: Date
   ): Promise<Booking[]> => {
     try {
-      const token = localStorage.getItem('auth_token');
       const formattedDate = date.toISOString().split('T')[0];
       
-      const response = await axios.get(
-        `${API_URL}/bookings/doctor/${doctorId}/dispensary/${dispensaryId}/date/${formattedDate}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await api.get(
+        `/bookings/doctor/${doctorId}/dispensary/${dispensaryId}/date/${formattedDate}`
       );
       
       return response.data.map((booking: any) => ({
@@ -93,11 +91,8 @@ export const BookingService = {
     formattedDate: string
   ): Promise<Booking[]> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      
-      const response = await axios.get(
-        `${API_URL}/bookings/doctor/${doctorId}/dispensary/${dispensaryId}/date/${formattedDate}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await api.get(
+        `/bookings/doctor/${doctorId}/dispensary/${dispensaryId}/date/${formattedDate}`
       );
       
       return response.data.map((booking: any) => ({
@@ -118,10 +113,8 @@ export const BookingService = {
   // Get a booking by ID
   getBookingById: async (id: string): Promise<Booking | null> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.get(
-        `${API_URL}/bookings/${id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await api.get(
+        `/bookings/${id}`
       );
       
       if (!response.data) return null;
@@ -144,10 +137,8 @@ export const BookingService = {
   // Get all bookings for a patient
   getBookingsByPatient: async (patientId: string): Promise<Booking[]> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.get(
-        `${API_URL}/bookings/patient/${patientId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await api.get(
+        `/bookings/patient/${patientId}`
       );
       
       return response.data.map((booking: any) => ({
@@ -235,32 +226,9 @@ export const BookingService = {
         bookedBy,
       };
       
-      // Build headers with authentication and user role
-      const headers: any = {};
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-      
-      // Add user role header for backend role identification
-      if (token) {
-        try {
-          const userStr = localStorage.getItem('current_user');
-          if (userStr) {
-            const user = JSON.parse(userStr);
-            const userRole = user.role || '';
-            if (userRole) {
-              headers['X-User-Role'] = userRole;
-            }
-          }
-        } catch (error) {
-          console.warn('Error parsing user data for headers:', error);
-        }
-      }
-      
-      const response = await axios.post(
-        `${API_URL}/bookings`, 
-        bookingToSend,
-        { headers }
+      const response = await api.post(
+        `/bookings`, 
+        bookingToSend
       );
       
       return {
@@ -284,24 +252,8 @@ export const BookingService = {
   // Get booking summary
   getBookingSummary: async (transactionId: string): Promise<BookingSummary> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      
-      // Get user role for role-based access control
-      const userStr = localStorage.getItem('current_user');
-      const user = userStr ? JSON.parse(userStr) : null;
-      const userRole = user?.role || '';
-      
-      const headers: any = {};
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-      if (userRole) {
-        headers['X-User-Role'] = userRole;
-      }
-      
-      const response = await axios.get(
-        `${API_URL}/bookings/summary/${transactionId}`,
-        { headers }
+      const response = await api.get(
+        `/bookings/summary/${transactionId}`
       );
       
       return {
@@ -328,8 +280,6 @@ export const BookingService = {
     }
   ): Promise<Booking | null> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      
       // Prepare data to send
       const updateData = {
         status,
@@ -342,10 +292,9 @@ export const BookingService = {
           : additionalInfo?.completedTime
       };
       
-      const response = await axios.patch(
-        `${API_URL}/bookings/${id}/status`, 
-        updateData,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await api.patch(
+        `/bookings/${id}/status`, 
+        updateData
       );
       
       if (!response.data) return null;
@@ -368,11 +317,9 @@ export const BookingService = {
   // Cancel a booking
   cancelBooking: async (id: string, reason?: string): Promise<Booking | null> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.patch(
-        `${API_URL}/bookings/${id}/cancel`, 
-        { reason },
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await api.patch(
+        `/bookings/${id}/cancel`, 
+        { reason }
       );
       
       if (!response.data) return null;
@@ -407,10 +354,8 @@ export const BookingService = {
   },
 
   fetchDoctorDispensaryFees: async (doctorId: string, dispensaryId: string) => {
-    const token = localStorage.getItem('auth_token');
-    const response = await axios.get(
-      `${API_URL}/doctor-dispensaries/fees/${doctorId}/${dispensaryId}`,
-      { headers: { Authorization: `Bearer ${token}` } }
+    const response = await api.get(
+      `/doctor-dispensaries/fees/${doctorId}/${dispensaryId}`
     );
     return response.data;
   },
@@ -418,28 +363,13 @@ export const BookingService = {
   // Search bookings by multiple criteria
   searchBookings: async (query: string, searchType?: 'transactionId' | 'phone' | 'name'): Promise<any[]> => {
     try {
-      const token = localStorage.getItem('auth_token');
       const params = new URLSearchParams({ query });
       if (searchType) {
         params.append('searchType', searchType);
       }
       
-      // Get user role for role-based access control
-      const userStr = localStorage.getItem('current_user');
-      const user = userStr ? JSON.parse(userStr) : null;
-      const userRole = user?.role || '';
-      
-      const headers: any = {};
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-      if (userRole) {
-        headers['X-User-Role'] = userRole;
-      }
-      
-      const response = await axios.get(
-        `${API_URL}/bookings/search?${params}`,
-        { headers }
+      const response = await api.get(
+        `/bookings/search?${params}`
       );
       
       return response.data.results.map((booking: any) => ({

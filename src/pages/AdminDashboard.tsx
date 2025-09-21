@@ -21,8 +21,15 @@ import {
   DollarSign,
   Activity,
   Loader2,
-  Shield
+  Shield,
+  Home,
+  MapPin,
+  User as UserIcon,
+  BookOpen,
+  FileText,
+  UserPlus
 } from 'lucide-react';
+import DashboardNavigation from '@/components/admin/DashboardNavigation';
 import { User, UserRole, Doctor, Dispensary } from '@/api/models';
 import { AuthService, DoctorService, DispensaryService, BookingService } from '@/api/services';
 import UserManagement from '@/components/admin/UserManagement';
@@ -61,6 +68,64 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Define navigation tabs with icons and visibility logic
+  const getNavigationTabs = () => [
+    {
+      id: "overview",
+      label: "Overview",
+      icon: <Home className="w-4 h-4" />,
+      visible: true,
+    },
+    {
+      id: "dispensaries",
+      label: "Dispensaries",
+      icon: <MapPin className="w-4 h-4" />,
+      visible: canManageDispensaries(currentUser?.role),
+    },
+    {
+      id: "doctors",
+      label: "Doctors",
+      icon: <UserIcon className="w-4 h-4" />,
+      visible: canManageDoctors(currentUser?.role),
+    },
+    {
+      id: "timeslots",
+      label: "TimeSlots",
+      icon: <Clock className="w-4 h-4" />,
+      visible: canManageTimeslots(currentUser?.role),
+    },
+    {
+      id: "bookings",
+      label: "Bookings",
+      icon: <Calendar className="w-4 h-4" />,
+      visible: canManageBookings(currentUser?.role),
+    },
+    {
+      id: "create-booking",
+      label: "Create Booking",
+      icon: <BookOpen className="w-4 h-4" />,
+      visible: canCreateBookings(currentUser?.role) && !canManageBookings(currentUser?.role),
+    },
+    {
+      id: "reports",
+      label: "Reports",
+      icon: <FileText className="w-4 h-4" />,
+      visible: canViewReports(currentUser?.role) || canViewOwnReports(currentUser?.role),
+    },
+    {
+      id: "fee-management",
+      label: "Fee Management",
+      icon: <DollarSign className="w-4 h-4" />,
+      visible: canManageFees(currentUser?.role),
+    },
+    {
+      id: "user-dispensary",
+      label: "Assign Users",
+      icon: <UserPlus className="w-4 h-4" />,
+      visible: isSuperAdmin(currentUser?.role),
+    },
+  ];
 
   useEffect(() => {
     // Check authentication on component mount
@@ -150,73 +215,60 @@ return (
         </div> */}
       </div>
       
-      <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-2 md:grid-cols-7 mb-8">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          {canManageDispensaries(currentUser?.role) && (
-            <TabsTrigger value="dispensaries">Dispensaries</TabsTrigger>)}
-          {canManageDoctors(currentUser?.role) && (
-            <TabsTrigger value="doctors">Doctors</TabsTrigger>)}
-          {canManageTimeslots(currentUser?.role) && (
-            <TabsTrigger value="timeslots">TimeSlots</TabsTrigger>)}
-          {canManageBookings(currentUser?.role) && (
-            <TabsTrigger value="bookings">Bookings</TabsTrigger>)}
-          {canCreateBookings(currentUser?.role) && !canManageBookings(currentUser?.role) && (
-            <TabsTrigger value="create-booking">Create Booking</TabsTrigger>)}
-          {(canViewReports(currentUser?.role) || canViewOwnReports(currentUser?.role)) && (
-            <TabsTrigger value="reports">Reports</TabsTrigger>)}
-          {canManageFees(currentUser?.role) && (
-            <TabsTrigger value="fee-management">Fee Management</TabsTrigger>)}
-          {isSuperAdmin(currentUser?.role) && (
-            <TabsTrigger value="user-dispensary">Assign Users</TabsTrigger>)}
-        </TabsList>
-        
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Dispensaries
+      <DashboardNavigation
+        tabs={getNavigationTabs()}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
+
+      <div className="w-full">
+        {activeTab === "overview" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Total Dispensaries
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">4</div>
               </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Active Doctors
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Active Doctors
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">3</div>
               </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Today's Appointments
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Today's Appointments
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">12</div>
               </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Completed Appointments
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Completed Appointments
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">45</div>
               </CardContent>
-            </Card>
-          </div>
+              </Card>
+            </div>
           
           {/* Add a new Time Slot Management card */}
           
@@ -305,11 +357,13 @@ return (
                 </CardContent>
               </Card>
             </div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="dispensaries" className="space-y-4">
-          <Card>
+        )}
+          </div>
+        )}
+
+        {activeTab === "dispensaries" && (
+          <div className="space-y-4">
+            <Card>
             <CardHeader>
               <CardTitle>Dispensaries Management</CardTitle>
               <CardDescription>View and manage all dispensaries in the system</CardDescription>
@@ -326,10 +380,12 @@ return (
               </Button>
             </CardFooter>
           </Card>
-        </TabsContent>
+          </div>
+        )}
         
-        <TabsContent value="doctors" className="space-y-4">
-          <Card>
+        {activeTab === "doctors" && (
+          <div className="space-y-4">
+            <Card>
             <CardHeader>
               <CardTitle>Doctors Management</CardTitle>
               <CardDescription>View and manage all doctors in the system</CardDescription>
@@ -349,10 +405,12 @@ return (
               </Button>
             </CardFooter>
           </Card>
-        </TabsContent>
+          </div>
+        )}
 
-        <TabsContent value="timeslots" className="space-y-4">
-          <Card>
+        {activeTab === "timeslots" && (
+          <div className="space-y-4">
+            <Card>
             <CardHeader>
               <CardTitle>Time Slot Management</CardTitle>
               <CardDescription>
@@ -365,10 +423,12 @@ return (
               </Button>
             </CardContent>
           </Card>
-          </TabsContent>
+          </div>
+        )}
         
-        <TabsContent value="bookings" className="space-y-4">
-          <Card>
+        {activeTab === "bookings" && (
+          <div className="space-y-4">
+            <Card>
             <CardHeader>
               <CardTitle>Bookings Management</CardTitle>
               <CardDescription>View and manage all bookings in the system</CardDescription>
@@ -380,10 +440,12 @@ return (
               <Button onClick={() => navigate('/booking')}>View All Bookings</Button>
             </CardFooter>
           </Card>
-        </TabsContent>
+          </div>
+        )}
 
-        <TabsContent value="create-booking" className="space-y-4">
-          <Card>
+        {activeTab === "create-booking" && (
+          <div className="space-y-4">
+            <Card>
             <CardHeader>
               <CardTitle>Create Booking</CardTitle>
               <CardDescription>Create new bookings for patients</CardDescription>
@@ -397,10 +459,12 @@ return (
               </Button>
             </CardFooter>
           </Card>
-        </TabsContent>
+          </div>
+        )}
         
-        <TabsContent value="reports" className="space-y-4">
-          <Card>
+        {activeTab === "reports" && (
+          <div className="space-y-4">
+            <Card>
             <CardHeader>
               <CardTitle>Reports</CardTitle>
               <CardDescription>
@@ -440,14 +504,18 @@ return (
               )}
             </CardContent>
           </Card>
-        </TabsContent>
+          </div>
+        )}
 
-        <TabsContent value="fee-management" className="space-y-6">
-          <AdminFeeManage />
-        </TabsContent>
+        {activeTab === "fee-management" && (
+          <div className="space-y-6">
+            <AdminFeeManage />
+          </div>
+        )}
 
-        <TabsContent value="user-dispensary" className="space-y-6">
-          <Tabs defaultValue="manage-users" className="w-full">
+        {activeTab === "user-dispensary" && (
+          <div className="space-y-6">
+            <Tabs defaultValue="manage-users" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="manage-users">Manage Users</TabsTrigger>
               <TabsTrigger value="assign-roles">Assign Roles</TabsTrigger>
@@ -471,8 +539,9 @@ return (
               </Card>
             </TabsContent>
           </Tabs>
-        </TabsContent>
-      </Tabs>
+          </div>
+        )}
+      </div>
     </main>
     
     <Footer />

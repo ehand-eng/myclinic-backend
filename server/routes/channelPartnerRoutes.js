@@ -7,9 +7,20 @@ const mongoose = require('mongoose');
 // Get channel partner bookings report
 router.get('/reports', roleMiddleware.requireOwnReportsAccess, async (req, res) => {
   try {
+    // Reliable role detection
+    let userRole = null;
+    if (req.user && req.user.role) {
+      userRole = req.user.role.toLowerCase();
+    } else if (req.headers['x-user-role']) {
+      userRole = req.headers['x-user-role'].toLowerCase();
+    }
+    console.log("Report role check:", { tokenRole: req.user?.role, headerRole: req.headers['x-user-role'], finalRole: userRole });
+    if (!userRole) {
+      return res.status(400).json({ message: "Missing X-User-Role header" });
+    }
+
     const { startDate, endDate, channelPartnerId } = req.query;
-    const userRole = req.userRole;
-    const isChannelPartner = req.isChannelPartner;
+    const isChannelPartner = userRole === 'channel-partner';
     
     // Build date filter
     let dateFilter = {};
@@ -28,13 +39,27 @@ router.get('/reports', roleMiddleware.requireOwnReportsAccess, async (req, res) 
     
     // If user is a channel partner, only show their own bookings
     if (isChannelPartner) {
-      const userId = req.user?.id || req.user?._id || req.body.userId;
+      // Try multiple sources to get the user ID
+      const userId = req.user?.id || req.user?._id || req.body.userId || req.query.userId;
+      
+      console.log('Channel partner user identification:', {
+        userId,
+        userFromReq: req.user,
+        bodyUserId: req.body.userId,
+        queryUserId: req.query.userId
+      });
+      
       if (userId) {
         query.bookedUser = userId;
       } else {
         return res.status(400).json({
           message: 'User ID required for channel partner reports',
-          error: 'Cannot identify channel partner user'
+          error: 'Cannot identify channel partner user',
+          debug: {
+            reqUser: req.user,
+            bodyUserId: req.body.userId,
+            queryUserId: req.query.userId
+          }
         });
       }
     } else if (channelPartnerId) {
@@ -126,7 +151,19 @@ router.get('/reports', roleMiddleware.requireOwnReportsAccess, async (req, res) 
 // Get channel partner summary (for dashboard)
 router.get('/summary', roleMiddleware.requireOwnReportsAccess, async (req, res) => {
   try {
-    const isChannelPartner = req.isChannelPartner;
+    // Reliable role detection
+    let userRole = null;
+    if (req.user && req.user.role) {
+      userRole = req.user.role.toLowerCase();
+    } else if (req.headers['x-user-role']) {
+      userRole = req.headers['x-user-role'].toLowerCase();
+    }
+    console.log("Report role check:", { tokenRole: req.user?.role, headerRole: req.headers['x-user-role'], finalRole: userRole });
+    if (!userRole) {
+      return res.status(400).json({ message: "Missing X-User-Role header" });
+    }
+    
+    const isChannelPartner = userRole === 'channel-partner';
     const userId = req.user?.id || req.user?._id || req.body.userId;
     
     // Build query
@@ -200,7 +237,7 @@ router.get('/summary', roleMiddleware.requireOwnReportsAccess, async (req, res) 
 });
 
 // Get list of channel partners (for admin use)
-router.get('/partners', roleMiddleware.requireRole(['super admin', 'dispensary admin']), async (req, res) => {
+router.get('/partners', roleMiddleware.requireRole(['super-admin', 'dispensary-admin']), async (req, res) => {
   try {
     // Get unique channel partner users from bookings
     const partners = await Booking.aggregate([

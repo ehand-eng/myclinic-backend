@@ -382,15 +382,25 @@ router.post('/', async (req, res) => {
     }
     
     console.log("======== userRole ===  11111 =========== "+userRole);
-    // Set bookedBy based on role
-    if (userRole === 'channel-partner' || userRole === 'channel partner') {
+    
+    // Normalize role for consistent checking
+    const normalizedUserRole = userRole ? userRole.toLowerCase().replace(/\s+/g, '-') : '';
+    
+    console.log("Checking role access:", { 
+      userRole: userRole, 
+      normalizedUserRole: normalizedUserRole,
+      operation: 'booking creation'
+    });
+    
+    // Set bookedBy based on normalized role
+    if (normalizedUserRole === 'channel-partner') {
       bookedBy = 'CHANNEL-PARTNER';
       bookedUser = req.body.bookedUser || req.user?.id || bookedUser;
-    } else if (userRole === 'super-admin' || userRole === 'super admin') {
+    } else if (normalizedUserRole === 'super-admin') {
       bookedBy = 'SUPER-ADMIN';
-    } else if (userRole === 'dispensary-admin' || userRole === 'dispensary admin') {
+    } else if (normalizedUserRole === 'dispensary-admin') {
       bookedBy = 'DISPENSARY-ADMIN';
-    } else if (userRole === 'dispensary-staff' || userRole === 'dispensary staff') {
+    } else if (normalizedUserRole === 'dispensary-staff') {
       bookedBy = 'DISPENSARY-STAFF';
     }
 

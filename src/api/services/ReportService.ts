@@ -1,5 +1,6 @@
 
 import axios from 'axios';
+import api from '../../lib/axios';
 import { Report, ReportType } from '../models';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -55,11 +56,7 @@ export const ReportService = {
   // Get all reports
   getAllReports: async (): Promise<Report[]> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      
-      const response = await axios.get(`${API_URL}/reports`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get('/reports');
       
       return response.data;
     } catch (error) {
@@ -71,11 +68,7 @@ export const ReportService = {
   // Get reports by dispensary
   getReportsByDispensary: async (dispensaryId: string): Promise<Report[]> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      
-      const response = await axios.get(`${API_URL}/reports/dispensary/${dispensaryId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get(`/reports/dispensary/${dispensaryId}`);
       
       return response.data;
     } catch (error) {
@@ -95,8 +88,6 @@ export const ReportService = {
     endDate?: Date
   ): Promise<Report> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      
       let endpoint = '';
       
       switch(type) {
@@ -116,17 +107,14 @@ export const ReportService = {
           throw new Error('Invalid report type');
       }
       
-      const response = await axios.post(
-        `${API_URL}${endpoint}`,
+      const response = await api.post(
+        endpoint,
         {
           title,
           parameters,
           dispensaryId,
           startDate: startDate ? startDate.toISOString() : new Date().toISOString(),
           endDate: endDate ? endDate.toISOString() : new Date().toISOString()
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
         }
       );
       
@@ -239,13 +227,8 @@ export const ReportService = {
   // Get session report (bookings for a specific doctor, dispensary, and date)
   getSessionReport: async (doctorId: string, dispensaryId: string, date: string) => {
     try {
-      const token = localStorage.getItem('auth_token');
-      
-      const response = await axios.get(
-        `${API_URL}/reports/session/${doctorId}/${dispensaryId}/${date}`, 
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
+      const response = await api.get(
+        `/reports/session/${doctorId}/${dispensaryId}/${date}`
       );
       
       return response.data;
@@ -259,13 +242,11 @@ export const ReportService = {
   // Get daily bookings report
   getDailyBookings: async (startDate: string, endDate: string): Promise<DailyBookingSummary> => {
     try {
-      const token = localStorage.getItem('auth_token');
       const params = new URLSearchParams();
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
-      const response = await axios.get(
-        `${API_URL}/reports/daily-bookings?${params.toString()}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await api.get(
+        `/reports/daily-bookings?${params.toString()}`
       );
       return response.data;
     } catch (error) {
@@ -277,10 +258,8 @@ export const ReportService = {
   // Get monthly summary report
   getMonthlySummary: async (month: number, year: number): Promise<MonthlySummary> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.get(
-        `${API_URL}/reports/monthly-summary?month=${month}&year=${year}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await api.get(
+        `/reports/monthly-summary?month=${month}&year=${year}`
       );
       return response.data;
     } catch (error) {
@@ -296,12 +275,10 @@ export const ReportService = {
     endDate: Date
   ): Promise<DoctorPerformance> => {
     try {
-      const token = localStorage.getItem('auth_token');
       const formattedStartDate = startDate.toISOString().split('T')[0];
       const formattedEndDate = endDate.toISOString().split('T')[0];
-      const response = await axios.get(
-        `${API_URL}/reports/doctor-performance?doctorId=${doctorId}&startDate=${formattedStartDate}&endDate=${formattedEndDate}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await api.get(
+        `/reports/doctor-performance?doctorId=${doctorId}&startDate=${formattedStartDate}&endDate=${formattedEndDate}`
       );
       return response.data;
     } catch (error) {
@@ -312,21 +289,15 @@ export const ReportService = {
 
   // For daily bookings with params
   getDailyBookingsWithParams: async (params: any) => {
-    const token = localStorage.getItem('auth_token');
     const search = new URLSearchParams(params).toString();
-    const response = await axios.get(`${API_URL}/reports/daily-bookings?${search}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const response = await api.get(`/reports/daily-bookings?${search}`);
     return response.data;
   },
 
   // For advance bookings
   getAdvanceBookings: async (params: any) => {
-    const token = localStorage.getItem('auth_token');
     const search = new URLSearchParams(params).toString();
-    const response = await axios.get(`${API_URL}/reports/advance-bookings?${search}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const response = await api.get(`/reports/advance-bookings?${search}`);
     return response.data;
   }
 };

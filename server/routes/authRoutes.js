@@ -139,32 +139,10 @@ router.post('/signup', async (req, res) => {
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'All fields are required' });
     }
-
-    // Create user in Auth0
-    let auth0User;
-    try {
-      auth0User = await auth0Management.users.create({
-        email,
-        name,
-        password,
-        connection: 'Username-Password-Authentication',
-        email_verified: false
-      });
-    } catch (auth0Error) {
-      console.error('Error creating Auth0 user:', auth0Error);
-      return res.status(400).json({ 
-        message: 'Failed to create user account',
-        error: auth0Error.message 
-      });
-    }
-
     // Create user in our database
-    console.log(">>>>>>>>>>>>>>>>>>> auth 9 >...... "+JSON.stringify(auth0User));
-    console.log("....... "+auth0User.data.user_id);
     const user = new User({
       name,
       email,
-      auth0Id: auth0User.data.user_id,
       dispensaryIds: [],
       isActive: true,
       lastLogin: new Date()
@@ -172,25 +150,12 @@ router.post('/signup', async (req, res) => {
     console.log(">>>>>>. user save >>>>>> "+JSON.stringify(user));
     await user.save();
 
-    // Get token for the new user
-    const tokenResponse = await axios.post(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
-      grant_type: 'password',
-      username: email,
-      password: password,
-      client_id: process.env.AUTH0_CLIENT_ID,
-      client_secret: process.env.AUTH0_CLIENT_SECRET,
-      audience: process.env.AUTH0_AUDIENCE,
-      scope: 'openid profile email'
-    });
-
     res.status(201).json({
       message: 'User created successfully',
-      access_token: tokenResponse.data.access_token,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
-        auth0User : user.auth0Id,
         dispensaryIds: user.dispensaryIds
       }
     });

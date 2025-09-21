@@ -4,9 +4,62 @@ const Report = require('../models/Report');
 const Booking = require('../models/Booking');
 const Doctor = require('../models/Doctor');
 const Dispensary = require('../models/Dispensary');
-const authMiddleware = require('../middleware/authMiddleware');
+const User = require('../models/User');
+const roleMiddleware = require('../middleware/roleMiddleware');
 const { validateJwt, requireRole } = require('../middleware/authMiddleware');
 const moment = require('moment');
+
+// Helper function to get user's allowed dispensaries
+const getAllowedDispensaries = async (req) => {
+  // Reliable role detection pattern
+  let userRole = null;
+  if (req.user && req.user.role) {
+    userRole = req.user.role.toLowerCase();
+  } else if (req.headers['x-user-role']) {
+    userRole = req.headers['x-user-role'].toLowerCase();
+  }
+  
+  console.log("Report role check:", { 
+    tokenRole: req.user?.role, 
+    headerRole: req.headers['x-user-role'], 
+    finalRole: userRole 
+  });
+  
+  if (!userRole) {
+    throw new Error("Missing X-User-Role header");
+  }
+  
+  const userId = req.user?.id || req.user?._id;
+  
+  // Super admin can access all dispensaries
+  if (userRole.toLowerCase().replace(/\s+/g, '-') === 'super-admin') {
+    const allDispensaries = await Dispensary.find({}, '_id');
+    const dispensaryIds = allDispensaries.map(d => d._id.toString());
+    console.log('Super admin access - all dispensaries:', dispensaryIds.length);
+    return dispensaryIds;
+  }
+  
+  // Dispensary admin/staff can only access their assigned dispensaries
+  if (userRole.toLowerCase().includes('dispensary') || userRole.toLowerCase().includes('hospital')) {
+    if (!userId) {
+      throw new Error('User ID required for dispensary role');
+    }
+    
+    const user = await User.findById(userId).populate('dispensaryIds');
+    if (!user || !user.dispensaryIds || user.dispensaryIds.length === 0) {
+      console.log('No dispensaries assigned to user:', userId);
+      return [];
+    }
+    
+    const dispensaryIds = user.dispensaryIds.map(d => d._id.toString());
+    console.log('Dispensary role access - assigned dispensaries:', dispensaryIds);
+    return dispensaryIds;
+  }
+  
+  // Other roles have no dispensary access
+  console.log('Role has no dispensary access:', userRole);
+  return [];
+};
 
 // Get all reports
 router.get('/', async (req, res) => {
@@ -375,17 +428,63 @@ router.post('/generate/dispensary-revenue', async (req, res) => {
 });
 
 // Get daily bookings report
-router.get('/daily-bookings', validateJwt, async (req, res) => {
+router.get('/daily-bookings', roleMiddleware.requireRole(['super-admin', 'dispensary-admin', 'dispensary-staff']), async (req, res) => {
   try {
+    // Reliable role detection
+    let userRole = null;
+    if (req.user && req.user.role) {
+      userRole = req.user.role.toLowerCase();
+    } else if (req.headers['x-user-role']) {
+      userRole = req.headers['x-user-role'].toLowerCase();
+    }
+    console.log("Report role check:", { tokenRole: req.user?.role, headerRole: req.headers['x-user-role'], finalRole: userRole });
+    if (!userRole) {
+      return res.status(400).json({ message: "Missing X-User-Role header" });
+    }
+
     let { date, dispensaryId, doctorId, timeSlot } = req.query;
     if (!date) return res.status(400).json({ message: 'date is required' });
 
+    // Get allowed dispensaries for this user
+    let allowedDispensaries;
+    try {
+      allowedDispensaries = await getAllowedDispensaries(req);
+    } catch (error) {
+      console.error('❌ Error getting allowed dispensaries:', error.message);
+      return res.status(400).json({ 
+        message: error.message,
+        hint: 'Make sure you are logged in and the X-User-Role header is being sent'
+      });
+    }
+    
     // Parse as UTC
     const start = new Date(date + 'T00:00:00.000Z');
     const end = new Date(date + 'T23:59:59.999Z');
     const query = { bookingDate: { $gte: start, $lte: end } };
 
-    if (dispensaryId) query.dispensaryId = dispensaryId;
+    // Apply dispensary filtering based on role
+    if (req.userRole?.toLowerCase().replace(/\s+/g, '-') === 'super-admin') {
+      // Super admin can optionally filter by dispensary
+      if (dispensaryId) query.dispensaryId = dispensaryId;
+    } else {
+      // Dispensary admin/staff must select a dispensary and can only see their assigned ones
+      if (!dispensaryId) {
+        return res.status(400).json({ 
+          message: 'Dispensary selection is required for your role',
+          allowedDispensaries 
+        });
+      }
+      
+      if (!allowedDispensaries.includes(dispensaryId)) {
+        return res.status(403).json({ 
+          message: 'Access denied to this dispensary',
+          allowedDispensaries 
+        });
+      }
+      
+      query.dispensaryId = dispensaryId;
+    }
+    
     if (doctorId) query.doctorId = doctorId;
     if (timeSlot) query.timeSlot = timeSlot;
 
@@ -425,6 +524,18 @@ router.get('/daily-bookings', validateJwt, async (req, res) => {
 // Get monthly summary report
 router.get('/monthly-summary', validateJwt, async (req, res) => {
   try {
+    // Reliable role detection
+    let userRole = null;
+    if (req.user && req.user.role) {
+      userRole = req.user.role.toLowerCase();
+    } else if (req.headers['x-user-role']) {
+      userRole = req.headers['x-user-role'].toLowerCase();
+    }
+    console.log("Report role check:", { tokenRole: req.user?.role, headerRole: req.headers['x-user-role'], finalRole: userRole });
+    if (!userRole) {
+      return res.status(400).json({ message: "Missing X-User-Role header" });
+    }
+    
     const { month, year, dispensaryId } = req.query;
     const startDate = moment(`${year}-${month}-01`).startOf('month').toDate();
     const endDate = moment(startDate).endOf('month').toDate();
@@ -478,6 +589,18 @@ router.get('/monthly-summary', validateJwt, async (req, res) => {
 // Get doctor performance report
 router.get('/doctor-performance', validateJwt, async (req, res) => {
   try {
+    // Reliable role detection
+    let userRole = null;
+    if (req.user && req.user.role) {
+      userRole = req.user.role.toLowerCase();
+    } else if (req.headers['x-user-role']) {
+      userRole = req.headers['x-user-role'].toLowerCase();
+    }
+    console.log("Report role check:", { tokenRole: req.user?.role, headerRole: req.headers['x-user-role'], finalRole: userRole });
+    if (!userRole) {
+      return res.status(400).json({ message: "Missing X-User-Role header" });
+    }
+    
     const { doctorId, startDate, endDate, dispensaryId } = req.query;
     const query = {
       doctorId,
@@ -542,17 +665,65 @@ router.get('/doctor-performance', validateJwt, async (req, res) => {
   }
 });
 
-router.get('/advance-bookings', validateJwt, async (req, res) => {
+router.get('/advance-bookings', roleMiddleware.requireRole(['super-admin', 'dispensary-admin', 'dispensary-staff']), async (req, res) => {
   try {
-    let { startDate, endDate, dispensaryId, doctorId } = req.query;
+    console.log("======== advance-bookings ============== "+req.query);
+    // Reliable role detection
+    let userRole = null;
+    if (req.user && req.user.role) {
+      userRole = req.user.role.toLowerCase();
+    } else if (req.headers['x-user-role']) {
+      userRole = req.headers['x-user-role'].toLowerCase();
+    }
+    console.log("Report role check:", { tokenRole: req.user?.role, headerRole: req.headers['x-user-role'], finalRole: userRole });
+    if (!userRole) {
+      return res.status(400).json({ message: "Missing X-User-Role header" });
+    }
+
+    let { startDate, endDate, dispensaryId, doctorId, timeSlot } = req.query;
     if (!startDate || !endDate) return res.status(400).json({ message: 'startDate and endDate are required' });
 
+    // Get allowed dispensaries for this user
+    let allowedDispensaries;
+    try {
+      allowedDispensaries = await getAllowedDispensaries(req);
+    } catch (error) {
+      console.error('❌ Error getting allowed dispensaries:', error.message);
+      return res.status(400).json({ 
+        message: error.message,
+        hint: 'Make sure you are logged in and the X-User-Role header is being sent'
+      });
+    }
+    
     const start = new Date(startDate + 'T00:00:00.000Z');
     const end = new Date(endDate + 'T23:59:59.999Z');
     const query = { bookingDate: { $gte: start, $lte: end } };
 
-    if (dispensaryId) query.dispensaryId = dispensaryId;
+    // Apply dispensary filtering based on role
+    if (req.userRole?.toLowerCase().replace(/\s+/g, '-') === 'super-admin') {
+      // Super admin can optionally filter by dispensary
+      if (dispensaryId) query.dispensaryId = dispensaryId;
+    } else {
+      // Dispensary admin/staff must select a dispensary and can only see their assigned ones
+      if (!dispensaryId) {
+        return res.status(400).json({ 
+          message: 'Dispensary selection is required for your role',
+          allowedDispensaries 
+        });
+      }
+      
+      if (!allowedDispensaries.includes(dispensaryId)) {
+        return res.status(403).json({ 
+          message: 'Access denied to this dispensary',
+          allowedDispensaries 
+        });
+      }
+      
+      query.dispensaryId = dispensaryId;
+    }
+    
     if (doctorId) query.doctorId = doctorId;
+    if (timeSlot) query.timeSlot = timeSlot;
     console.log(query);
     const bookings = await Booking.find(query)
       .populate('doctorId', 'name specialization')

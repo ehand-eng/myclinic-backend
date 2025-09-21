@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DoctorService, DispensaryService, BookingService } from '@/api/services';
+import api from '@/lib/axios';
 import { Doctor, Dispensary } from '@/api/models';
 import { TimeSlotAvailability } from '@/api/services/TimeSlotService';
 import BookingStep1 from './BookingStep1';
@@ -369,35 +370,13 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId }: BookingFormProps)
     try {
       setIsLoading(true);
       
-      // Get user role for role-based access control
-      const userStr = localStorage.getItem('current_user');
-      const user = userStr ? JSON.parse(userStr) : null;
-      const userRole = user?.role || '';
-
-      const headers: any = {
-        'Content-Type': 'application/json',
-      };
-
-      if (userRole) {
-        headers['X-User-Role'] = userRole;
-      }
-
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/bookings/${currentBooking._id}/adjust`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({
-          newDate: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null,
-          doctorId: selectedDoctor,
-          dispensaryId: selectedDispensary,
-          userRole: userRole,
-        }),
+      const response = await api.patch(`/bookings/${currentBooking._id}/adjust`, {
+        newDate: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null,
+        doctorId: selectedDoctor,
+        dispensaryId: selectedDispensary,
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to adjust booking');
-      }
-
-      const updatedBooking = await response.json();
+      const updatedBooking = response.data;
       
       // Enhanced success message with specific time
       const newDateFormatted = format(selectedDate!, 'do MMM yyyy');

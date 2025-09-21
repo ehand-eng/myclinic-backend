@@ -1,4 +1,5 @@
 import axios from 'axios';
+import api from '../../lib/axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -80,8 +81,8 @@ export const TimeSlotService = {
   // Get time slots for a doctor at a specific dispensary
   getTimeSlotConfigsByDoctor: async (doctorId: string, dispensaryId: string): Promise<TimeSlotConfig[]> => {
     try {
-      const response = await axios.get(
-        `${API_URL}/timeslots/config/doctor/${doctorId}/dispensary/${dispensaryId}`
+      const response = await api.get(
+        `/timeslots/config/doctor/${doctorId}/dispensary/${dispensaryId}`
       );
       
       return response.data.map((slot: any) => ({
@@ -102,10 +103,8 @@ export const TimeSlotService = {
   // Get all time slots for a dispensary
   getTimeSlotConfigsByDispensary: async (dispensaryId: string): Promise<TimeSlotConfig[]> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.get(
-        `${API_URL}/timeslots/config/dispensary/${dispensaryId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await api.get(
+        `/timeslots/config/dispensary/${dispensaryId}`
       );
       
       return response.data.map((slot: any) => ({
@@ -126,11 +125,9 @@ export const TimeSlotService = {
   // Add a new time slot configuration
   addTimeSlotConfig: async (timeSlotConfig: Omit<TimeSlotConfig, 'id' | 'createdAt' | 'updatedAt'>): Promise<TimeSlotConfig> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.post(
-        `${API_URL}/timeslots/config`, 
-        timeSlotConfig,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await api.post(
+        '/timeslots/config', 
+        timeSlotConfig
       );
       
       return {
@@ -148,11 +145,9 @@ export const TimeSlotService = {
   // Update a time slot configuration
   updateTimeSlotConfig: async (id: string, config: Partial<TimeSlotConfig>): Promise<TimeSlotConfig | null> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.put(
-        `${API_URL}/timeslots/config/${id}`, 
-        config,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await api.put(
+        `/timeslots/config/${id}`, 
+        config
       );
       
       if (!response.data) return null;
@@ -172,10 +167,7 @@ export const TimeSlotService = {
   // Delete a time slot configuration
   deleteTimeSlotConfig: async (id: string): Promise<boolean> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      await axios.delete(`${API_URL}/timeslots/config/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+            await api.delete(`/timeslots/config/${id}`);
       return true;
     } catch (error) {
       console.error('Error deleting time slot config:', error);
@@ -186,15 +178,13 @@ export const TimeSlotService = {
   // Get absent time slots for a doctor at a specific dispensary
   getAbsentTimeSlots: async (doctorId: string, dispensaryId: string, startDate: Date, endDate: Date): Promise<AbsentTimeSlot[]> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.get(
-        `${API_URL}/timeslots/absent/doctor/${doctorId}/dispensary/${dispensaryId}`, 
+            const response = await api.get(
+        `/timeslots/absent/doctor/${doctorId}/dispensary/${dispensaryId}`, 
         {
           params: {
             startDate: startDate.toISOString(),
             endDate: endDate.toISOString()
-          },
-          headers: { Authorization: `Bearer ${token}` }
+          }
         }
       );
       
@@ -217,8 +207,7 @@ export const TimeSlotService = {
   // Add an absent time slot
   addAbsentTimeSlot: async (absentSlot: Omit<AbsentTimeSlot, 'id' | 'createdAt' | 'updatedAt'>): Promise<AbsentTimeSlot> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      
+            
       // Convert date to ISO string if it's a Date object
       let absentDate ;
       if(absentSlot.date instanceof Date){
@@ -237,11 +226,10 @@ export const TimeSlotService = {
         date: absentDate,
       };
       
-      const response = await axios.post(
-        `${API_URL}/timeslots/absent`, 
+      const response = await api.post(
+        `/timeslots/absent`, 
         slotToSend,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+              );
       
       return {
         ...response.data,
@@ -262,10 +250,7 @@ export const TimeSlotService = {
   // Delete an absent time slot
   deleteAbsentTimeSlot: async (id: string): Promise<boolean> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      await axios.delete(`${API_URL}/timeslots/absent/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+            await api.delete(`/timeslots/absent/${id}`);
       return true;
     } catch (error) {
       console.error('Error deleting absent time slot:', error);
@@ -289,7 +274,7 @@ export const TimeSlotService = {
       console.log("Original date:", date);
       console.log("Formatted date:", formattedDate);
       // const formattedDate = date.toISOString().split('T')[0];
-      const response = await axios.get(
+      const response = await api.get(
         `${API_URL}/timeslots/available/${doctorId}/${dispensaryId}/${formattedDate}`
       );
       
@@ -329,11 +314,9 @@ export const TimeSlotService = {
     totalAvailableDays: number;
   }> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.get(
+            const response = await api.get(
         `${API_URL}/timeslots/next-available/${doctorId}/${dispensaryId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+              );
       
       return response.data;
     } catch (error) {
@@ -345,11 +328,9 @@ export const TimeSlotService = {
   // Get fees for a time slot
   getTimeSlotFees: async (timeSlotId: string): Promise<TimeSlotFees> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.get(
+            const response = await api.get(
         `${API_URL}/timeslots/fees/${timeSlotId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+              );
       return response.data;
     } catch (error) {
       console.error('Error fetching time slot fees:', error);
@@ -363,12 +344,10 @@ export const TimeSlotService = {
     fees: TimeSlotFees
   ): Promise<TimeSlotFees> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await axios.put(
-        `${API_URL}/timeslots/fees/${timeSlotId}`,
+            const response = await api.put(
+        `/timeslots/fees/${timeSlotId}`,
         fees,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+              );
       return response.data.fees;
     } catch (error) {
       console.error('Error updating time slot fees:', error);
@@ -379,11 +358,9 @@ export const TimeSlotService = {
   // Delete/reset fees for a time slot
   deleteTimeSlotFees: async (timeSlotId: string): Promise<void> => {
     try {
-      const token = localStorage.getItem('auth_token');
-      await axios.delete(
-        `${API_URL}/timeslots/fees/${timeSlotId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+            await api.delete(
+        `/timeslots/fees/${timeSlotId}`,
+              );
     } catch (error) {
       console.error('Error deleting time slot fees:', error);
       throw new Error('Failed to delete time slot fees');
@@ -393,7 +370,7 @@ export const TimeSlotService = {
   // Get all dispensaries
   getAllDispensaries: async (): Promise<Dispensary[]> => {
     try {
-      const response = await axios.get(`${API_URL}/dispensaries`);
+      const response = await api.get(`/dispensaries`);
       return response.data.map((dispensary: any) => ({
         ...dispensary,
         _id: dispensary._id,
@@ -411,7 +388,7 @@ export const TimeSlotService = {
   // Get all doctor-dispensary fees
   getDoctorDispensaryFees: async (dispensaryId: string): Promise<DoctorDispensaryFee[]> => {
     try {
-      const response = await axios.get(
+      const response = await api.get(
         `${API_URL}/doctor-dispensaries/fees/${dispensaryId}`
       );
       
@@ -441,8 +418,8 @@ export const TimeSlotService = {
     fees: TimeSlotFees
   ): Promise<DoctorDispensaryFee> => {
     try {
-      const response = await axios.put(
-        `${API_URL}/doctor-dispensaries/fees/${doctorId}/${dispensaryId}`,
+      const response = await api.put(
+        `/doctor-dispensaries/fees/${doctorId}/${dispensaryId}`,
         fees
       );
       
@@ -468,8 +445,8 @@ export const TimeSlotService = {
   // Delete/reset doctor-dispensary fees
   deleteDoctorDispensaryFees: async (doctorId: string, dispensaryId: string): Promise<void> => {
     try {
-      await axios.delete(
-        `${API_URL}/doctor-dispensaries/fees/${doctorId}/${dispensaryId}`
+      await api.delete(
+        `/doctor-dispensaries/fees/${doctorId}/${dispensaryId}`
       );
     } catch (error) {
       console.error('Error deleting doctor-dispensary fees:', error);
@@ -484,8 +461,8 @@ export const TimeSlotService = {
     fees: TimeSlotFees
   ): Promise<DoctorDispensaryFee> => {
     try {
-      const response = await axios.post(
-        `${API_URL}/doctor-dispensaries/assign-fees`,
+      const response = await api.post(
+        `/doctor-dispensaries/assign-fees`,
         {
           doctorId,
           dispensaryId,
