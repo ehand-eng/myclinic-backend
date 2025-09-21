@@ -73,24 +73,25 @@ const Login = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-medicalBlue-50 via-white to-medicalTeal-50">
       <Header />
       
-      <main className="flex-grow flex items-center justify-center bg-gray-50 py-12">
+      <main className="flex-grow flex items-center justify-center py-12">
         <div className="w-full max-w-md px-4">
-          <Card>
+          <Card className="medical-card fade-in-up">
             <CardHeader className="text-center">
-              <div className="flex justify-center mb-4">
-                <div className="bg-medical-100 p-3 rounded-full">
-                  <Lock className="h-6 w-6 text-medical-600" />
+              <div className="flex justify-center mb-6">
+                <div className="medical-icon-bg">
+                  <Lock className="h-8 w-8 text-medicalBlue-600" />
                 </div>
               </div>
-              <CardTitle className="text-2xl font-bold">Admin Login - My Clinic</CardTitle>
+              <CardTitle className="text-3xl font-bold medical-text-gradient mb-2">Admin Login</CardTitle>
+              <p className="text-medicalGray-600">Welcome to DocSpot Connect</p>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
+              <form onSubmit={handleLogin} className="space-y-6">
+                <div className="space-y-3">
+                  <Label htmlFor="username" className="text-medicalGray-700 font-medium">Username</Label>
                   <Input
                     id="username"
                     type="text"
@@ -101,8 +102,8 @@ const Login = () => {
                   />
                 </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                <div className="space-y-3">
+                  <Label htmlFor="password" className="text-medicalGray-700 font-medium">Password</Label>
                   <Input
                     id="password"
                     type="password"
@@ -113,14 +114,15 @@ const Login = () => {
                   />
                 </div>
 
-                <CardFooter className="flex flex-col space-y-4">
-                  <Button type="submit" className="w-full bg-medical-600 hover:bg-medical-700" disabled={isLoading}>
+                <CardFooter className="flex flex-col space-y-6 pt-6">
+                  <Button type="submit" className="w-full medical-button text-lg py-6" disabled={isLoading}>
+                    <Lock className="h-5 w-5 mr-2" />
                     {isLoading ? "Logging in..." : "Login"}
                   </Button>
                   
-                  <p className="text-sm text-center text-gray-500">
+                  <p className="text-sm text-center text-medicalGray-600">
                     Don't have an account?{' '}
-                    <Link to="/signup" className="text-medical-600 hover:text-medical-700">
+                    <Link to="/signup" className="text-medicalBlue-600 hover:text-medicalBlue-700 font-medium hover:underline">
                       Sign up
                     </Link>
                   </p>

@@ -26,19 +26,21 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-white shadow-sm border-b">
+    <header className="bg-white/95 backdrop-blur-md shadow-lg border-b border-medicalBlue-100 sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Calendar className="h-6 w-6 text-medical-600" />
-            <Link to="/admin/dashboard" className="font-bold text-xl text-medical-800">
-              MyClinic
+          <div className="flex items-center space-x-3">
+            <div className="medical-icon-bg">
+              <Calendar className="h-6 w-6 text-medicalBlue-600" />
+            </div>
+            <Link to="/admin/dashboard" className="font-bold text-2xl medical-text-gradient">
+              DocSpot Connect
             </Link>
           </div>
           
           {isMobile ? (
             <>
-              <Button variant="ghost" size="icon" onClick={toggleMobileMenu}>
+              <Button variant="ghost" size="icon" onClick={toggleMobileMenu} className="text-medicalBlue-600 hover:bg-medicalBlue-50">
                 {mobileMenuOpen ? (
                   <X className="h-6 w-6" />
                 ) : (
@@ -47,41 +49,41 @@ const Header = () => {
               </Button>
               
               {mobileMenuOpen && (
-                <div className="fixed inset-0 z-50 bg-white pt-16">
+                <div className="fixed inset-0 z-50 bg-white/95 backdrop-blur-md pt-16">
                   <div className="container mx-auto px-4 py-8 flex flex-col space-y-6">
                     <Link 
                       to="/" 
-                      className="flex items-center space-x-2 text-lg font-medium"
+                      className="flex items-center space-x-3 text-lg font-medium text-medicalGray-700 hover:text-medicalBlue-600 transition-colors p-3 rounded-lg hover:bg-medicalBlue-50"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      <Calendar className="h-5 w-5 text-medical-600" />
+                      <Calendar className="h-5 w-5 text-medicalBlue-600" />
                       <span>Book Appointment</span>
                     </Link>
                     <Link 
                       to="/doctors" 
-                      className="flex items-center space-x-2 text-lg font-medium"
+                      className="flex items-center space-x-3 text-lg font-medium text-medicalGray-700 hover:text-medicalBlue-600 transition-colors p-3 rounded-lg hover:bg-medicalBlue-50"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      <User className="h-5 w-5 text-medical-600" />
+                      <User className="h-5 w-5 text-medicalBlue-600" />
                       <span>Our Doctors</span>
                     </Link>
                     <Link 
                       to="/contact" 
-                      className="flex items-center space-x-2 text-lg font-medium"
+                      className="flex items-center space-x-3 text-lg font-medium text-medicalGray-700 hover:text-medicalBlue-600 transition-colors p-3 rounded-lg hover:bg-medicalBlue-50"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      <Phone className="h-5 w-5 text-medical-600" />
+                      <Phone className="h-5 w-5 text-medicalBlue-600" />
                       <span>Contact Us</span>
                     </Link>
                     
                     <div className="pt-4 flex flex-col space-y-4">
-                      <Button asChild className="w-full bg-medical-600 hover:bg-medical-700">
+                      <Button asChild className="w-full medical-button">
                         <Link to="/booking" onClick={() => setMobileMenuOpen(false)}>
                           Book Now
                         </Link>
                       </Button>
                       
-                      <Button asChild variant="outline" className="w-full">
+                      <Button asChild variant="outline" className="w-full medical-button-outline">
                         <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
                           Admin Login
                         </Link>
@@ -106,29 +108,33 @@ const Header = () => {
               </nav>
               {user ? (
                 <div className="flex items-center gap-4">
-                  <span className="text-sm text-gray-700">
-                    <strong>{user.email}</strong>
-                    {user.role && ` (${getRoleDisplayName(user.role)})`}
-                  </span>
+                  <div className="text-right">
+                    <div className="text-sm font-medium text-medicalGray-800">
+                      {user.email}
+                    </div>
+                    {user.role && (
+                      <div className="text-xs text-medicalBlue-600 font-medium">
+                        {getRoleDisplayName(user.role)}
+                      </div>
+                    )}
+                  </div>
                   <button
                     onClick={handleProfile}
-                    className="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200 text-sm"
+                    className="px-4 py-2 rounded-lg bg-medicalBlue-50 hover:bg-medicalBlue-100 text-medicalBlue-700 text-sm font-medium transition-colors"
                   >
                     Profile
                   </button>
                   <button
                     onClick={handleLogout}
-                    className="px-3 py-1 rounded bg-red-100 hover:bg-red-200 text-sm text-red-700"
+                    className="px-4 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 text-sm font-medium transition-colors"
                   >
                     Logout
                   </button>
                 </div>
               ) : (
-                
-
                 <Link
                   to="/login"
-                  className="px-3 py-1 rounded bg-medical-600 hover:bg-medical-700 text-white text-sm"
+                  className="medical-button text-sm px-6 py-2"
                 >
                   Login
                 </Link>

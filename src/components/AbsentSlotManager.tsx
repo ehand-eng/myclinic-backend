@@ -160,7 +160,7 @@ const AbsentSlotManager = ({ doctorId, dispensaryId }: AbsentSlotManagerProps) =
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
-                className="border rounded-md mt-2"
+                className="border border-medicalGreen-200 rounded-xl shadow-lg mt-2 medical-card"
                 disabled={(date) => {
                   // Can't select dates in the past
                   const today = new Date();

@@ -447,6 +447,7 @@ const ReportGenerator = () => {
                           selected={startDate}
                           onSelect={(date) => date && setStartDate(date)}
                           initialFocus
+                          className="rounded-xl border border-medicalGreen-200 shadow-lg medical-card"
                         />
                       </PopoverContent>
                     </Popover>
@@ -470,6 +471,7 @@ const ReportGenerator = () => {
                           selected={endDate}
                           onSelect={(date) => date && setEndDate(date)}
                           initialFocus
+                          className="rounded-xl border border-medicalGreen-200 shadow-lg medical-card"
                         />
                       </PopoverContent>
                     </Popover>
