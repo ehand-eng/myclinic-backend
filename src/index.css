@@ -11,52 +11,52 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 84% 4.9%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 84% 4.9%;
+    --primary: 201 96% 32%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 180 20% 95%;
+    --secondary-foreground: 201 96% 32%;
+    --muted: 180 20% 95%;
+    --muted-foreground: 201 20% 50%;
+    --accent: 160 84% 39%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --border: 201 20% 90%;
+    --input: 201 20% 90%;
+    --ring: 201 96% 32%;
     --radius: 0.75rem;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    --chart-1: 201 96% 32%;
+    --chart-2: 160 84% 39%;
+    --chart-3: 180 100% 25%;
+    --chart-4: 120 60% 50%;
+    --chart-5: 200 100% 40%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 84% 4.9%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --background: 201 20% 8%;
+    --foreground: 0 0% 95%;
+    --card: 201 20% 10%;
+    --card-foreground: 0 0% 95%;
+    --popover: 201 20% 10%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 201 96% 50%;
+    --primary-foreground: 201 20% 8%;
+    --secondary: 201 20% 15%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 201 20% 15%;
+    --muted-foreground: 201 20% 60%;
+    --accent: 160 84% 50%;
+    --accent-foreground: 201 20% 8%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 94.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --border: 201 20% 20%;
+    --input: 201 20% 20%;
+    --ring: 201 96% 50%;
+    --chart-1: 201 96% 50%;
+    --chart-2: 160 84% 50%;
+    --chart-3: 180 100% 40%;
+    --chart-4: 120 60% 60%;
+    --chart-5: 200 100% 50%;
   }
 }
 
@@ -95,4 +95,101 @@ body {
 /* Smooth scrolling */
 html {
   scroll-behavior: smooth;
+}
+
+/* Medical-themed utilities */
+@layer utilities {
+  .medical-gradient {
+    @apply bg-gradient-to-br from-medicalBlue-50 to-medicalBlue-100 border border-medicalBlue-200;
+  }
+  
+  .medical-gradient-dark {
+    @apply bg-gradient-to-br from-medicalBlue-900/20 to-medicalBlue-800/20 border border-medicalBlue-800/30;
+  }
+  
+  .medical-card {
+    @apply bg-white rounded-xl shadow-lg border border-medicalBlue-100 hover:shadow-xl transition-all duration-300;
+  }
+  
+  .medical-card-dark {
+    @apply bg-slate-800 rounded-xl shadow-lg border border-medicalBlue-800/30 hover:shadow-xl transition-all duration-300;
+  }
+  
+  .medical-button {
+    @apply bg-gradient-to-r from-medicalBlue-600 to-medicalBlue-700 hover:from-medicalBlue-700 hover:to-medicalBlue-800 text-white font-medium px-6 py-3 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl;
+  }
+  
+  .medical-button-outline {
+    @apply border-2 border-medicalBlue-600 text-medicalBlue-600 hover:bg-medicalBlue-600 hover:text-white font-medium px-6 py-3 rounded-lg transition-all duration-300;
+  }
+  
+  .medical-text-gradient {
+    @apply bg-gradient-to-r from-medicalBlue-600 to-medicalBlue-800 bg-clip-text text-transparent;
+  }
+  
+  .medical-icon-bg {
+    @apply bg-gradient-to-br from-medicalBlue-100 to-medicalBlue-200 p-4 rounded-full;
+  }
+  
+  .medical-icon-bg-dark {
+    @apply bg-gradient-to-br from-medicalBlue-900/30 to-medicalBlue-800/30 p-4 rounded-full;
+  }
+  
+  .pulse-medical {
+    animation: pulse-medical 2s infinite;
+  }
+  
+  .fade-in-up {
+    animation: fade-in-up 0.6s ease-out;
+  }
+  
+  .fade-in-left {
+    animation: fade-in-left 0.6s ease-out;
+  }
+  
+  .fade-in-right {
+    animation: fade-in-right 0.6s ease-out;
+  }
+}
+
+@keyframes pulse-medical {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(37, 99, 235, 0);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fade-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }

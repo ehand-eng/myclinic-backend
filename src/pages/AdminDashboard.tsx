@@ -196,76 +196,104 @@ return (
   <div className="flex flex-col min-h-screen">
     <Header />
     
-    <main className="flex-grow container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-        {/* <div>
-          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-          <p className="text-gray-500">
-            Welcome  {currentUser?.name} ({currentUser?.role.replace('_', ' ')})
-          </p>
-        </div> */}
-        
-        {/* <div className="mt-4 md:mt-0 space-x-2">
-          <Button onClick={() => navigate('/admin/profile')} variant="outline">
-            Profile
-          </Button>
-          <Button onClick={handleLogout} variant="outline" className="bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700">
-            Logout
-          </Button>
-        </div> */}
-      </div>
+    <main className="flex-grow bg-gradient-to-br from-medicalBlue-50 via-white to-medicalTeal-50 min-h-screen">
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+          <div className="fade-in-up">
+            <h1 className="text-4xl font-bold medical-text-gradient mb-2">Admin Dashboard</h1>
+            <p className="text-medicalGray-600 text-lg">
+              Welcome {currentUser?.name} ({currentUser?.role.replace('_', ' ')})
+            </p>
+          </div>
+          
+          <div className="mt-4 md:mt-0 space-x-3 fade-in-up" style={{ animationDelay: '0.2s' }}>
+            <Button onClick={() => navigate('/admin/profile')} variant="outline" className="medical-button-outline">
+              Profile
+            </Button>
+            <Button onClick={handleLogout} variant="outline" className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700">
+              Logout
+            </Button>
+          </div>
+        </div>
       
-      <DashboardNavigation
-        tabs={getNavigationTabs()}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
-
-      <div className="w-full">
-        {activeTab === "overview" && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
+      <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-2 md:grid-cols-7 mb-8 bg-white/80 backdrop-blur-sm border border-medicalBlue-100 shadow-lg">
+          <TabsTrigger value="overview" className="data-[state=active]:bg-medicalBlue-600 data-[state=active]:text-white">Overview</TabsTrigger>
+          {canManageDispensaries(currentUser?.role) && (
+            <TabsTrigger value="dispensaries" className="data-[state=active]:bg-medicalBlue-600 data-[state=active]:text-white">Dispensaries</TabsTrigger>)}
+          {canManageDoctors(currentUser?.role) && (
+            <TabsTrigger value="doctors" className="data-[state=active]:bg-medicalBlue-600 data-[state=active]:text-white">Doctors</TabsTrigger>)}
+          {canManageTimeslots(currentUser?.role) && (
+            <TabsTrigger value="timeslots" className="data-[state=active]:bg-medicalBlue-600 data-[state=active]:text-white">TimeSlots</TabsTrigger>)}
+          {canManageBookings(currentUser?.role) && (
+            <TabsTrigger value="bookings" className="data-[state=active]:bg-medicalBlue-600 data-[state=active]:text-white">Bookings</TabsTrigger>)}
+          {canViewReports(currentUser?.role) && (
+            <TabsTrigger value="reports" className="data-[state=active]:bg-medicalBlue-600 data-[state=active]:text-white">Reports</TabsTrigger>)}
+          {canManageFees(currentUser?.role) && (
+            <TabsTrigger value="fee-management" className="data-[state=active]:bg-medicalBlue-600 data-[state=active]:text-white">Fee Management</TabsTrigger>)}
+          {isSuperAdmin(currentUser?.role) && (
+            <TabsTrigger value="user-dispensary" className="data-[state=active]:bg-medicalBlue-600 data-[state=active]:text-white">Assign Users</TabsTrigger>)}
+        </TabsList>
+        
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card className="medical-card group hover:scale-105 transition-all duration-300 fade-in-up">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-medicalGray-600">
                     Total Dispensaries
-                </CardTitle>
+                  </CardTitle>
+                  <Building2 className="h-5 w-5 text-medicalBlue-600" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">4</div>
+                <div className="text-3xl font-bold text-medicalBlue-600">4</div>
+                <p className="text-xs text-medicalGray-500 mt-1">+2 from last month</p>
               </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
+            </Card>
+            
+            <Card className="medical-card group hover:scale-105 transition-all duration-300 fade-in-up" style={{ animationDelay: '0.1s' }}>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-medicalGray-600">
                     Active Doctors
-                </CardTitle>
+                  </CardTitle>
+                  <Stethoscope className="h-5 w-5 text-medicalTeal-600" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">3</div>
+                <div className="text-3xl font-bold text-medicalTeal-600">3</div>
+                <p className="text-xs text-medicalGray-500 mt-1">All available</p>
               </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
+            </Card>
+            
+            <Card className="medical-card group hover:scale-105 transition-all duration-300 fade-in-up" style={{ animationDelay: '0.2s' }}>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-medicalGray-600">
                     Today's Appointments
-                </CardTitle>
+                  </CardTitle>
+                  <Calendar className="h-5 w-5 text-purple-600" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">12</div>
+                <div className="text-3xl font-bold text-purple-600">12</div>
+                <p className="text-xs text-medicalGray-500 mt-1">8 completed, 4 pending</p>
               </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
+            </Card>
+            
+            <Card className="medical-card group hover:scale-105 transition-all duration-300 fade-in-up" style={{ animationDelay: '0.3s' }}>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium text-medicalGray-600">
                     Completed Appointments
-                </CardTitle>
+                  </CardTitle>
+                  <CheckCircle className="h-5 w-5 text-medicalGreen-600" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">45</div>
+                <div className="text-3xl font-bold text-medicalGreen-600">45</div>
+                <p className="text-xs text-medicalGray-500 mt-1">This month</p>
               </CardContent>
               </Card>
             </div>
@@ -275,23 +303,34 @@ return (
           
           {/* More dashboard content based on role */}
           {isSuperAdmin(currentUser?.role) && (
-            <div className="mt-8">
-              <Card>
+            <div className="mt-8 fade-in-up" style={{ animationDelay: '0.4s' }}>
+              <Card className="medical-card">
                 <CardHeader>
-                  <CardTitle>System Administration</CardTitle>
-                  <CardDescription>Manage users and system settings</CardDescription>
+                  <div className="flex items-center space-x-3">
+                    <div className="medical-icon-bg">
+                      <Shield className="h-6 w-6 text-medicalBlue-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-2xl font-bold text-medicalGray-800">System Administration</CardTitle>
+                      <CardDescription className="text-medicalGray-600">Manage users and system settings</CardDescription>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <Button onClick={() => navigate('/admin/users')} className="w-full">
+                  <Button onClick={() => navigate('/admin/users')} className="w-full medical-button">
+                    <Users className="h-4 w-4 mr-2" />
                     Manage Users
                   </Button>
-                  <Button onClick={() => navigate('/admin/roles')} className="w-full">
+                  <Button onClick={() => navigate('/admin/roles')} className="w-full medical-button">
+                    <UserCheck className="h-4 w-4 mr-2" />
                     Manage Roles
                   </Button>
-                  <Button onClick={() => navigate('/admin/settings')} className="w-full">
+                  <Button onClick={() => navigate('/admin/settings')} className="w-full medical-button">
+                    <Settings className="h-4 w-4 mr-2" />
                     System Settings
                   </Button>
-                  <Button onClick={() => navigate('/admin/user-dispensary')} className="w-full">
+                  <Button onClick={() => navigate('/admin/user-dispensary')} className="w-full medical-button">
+                    <Building2 className="h-4 w-4 mr-2" />
                     User-Dispensary Assignment
                   </Button>
                 </CardContent>
@@ -300,20 +339,30 @@ return (
           )}
           
           {currentUser?.role === UserRole.HOSPITAL_ADMIN && (
-            <div className="mt-8">
-              <Card>
+            <div className="mt-8 fade-in-up" style={{ animationDelay: '0.5s' }}>
+              <Card className="medical-card">
                 <CardHeader>
-                  <CardTitle>Dispensary Management</CardTitle>
-                  <CardDescription>Manage your dispensary operations</CardDescription>
+                  <div className="flex items-center space-x-3">
+                    <div className="medical-icon-bg">
+                      <Building2 className="h-6 w-6 text-medicalTeal-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-2xl font-bold text-medicalGray-800">Dispensary Management</CardTitle>
+                      <CardDescription className="text-medicalGray-600">Manage your dispensary operations</CardDescription>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <Button onClick={() => navigate('/admin/doctors')} className="w-full">
+                  <Button onClick={() => navigate('/admin/doctors')} className="w-full medical-button">
+                    <Stethoscope className="h-4 w-4 mr-2" />
                     Manage Doctors
                   </Button>
-                  <Button onClick={() => navigate('/admin/dispensary/timeslots')} className="w-full">
+                  <Button onClick={() => navigate('/admin/dispensary/timeslots')} className="w-full medical-button">
+                    <Clock className="h-4 w-4 mr-2" />
                     Manage Time Slots
                   </Button>
-                  <Button onClick={() => navigate('/admin/dispensary/staff')} className="w-full">
+                  <Button onClick={() => navigate('/admin/dispensary/staff')} className="w-full medical-button">
+                    <Users className="h-4 w-4 mr-2" />
                     Manage Staff
                   </Button>
                 </CardContent>
@@ -322,17 +371,26 @@ return (
           )}
           
           {currentUser?.role === UserRole.hospital_staff && (
-            <div className="mt-8">
-              <Card>
+            <div className="mt-8 fade-in-up" style={{ animationDelay: '0.6s' }}>
+              <Card className="medical-card">
                 <CardHeader>
-                  <CardTitle>Patient Management</CardTitle>
-                  <CardDescription>Manage patient check-ins and appointments</CardDescription>
+                  <div className="flex items-center space-x-3">
+                    <div className="medical-icon-bg">
+                      <Activity className="h-6 w-6 text-medicalGreen-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-2xl font-bold text-medicalGray-800">Patient Management</CardTitle>
+                      <CardDescription className="text-medicalGray-600">Manage patient check-ins and appointments</CardDescription>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Button onClick={() => navigate('/admin/patients/check-in')} className="w-full">
+                  <Button onClick={() => navigate('/admin/patients/check-in')} className="w-full medical-button">
+                    <UserCheck className="h-4 w-4 mr-2" />
                     Patient Check-In
                   </Button>
-                  <Button onClick={() => navigate('/admin/appointments')} className="w-full">
+                  <Button onClick={() => navigate('/admin/appointments')} className="w-full medical-button">
+                    <Calendar className="h-4 w-4 mr-2" />
                     Today's Appointments
                   </Button>
                 </CardContent>
@@ -358,24 +416,32 @@ return (
               </Card>
             </div>
         )}
-          </div>
-        )}
+          
 
         {activeTab === "dispensaries" && (
           <div className="space-y-4">
             <Card>
             <CardHeader>
-              <CardTitle>Dispensaries Management</CardTitle>
-              <CardDescription>View and manage all dispensaries in the system</CardDescription>
+              <div className="flex items-center space-x-3">
+                <div className="medical-icon-bg">
+                  <Building2 className="h-6 w-6 text-medicalBlue-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-2xl font-bold text-medicalGray-800">Dispensaries Management</CardTitle>
+                  <CardDescription className="text-medicalGray-600">View and manage all dispensaries in the system</CardDescription>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
-              <p>Manage dispensary locations, contact information, and associated doctors.</p>
+              <p className="text-medicalGray-600">Manage dispensary locations, contact information, and associated doctors.</p>
             </CardContent>
             <CardFooter className="flex justify-between">
-              <Button onClick={() => navigate('/admin/dispensaries')} className="bg-medical-600 hover:bg-medical-700">
+              <Button onClick={() => navigate('/admin/dispensaries')} className="medical-button">
+                <Building2 className="h-4 w-4 mr-2" />
                 View All Dispensaries
               </Button>
-              <Button onClick={() => navigate('/admin/dispensaries/create')} variant="outline">
+              <Button onClick={() => navigate('/admin/dispensaries/create')} variant="outline" className="medical-button-outline">
+                <Building2 className="h-4 w-4 mr-2" />
                 Add New Dispensary
               </Button>
             </CardFooter>
@@ -541,6 +607,8 @@ return (
           </Tabs>
           </div>
         )}
+        </TabsContent>
+      </Tabs>
       </div>
     </main>
     

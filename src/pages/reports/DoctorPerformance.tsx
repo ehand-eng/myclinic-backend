@@ -81,7 +81,7 @@ const DoctorPerformance: React.FC = () => {
             mode="single"
             selected={startDate}
             onSelect={(date) => date && setStartDate(date)}
-            className="rounded-md border"
+            className="rounded-xl border border-medicalGreen-200 shadow-lg medical-card"
           />
         </div>
         
@@ -91,7 +91,7 @@ const DoctorPerformance: React.FC = () => {
             mode="single"
             selected={endDate}
             onSelect={(date) => date && setEndDate(date)}
-            className="rounded-md border"
+            className="rounded-xl border border-medicalGreen-200 shadow-lg medical-card"
           />
         </div>
       </div>

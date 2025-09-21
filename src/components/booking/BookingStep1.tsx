@@ -98,7 +98,7 @@ const BookingStep1: React.FC<BookingStep1Props> = ({
             today.setHours(0, 0, 0, 0);
             return date < today || date > addDays(today, 30);
           }}
-          className="rounded-md border mx-auto"
+          className="rounded-xl border border-medicalGreen-200 shadow-lg mx-auto medical-card"
           formatters={{
             formatCaption: (date) => format(date, 'yyyy-MM-dd'),
             formatDay: (date) => format(date, 'd'),
