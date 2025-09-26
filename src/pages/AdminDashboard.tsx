@@ -288,7 +288,7 @@ return (
                   <CardTitle className="text-sm font-medium text-medicalGray-600">
                     Completed Appointments
                   </CardTitle>
-                  <CheckCircle className="h-5 w-5 text-medicalGreen-600" />
+                  {/* <CheckCircle className="h-5 w-5 text-medicalGreen-600" /> */}
                 </div>
               </CardHeader>
               <CardContent>

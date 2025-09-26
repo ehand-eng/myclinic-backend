@@ -41,7 +41,8 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/doctor-re
 // Routes
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/dispensaries', dispensaryRoutes);
-app.use('/api/auth', authRoutes); // Keep for backward compatibility during migration
+// app.use('/api/auth', authRoutes); // Keep for backward compatibility during migration
+app.use('/api/auth', customAuthRoutes);
 app.use('/api/custom-auth', customAuthRoutes); // New custom authentication
 app.use('/api/admin', adminRoutes); // New admin routes
 app.use('/api/timeslots', timeSlotRoutes);

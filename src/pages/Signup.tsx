@@ -56,7 +56,7 @@ const Signup = () => {
       setIsLoading(true);
       
       // Create user in Auth0 and our database
-      const response = await axios.post(`${API_URL}/auth/signup`, {
+      const response = await axios.post(`${API_URL}/custom-auth/register`, {
         name: formData.name,
         email: formData.email,
         password: formData.password

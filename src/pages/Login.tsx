@@ -43,13 +43,14 @@ const Login = () => {
           password
         });
       } catch (customAuthError) {
+        console.log("======== customAuthError ============== "+customAuthError);
         // Fallback to Auth0 authentication
-        response = await axios.post(`${API_URL}/auth/login`, {
-          username,
-          password
-        });
+        // response = await axios.post(`${API_URL}/auth/login`, {
+        //   username,
+        //   password
+        // });
       }
-
+console.log("======== response ============== "+JSON.stringify(response));
       // Store the token and user info
       const { token, access_token, user } = response.data;
       localStorage.setItem('auth_token', token || access_token);
