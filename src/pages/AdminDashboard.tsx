@@ -198,7 +198,7 @@ return (
     
     <main className="flex-grow bg-gradient-to-br from-medicalBlue-50 via-white to-medicalTeal-50 min-h-screen">
       <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+        {/* <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <div className="fade-in-up">
             <h1 className="text-4xl font-bold medical-text-gradient mb-2">Admin Dashboard</h1>
             <p className="text-medicalGray-600 text-lg">
@@ -214,10 +214,10 @@ return (
               Logout
             </Button>
           </div>
-        </div>
+        </div> */}
       
       <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-2 md:grid-cols-7 mb-8 bg-white/80 backdrop-blur-sm border border-medicalBlue-100 shadow-lg">
+        <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 mb-8 bg-white/80 backdrop-blur-sm border border-medicalBlue-100 shadow-lg">
           <TabsTrigger value="overview" className="data-[state=active]:bg-medicalBlue-600 data-[state=active]:text-white">Overview</TabsTrigger>
           {canManageDispensaries(currentUser?.role) && (
             <TabsTrigger value="dispensaries" className="data-[state=active]:bg-medicalBlue-600 data-[state=active]:text-white">Dispensaries</TabsTrigger>)}
@@ -418,9 +418,18 @@ return (
         )}
           
 
-        {activeTab === "dispensaries" && (
+        
+
+        
+
+        
+
+
+        </TabsContent>
+        
+        <TabsContent value="dispensaries" className="space-y-6">
           <div className="space-y-4">
-            <Card>
+           <Card>
             <CardHeader>
               <div className="flex items-center space-x-3">
                 <div className="medical-icon-bg">
@@ -446,10 +455,11 @@ return (
               </Button>
             </CardFooter>
           </Card>
+            
           </div>
-        )}
+        </TabsContent>
         
-        {activeTab === "doctors" && (
+        <TabsContent value="doctors" className="space-y-6">
           <div className="space-y-4">
             <Card>
             <CardHeader>
@@ -472,9 +482,9 @@ return (
             </CardFooter>
           </Card>
           </div>
-        )}
+        </TabsContent>
 
-        {activeTab === "timeslots" && (
+        <TabsContent value="timeslots" className="space-y-6">
           <div className="space-y-4">
             <Card>
             <CardHeader>
@@ -490,9 +500,9 @@ return (
             </CardContent>
           </Card>
           </div>
-        )}
+        </TabsContent>
         
-        {activeTab === "bookings" && (
+        <TabsContent value="bookings" className="space-y-6">
           <div className="space-y-4">
             <Card>
             <CardHeader>
@@ -507,9 +517,9 @@ return (
             </CardFooter>
           </Card>
           </div>
-        )}
+        </TabsContent>
 
-        {activeTab === "create-booking" && (
+        <TabsContent value="create-booking" className="space-y-6">
           <div className="space-y-4">
             <Card>
             <CardHeader>
@@ -526,9 +536,9 @@ return (
             </CardFooter>
           </Card>
           </div>
-        )}
+        </TabsContent>
         
-        {activeTab === "reports" && (
+        <TabsContent value="reports" className="space-y-6">
           <div className="space-y-4">
             <Card>
             <CardHeader>
@@ -571,15 +581,15 @@ return (
             </CardContent>
           </Card>
           </div>
-        )}
+        </TabsContent>
 
-        {activeTab === "fee-management" && (
+        <TabsContent value="fee-management" className="space-y-6">
           <div className="space-y-6">
             <AdminFeeManage />
           </div>
-        )}
+        </TabsContent>
 
-        {activeTab === "user-dispensary" && (
+        <TabsContent value="user-dispensary" className="space-y-6">
           <div className="space-y-6">
             <Tabs defaultValue="manage-users" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
@@ -606,7 +616,6 @@ return (
             </TabsContent>
           </Tabs>
           </div>
-        )}
         </TabsContent>
       </Tabs>
       </div>
