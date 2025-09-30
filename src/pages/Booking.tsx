@@ -8,6 +8,8 @@ const Booking = () => {
   const [searchParams] = useSearchParams();
   const doctorId = searchParams.get('doctorId') || undefined;
   const dispensaryId = searchParams.get('dispensaryId') || undefined;
+  const dateStr = searchParams.get('date') || undefined;
+  const initialDate = dateStr ? new Date(dateStr) : undefined;
   
   return (
     <div className="flex flex-col min-h-screen">
@@ -25,6 +27,8 @@ const Booking = () => {
           <BookingForm
             initialDoctorId={doctorId}
             initialDispensaryId={dispensaryId}
+            initialDate={initialDate}
+            showCalendar={true}
           />
         </div>
       </main>

@@ -19,9 +19,11 @@ import { Search, Calendar, User } from 'lucide-react';
 interface BookingFormProps {
   initialDoctorId?: string;
   initialDispensaryId?: string;
+  initialDate?: Date;
+  showCalendar?: boolean; // when false, hide date picker on step 1
 }
 
-const BookingForm = ({ initialDoctorId, initialDispensaryId }: BookingFormProps) => {
+const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCalendar }: BookingFormProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -34,7 +36,7 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId }: BookingFormProps)
   const [dispensaries, setDispensaries] = useState<Dispensary[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<string>('');
   const [selectedDispensary, setSelectedDispensary] = useState<string>('');
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(initialDate);
   const [availability, setAvailability] = useState<TimeSlotAvailability | null>(null);
   
   // Patient info
@@ -452,15 +454,13 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId }: BookingFormProps)
         )}
 
         <Tabs defaultValue="appointment" className="w-full">
-          <TabsList className={`grid w-full ${canAccessAdvancedFeatures ? 'grid-cols-3' : 'grid-cols-1'} mb-6`}>
-            <TabsTrigger value="appointment">Book Appointment</TabsTrigger>
-            {canAccessAdvancedFeatures && (
-              <>
-                <TabsTrigger value="adjust">Adjust Booking</TabsTrigger>
-                <TabsTrigger value="check">Check Booking Status</TabsTrigger>
-              </>
-            )}
-          </TabsList>
+          {canAccessAdvancedFeatures && (
+            <TabsList className="grid w-full grid-cols-3 mb-6">
+              <TabsTrigger value="appointment">Book Appointment</TabsTrigger>
+              <TabsTrigger value="adjust">Adjust Booking</TabsTrigger>
+              <TabsTrigger value="check">Check Booking Status</TabsTrigger>
+            </TabsList>
+          )}
           
           <TabsContent value="appointment">
             <div className="space-y-6">
@@ -477,6 +477,7 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId }: BookingFormProps)
                   availability={availability}
                   isLoading={isLoading}
                   onContinue={() => setCurrentStep(1)}
+                  showCalendar={showCalendar}
                 />
               ) : (
                 <BookingStep2

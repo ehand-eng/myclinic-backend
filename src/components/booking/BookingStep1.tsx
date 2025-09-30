@@ -1,14 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Doctor, Dispensary } from '@/api/models';
 import { TimeSlotAvailability, AvailableTimeSlot } from '@/api/services/TimeSlotService';
-import { User, Clock, CalendarX, CalendarClock } from 'lucide-react';
+import { User, Clock, CalendarX, CalendarClock, CalendarIcon } from 'lucide-react';
 import { addDays, format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface BookingStep1Props {
   doctors: Doctor[];
@@ -26,6 +28,7 @@ interface BookingStep1Props {
     doctor?: boolean;
     dispensary?: boolean;
   };
+  showCalendar?: boolean; // when false, hide inline calendar
 }
 
 const BookingStep1: React.FC<BookingStep1Props> = ({
@@ -40,8 +43,10 @@ const BookingStep1: React.FC<BookingStep1Props> = ({
   availability,
   isLoading,
   onContinue,
-  readOnly
+  readOnly,
+  showCalendar
 }) => {
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -87,28 +92,42 @@ const BookingStep1: React.FC<BookingStep1Props> = ({
       </div>
       
       <div className="space-y-4">
-        <Label>Select Date</Label>
-        <Calendar
-          mode="single"
-          selected={selectedDate}
-          onSelect={setSelectedDate}
-          disabled={(date) => {
-            // Disable past dates and dates more than 30 days in the future
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            return date < today || date > addDays(today, 30);
-          }}
-          className="rounded-xl border border-medicalGreen-200 shadow-lg mx-auto medical-card"
-          formatters={{
-            formatCaption: (date) => format(date, 'yyyy-MM-dd'),
-            formatDay: (date) => format(date, 'd'),
-            formatMonthCaption: (date) => format(date, 'yyyy-MM'),
-            formatWeekdayName: (date) => format(date, 'EEE'),
-            formatYearCaption: (date) => format(date, 'yyyy')
-          }}
-        />
+        <Label htmlFor="date">Select Date</Label>
+        <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              id="date"
+              variant="outline"
+              className={cn(
+                "w-full justify-start text-left font-normal",
+                !selectedDate && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {selectedDate ? format(selectedDate, 'MMM dd, yyyy') : 'Select Date'}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={(date) => {
+                setSelectedDate(date);
+                setDatePickerOpen(false);
+              }}
+              disabled={(date) => {
+                // Disable past dates and dates more than 30 days in the future
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                return date < today || date > addDays(today, 30);
+              }}
+              initialFocus
+              className="rounded-xl border border-medicalGreen-200 shadow-lg"
+            />
+          </PopoverContent>
+        </Popover>
         {selectedDate && (
-          <p className="text-sm text-gray-500 text-center">
+          <p className="text-sm text-gray-500">
             Selected: {format(selectedDate, 'yyyy-MM-dd')}
           </p>
         )}
