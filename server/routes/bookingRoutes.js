@@ -6,6 +6,7 @@ const AbsentTimeSlot = require('../models/AbsentTimeSlot');
 const DoctorDispensary = require('../models/DoctorDispensary');
 const mongoose = require('mongoose');
 const roleMiddleware = require('../middleware/roleMiddleware');
+const { validateCustomJwt } = require('../middleware/customAuthMiddleware');
 
 // Search bookings - restricted to Super Admin and Dispensary Admin only
 router.get('/search', roleMiddleware.requireAdvancedBookingAccess, async (req, res) => {
@@ -137,6 +138,75 @@ router.get('/search', roleMiddleware.requireAdvancedBookingAccess, async (req, r
       searchType: req.query.searchType,
       count: 0,
       results: []
+    });
+  }
+});
+
+// Get current user's bookings - for online users
+router.get('/my', validateCustomJwt, async (req, res) => {
+  try {
+    console.log("Getting bookings for user:", req.user);
+
+    // For online users, find bookings by phone/email since they might not have userId in booking
+    let searchCriteria = {};
+
+    if (req.user.role === 'online') {
+      // For online users, search by email or phone
+      searchCriteria = {
+        $or: [
+          { patientEmail: req.user.email },
+          { bookedUser: req.user.id }
+        ]
+      };
+    } else {
+      // For admin users, show all bookings they have access to
+      searchCriteria = { bookedUser: req.user.id };
+    }
+
+    const bookings = await Booking.find(searchCriteria)
+      .populate('doctorId', 'name specialization')
+      .populate('dispensaryId', 'name address')
+      .sort({ bookingDate: -1 })
+      .lean();
+
+    // Format the results for frontend consumption
+    const formattedBookings = bookings.map(booking => ({
+      _id: booking._id,
+      transactionId: booking.transactionId,
+      patientName: booking.patientName,
+      patientPhone: booking.patientPhone,
+      patientEmail: booking.patientEmail,
+      doctor: {
+        name: booking.doctorId?.name || 'Unknown',
+        specialization: booking.doctorId?.specialization || 'Unknown'
+      },
+      dispensary: {
+        name: booking.dispensaryId?.name || 'Unknown',
+        address: booking.dispensaryId?.address || 'Unknown'
+      },
+      bookingDate: booking.bookingDate,
+      timeSlot: booking.timeSlot,
+      estimatedTime: booking.estimatedTime,
+      appointmentNumber: booking.appointmentNumber,
+      status: booking.status,
+      symptoms: booking.symptoms,
+      fees: booking.fees,
+      createdAt: booking.createdAt,
+      isPaid: booking.isPaid,
+      isPatientVisited: booking.isPatientVisited
+    }));
+
+    res.status(200).json({
+      message: `Found ${formattedBookings.length} booking${formattedBookings.length !== 1 ? 's' : ''}`,
+      count: formattedBookings.length,
+      bookings: formattedBookings
+    });
+
+  } catch (error) {
+    console.error('Error getting user bookings:', error);
+    res.status(500).json({
+      message: 'Error fetching your bookings',
+      error: error.message
     });
   }
 });

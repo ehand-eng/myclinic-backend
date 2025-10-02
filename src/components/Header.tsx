@@ -1,13 +1,15 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Menu, X, Calendar, User, Phone } from 'lucide-react';
+import { Menu, X, Calendar, User, Phone, BookOpen } from 'lucide-react';
 import { useState } from 'react';
 import { getRoleDisplayName } from '@/lib/roleUtils';
+import MyBookingsModal from '@/components/MyBookingsModal';
 
 const Header = () => {
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showMyBookings, setShowMyBookings] = useState(false);
   const userStr = localStorage.getItem('current_user');
   const user = userStr ? JSON.parse(userStr) : null;
   
@@ -26,7 +28,12 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-white/95 backdrop-blur-md shadow-lg border-b border-medicalBlue-100 sticky top-0 z-50">
+    <>
+      <MyBookingsModal
+        isOpen={showMyBookings}
+        onClose={() => setShowMyBookings(false)}
+      />
+      <header className="bg-white/95 backdrop-blur-md shadow-lg border-b border-medicalBlue-100 sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -67,15 +74,29 @@ const Header = () => {
                       <User className="h-5 w-5 text-medicalBlue-600" />
                       <span>Our Doctors</span>
                     </Link>
-                    <Link 
-                      to="/contact" 
+                    <Link
+                      to="/contact"
                       className="flex items-center space-x-3 text-lg font-medium text-medicalGray-700 hover:text-medicalBlue-600 transition-colors p-3 rounded-lg hover:bg-medicalBlue-50"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       <Phone className="h-5 w-5 text-medicalBlue-600" />
                       <span>Contact Us</span>
                     </Link>
-                    
+
+                    {/* Show My Bookings for logged-in online users */}
+                    {user && (!user.role || user.role === 'online') && (
+                      <button
+                        onClick={() => {
+                          setShowMyBookings(true);
+                          setMobileMenuOpen(false);
+                        }}
+                        className="flex items-center space-x-3 text-lg font-medium text-medicalGray-700 hover:text-medicalBlue-600 transition-colors p-3 rounded-lg hover:bg-medicalBlue-50 w-full text-left"
+                      >
+                        <BookOpen className="h-5 w-5 text-medicalBlue-600" />
+                        <span>My Bookings</span>
+                      </button>
+                    )}
+
                     <div className="pt-4 flex flex-col space-y-4">
                       <Button asChild className="w-full medical-button">
                         <Link to="/booking" onClick={() => setMobileMenuOpen(false)}>
@@ -118,6 +139,16 @@ const Header = () => {
                       </div>
                     )}
                   </div>
+                  {/* Show My Bookings only for online users */}
+                  {(!user.role || user.role === 'online') && (
+                    <button
+                      onClick={() => setShowMyBookings(true)}
+                      className="px-4 py-2 rounded-lg bg-medicalBlue-50 hover:bg-medicalBlue-100 text-medicalBlue-700 text-sm font-medium transition-colors flex items-center gap-2"
+                    >
+                      <BookOpen className="h-4 w-4" />
+                      My Bookings
+                    </button>
+                  )}
                   <button
                     onClick={handleProfile}
                     className="px-4 py-2 rounded-lg bg-medicalBlue-50 hover:bg-medicalBlue-100 text-medicalBlue-700 text-sm font-medium transition-colors"
@@ -144,6 +175,7 @@ const Header = () => {
         </div>
       </div>
     </header>
+    </>
   );
 };
 
