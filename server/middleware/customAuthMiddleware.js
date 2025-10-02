@@ -32,7 +32,7 @@ const validateCustomJwt = async (req, res, next) => {
       id: user._id,
       email: user.email,
       name: user.name,
-      role: user.role ? user.role.name : null,
+      role: user.role ? user.role.name : 'online',
       permissions: user.role ? user.role.permissions : [],
       dispensaryIds: user.dispensaryIds
     };
@@ -128,7 +128,7 @@ const validateHybridJwt = async (req, res, next) => {
           id: user._id,
           email: user.email,
           name: user.name,
-          role: user.role ? user.role.name : null,
+          role: user.role ? user.role.name : 'online',
           permissions: user.role ? user.role.permissions : [],
           dispensaryIds: user.dispensaryIds
         };

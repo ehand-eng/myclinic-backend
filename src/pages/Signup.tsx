@@ -63,17 +63,23 @@ const Signup = () => {
       });
 
       // Store the token
-      //localStorage.setItem('auth_token', response.data.access_token);
-      //localStorage.setItem('current_user', JSON.stringify(response.data.user));
+      localStorage.setItem('auth_token', response.data.token);
+      localStorage.setItem('current_user', JSON.stringify(response.data.user));
 
       toast({
         title: "Success",
         description: "Account created successfully"
       });
 
-      // Redirect to dashboard
-      // navigate('/admin/dashboard');
-      navigate('/login');
+      // Redirect based on user role
+      const user = response.data.user;
+      if (!user.role || user.role === 'online') {
+        // Online users (no assigned role) go to home page
+        navigate('/');
+      } else {
+        // Users with roles go to their role-based dashboard
+        navigate('/admin/dashboard');
+      }
     } catch (error: any) {
       toast({
         title: "Error",

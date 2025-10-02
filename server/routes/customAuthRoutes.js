@@ -12,7 +12,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-producti
 // Register endpoint
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, role = 'dispensary-staff', dispensaryIds = [] } = req.body;
+    const { name, email, password, role, dispensaryIds = [] } = req.body;
 
     // Validation
     if (!name || !email || !password) {
@@ -29,10 +29,16 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'User with this email already exists' });
     }
 
-    // Validate role exists
-    const roleDoc = await Role.findOne({ name: role });
-    if (!roleDoc) {
-      return res.status(400).json({ message: 'Invalid role specified' });
+    // Handle role assignment - if no role provided, user is an online user
+    let roleDoc = null;
+    let userRole = 'online';
+
+    if (role) {
+      roleDoc = await Role.findOne({ name: role });
+      if (!roleDoc) {
+        return res.status(400).json({ message: 'Invalid role specified' });
+      }
+      userRole = role;
     }
 
     // Hash password
@@ -44,7 +50,7 @@ router.post('/register', async (req, res) => {
       name,
       email,
       passwordHash,
-      role: roleDoc._id,
+      role: roleDoc ? roleDoc._id : null, // null for online users
       dispensaryIds: dispensaryIds,
       isActive: true,
       lastLogin: new Date()
@@ -54,10 +60,10 @@ router.post('/register', async (req, res) => {
 
     // Generate JWT token
     const token = jwt.sign(
-      { 
+      {
         userId: user._id,
         email: user.email,
-        role: role
+        role: userRole
       },
       JWT_SECRET,
       { expiresIn: '24h' }
@@ -70,16 +76,16 @@ router.post('/register', async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: role,
+        role: userRole,
         dispensaryIds: user.dispensaryIds
       }
     });
 
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Failed to create user account',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -116,11 +122,11 @@ router.post('/login', async (req, res) => {
 
     // Generate JWT token
     const token = jwt.sign(
-      { 
+      {
         userId: user._id,
         email: user.email,
-        role: user.role.name,
-        permissions: user.role.permissions
+        role: user.role ? user.role.name : 'online',
+        permissions: user.role ? user.role.permissions : []
       },
       JWT_SECRET,
       { expiresIn: '24h' }
@@ -133,9 +139,9 @@ router.post('/login', async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role.name,
+        role: user.role ? user.role.name : 'online',
         dispensaryIds: user.dispensaryIds,
-        permissions: user.role.permissions
+        permissions: user.role ? user.role.permissions : []
       }
     });
 
@@ -167,9 +173,9 @@ router.get('/me', async (req, res) => {
       id: user._id,
       name: user.name,
       email: user.email,
-      role: user.role.name,
+      role: user.role ? user.role.name : 'online',
       dispensaryIds: user.dispensaryIds,
-      permissions: user.role.permissions,
+      permissions: user.role ? user.role.permissions : [],
       lastLogin: user.lastLogin
     });
 
