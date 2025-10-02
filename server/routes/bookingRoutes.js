@@ -681,7 +681,7 @@ router.get('/next-available/:doctorId/:dispensaryId/:date', async (req, res) => 
 
 
 // Get booking summary by transaction ID - restricted to Super Admin and Dispensary Admin only
-router.get('/summary/:transactionId', roleMiddleware.requireAdvancedBookingAccess, async (req, res) => {
+router.get('/summary/:transactionId', async (req, res) => {
   try {
     const booking = await Booking.findOne({ transactionId: req.params.transactionId })
       .populate('doctorId', 'name specialization')
