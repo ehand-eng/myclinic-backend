@@ -25,6 +25,7 @@ const Index = () => {
       try {
         setIsLoading(true);
         // Fetch featured doctors and dispensaries
+        console.log("loading doctors and dispensaries.....");
         const allDoctors = await DoctorService.getAllDoctors();
         const allDispensaries = await DispensaryService.getAllDispensaries();
         

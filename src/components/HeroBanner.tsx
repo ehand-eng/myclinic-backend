@@ -2,6 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Calendar, Clock, CheckCircle } from 'lucide-react';
+import HeroBookingForm from './HeroBookingForm';
 
 const HeroBanner = () => {
   return (
@@ -42,18 +43,8 @@ const HeroBanner = () => {
             </p>
           </div>
           
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 fade-in-up" style={{ animationDelay: '0.4s' }}>
-            <Button asChild size="lg" className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white text-lg px-8 py-4 shadow-2xl hover:shadow-3xl transition-all duration-300">
-              <Link to="/booking">
-                Book an Appointment
-              </Link>
-            </Button>
-            
-            <Button asChild size="lg" variant="outline" className="border-2 border-white bg-white/10 backdrop-blur-sm hover:bg-white text-lg px-8 py-4 transition-all duration-300">
-              <Link to="/doctors" className="text-white hover:text-medicalBlue-700">
-                View Our Doctors
-              </Link>
-            </Button>
+          <div className="fade-in-up" style={{ animationDelay: '0.4s' }}>
+            <HeroBookingForm />
           </div>
         </div>
       </div>
