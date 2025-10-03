@@ -19,6 +19,11 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
 
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, []);
+
   // Fetch doctors and all dispensaries
   useEffect(() => {
     const fetchData = async () => {

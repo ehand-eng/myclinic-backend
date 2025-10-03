@@ -95,14 +95,14 @@ const BookingStep1: React.FC<BookingStep1Props> = ({
         <Label htmlFor="date">Select Date</Label>
         <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
           <PopoverTrigger asChild>
-            <Button
-              id="date"
-              variant="outline"
-              className={cn(
-                "w-full justify-start text-left font-normal",
-                !selectedDate && "text-muted-foreground"
-              )}
-            >
+                <Button
+                  id="date"
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start text-left font-normal h-10 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 border border-input bg-white hover:bg-gray-50",
+                    !selectedDate && "text-muted-foreground"
+                  )}
+                >
               <CalendarIcon className="mr-2 h-4 w-4" />
               {selectedDate ? format(selectedDate, 'MMM dd, yyyy') : 'Select Date'}
             </Button>
@@ -201,22 +201,50 @@ const BookingStep1: React.FC<BookingStep1Props> = ({
 
 // Extracted appointment card component
 const AppointmentCard: React.FC<{ appointment: AvailableTimeSlot }> = ({ appointment }) => (
-  <Card className="border-primary">
-    <CardContent className="p-4">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center">
-          <User className="h-5 w-5 mr-2 text-primary" />
-          <span className="font-medium">Appointment #{appointment.appointmentNumber}</span>
+  <Card className="border-2 border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 shadow-lg hover:shadow-xl transition-all duration-300">
+    <CardContent className="p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-3">
+          <div className="bg-green-500 p-2 rounded-full">
+            <User className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h3 className="font-bold text-lg text-green-800">Appointment #{appointment.appointmentNumber}</h3>
+            <p className="text-sm text-green-600">Your appointment is confirmed</p>
+          </div>
+        </div>
+        <div className="bg-green-100 px-3 py-1 rounded-full">
+          <span className="text-sm font-semibold text-green-800">Available</span>
         </div>
       </div>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center text-gray-600">
-          <Clock className="h-4 w-4 mr-1" />
-          <span>{appointment.estimatedTime}</span>
+      
+      <div className="grid grid-cols-2 gap-4">
+        <div className="flex items-center space-x-3">
+          <div className="bg-blue-100 p-2 rounded-lg">
+            <Clock className="h-5 w-5 text-blue-600" />
+          </div>
+          <div>
+            <p className="text-sm text-gray-600">Appointment Time</p>
+            <p className="font-bold text-lg text-blue-700">{appointment.estimatedTime}</p>
+          </div>
         </div>
-        <span className="text-sm bg-gray-100 px-2 py-1 rounded">
-          {appointment.minutesPerPatient} mins
-        </span>
+        
+        <div className="flex items-center space-x-3">
+          <div className="bg-orange-100 p-2 rounded-lg">
+            <Clock className="h-5 w-5 text-orange-600" />
+          </div>
+          <div>
+            <p className="text-sm text-gray-600">Duration</p>
+            <p className="font-bold text-lg text-orange-700">{appointment.minutesPerPatient} minutes</p>
+          </div>
+        </div>
+      </div>
+      
+      <div className="mt-4 pt-4 border-t border-green-200">
+        <div className="flex items-center justify-center space-x-2 text-green-700">
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          <span className="text-sm font-medium">Ready for booking</span>
+        </div>
       </div>
     </CardContent>
   </Card>

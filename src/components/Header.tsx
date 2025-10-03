@@ -33,21 +33,21 @@ const Header = () => {
         isOpen={showMyBookings}
         onClose={() => setShowMyBookings(false)}
       />
-      <header className="bg-white/95 backdrop-blur-md shadow-lg border-b border-medicalBlue-100 sticky top-0 z-50">
+      <header className="bg-gradient-to-br from-medicalGray-900 via-medicalBlue-900 to-medicalTeal-900 text-white sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="medical-icon-bg">
-              <Calendar className="h-6 w-6 text-medicalBlue-600" />
+            <div className="medical-icon-bg-dark">
+              <Calendar className="h-6 w-6 text-medicalBlue-400" />
             </div>
-            <Link to="/admin/dashboard" className="font-bold text-2xl medical-text-gradient">
+            <Link to="/" className="font-bold text-2xl text-white">
               DocSpot Connect
             </Link>
           </div>
           
           {isMobile ? (
             <>
-              <Button variant="ghost" size="icon" onClick={toggleMobileMenu} className="text-medicalBlue-600 hover:bg-medicalBlue-50">
+              <Button variant="ghost" size="icon" onClick={toggleMobileMenu} className="text-white hover:bg-white/10">
                 {mobileMenuOpen ? (
                   <X className="h-6 w-6" />
                 ) : (
@@ -56,30 +56,30 @@ const Header = () => {
               </Button>
               
               {mobileMenuOpen && (
-                <div className="fixed inset-0 z-50 bg-white/95 backdrop-blur-md pt-16">
+                <div className="fixed inset-0 z-50 bg-gradient-to-br from-medicalGray-900 via-medicalBlue-900 to-medicalTeal-900 text-white pt-16">
                   <div className="container mx-auto px-4 py-8 flex flex-col space-y-6">
                     <Link 
                       to="/" 
-                      className="flex items-center space-x-3 text-lg font-medium text-medicalGray-700 hover:text-medicalBlue-600 transition-colors p-3 rounded-lg hover:bg-medicalBlue-50"
+                      className="flex items-center space-x-3 text-lg font-medium text-white hover:text-medicalBlue-400 transition-colors p-3 rounded-lg hover:bg-white/10"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      <Calendar className="h-5 w-5 text-medicalBlue-600" />
-                      <span>Book Appointment</span>
+                      <Calendar className="h-5 w-5 text-medicalBlue-400" />
+                      <span>Home</span>
                     </Link>
                     <Link 
-                      to="/doctors" 
-                      className="flex items-center space-x-3 text-lg font-medium text-medicalGray-700 hover:text-medicalBlue-600 transition-colors p-3 rounded-lg hover:bg-medicalBlue-50"
+                      to="/about" 
+                      className="flex items-center space-x-3 text-lg font-medium text-white hover:text-medicalBlue-400 transition-colors p-3 rounded-lg hover:bg-white/10"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      <User className="h-5 w-5 text-medicalBlue-600" />
-                      <span>Our Doctors</span>
+                      <User className="h-5 w-5 text-medicalTeal-400" />
+                      <span>About Us</span>
                     </Link>
                     <Link
                       to="/contact"
-                      className="flex items-center space-x-3 text-lg font-medium text-medicalGray-700 hover:text-medicalBlue-600 transition-colors p-3 rounded-lg hover:bg-medicalBlue-50"
+                      className="flex items-center space-x-3 text-lg font-medium text-white hover:text-medicalBlue-400 transition-colors p-3 rounded-lg hover:bg-white/10"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      <Phone className="h-5 w-5 text-medicalBlue-600" />
+                      <Phone className="h-5 w-5 text-medicalGreen-400" />
                       <span>Contact Us</span>
                     </Link>
 
@@ -90,21 +90,21 @@ const Header = () => {
                           setShowMyBookings(true);
                           setMobileMenuOpen(false);
                         }}
-                        className="flex items-center space-x-3 text-lg font-medium text-medicalGray-700 hover:text-medicalBlue-600 transition-colors p-3 rounded-lg hover:bg-medicalBlue-50 w-full text-left"
+                        className="flex items-center space-x-3 text-lg font-medium text-white hover:text-medicalBlue-400 transition-colors p-3 rounded-lg hover:bg-white/10 w-full text-left"
                       >
-                        <BookOpen className="h-5 w-5 text-medicalBlue-600" />
+                        <BookOpen className="h-5 w-5 text-medicalBlue-400" />
                         <span>My Bookings</span>
                       </button>
                     )}
 
                     <div className="pt-4 flex flex-col space-y-4">
-                      <Button asChild className="w-full medical-button">
+                      <Button asChild className="w-full bg-white text-medicalBlue-700 hover:bg-gray-100">
                         <Link to="/booking" onClick={() => setMobileMenuOpen(false)}>
                           Book Now
                         </Link>
                       </Button>
                       
-                      <Button asChild variant="outline" className="w-full medical-button-outline">
+                      <Button asChild variant="outline" className="w-full border-white text-white hover:bg-white hover:text-medicalBlue-700">
                         <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
                           Admin Login
                         </Link>
@@ -117,24 +117,24 @@ const Header = () => {
           ) : (
             <>
               <nav className="flex items-center space-x-8">
-                 {/* <Link to="/admin/dashboard" className="text-gray-700 hover:text-medical-600 font-medium">
+                <Link to="/" className="text-white hover:text-medicalBlue-400 font-medium transition-colors">
                   Home
                 </Link>
-                <Link to="/doctors" className="text-gray-700 hover:text-medical-600 font-medium">
-                  Our Doctors
+                <Link to="/about" className="text-white hover:text-medicalTeal-400 font-medium transition-colors">
+                  About Us
                 </Link>
-                <Link to="/contact" className="text-gray-700 hover:text-medical-600 font-medium">
-                  Contact
-                </Link>  */}
+                <Link to="/contact" className="text-white hover:text-medicalGreen-400 font-medium transition-colors">
+                  Contact Us
+                </Link>
               </nav>
               {user ? (
                 <div className="flex items-center gap-4">
                   <div className="text-right">
-                    <div className="text-sm font-medium text-medicalGray-800">
+                    <div className="text-sm font-medium text-white">
                       {user.email}
                     </div>
                     {user.role && (
-                      <div className="text-xs text-medicalBlue-600 font-medium">
+                      <div className="text-xs text-medicalBlue-400 font-medium">
                         {getRoleDisplayName(user.role)}
                       </div>
                     )}
@@ -143,7 +143,7 @@ const Header = () => {
                   {(!user.role || user.role === 'online') && (
                     <button
                       onClick={() => setShowMyBookings(true)}
-                      className="px-4 py-2 rounded-lg bg-medicalBlue-50 hover:bg-medicalBlue-100 text-medicalBlue-700 text-sm font-medium transition-colors flex items-center gap-2"
+                      className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors flex items-center gap-2"
                     >
                       <BookOpen className="h-4 w-4" />
                       My Bookings
@@ -151,13 +151,13 @@ const Header = () => {
                   )}
                   <button
                     onClick={handleProfile}
-                    className="px-4 py-2 rounded-lg bg-medicalBlue-50 hover:bg-medicalBlue-100 text-medicalBlue-700 text-sm font-medium transition-colors"
+                    className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors"
                   >
                     Profile
                   </button>
                   <button
                     onClick={handleLogout}
-                    className="px-4 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 text-sm font-medium transition-colors"
+                    className="px-4 py-2 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-300 text-sm font-medium transition-colors"
                   >
                     Logout
                   </button>
@@ -165,7 +165,7 @@ const Header = () => {
               ) : (
                 <Link
                   to="/login"
-                  className="medical-button text-sm px-6 py-2"
+                  className="bg-white text-medicalBlue-700 hover:bg-gray-100 text-sm px-6 py-2 rounded-lg font-medium transition-colors"
                 >
                   Login
                 </Link>

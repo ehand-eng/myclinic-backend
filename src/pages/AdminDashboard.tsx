@@ -39,6 +39,7 @@ import CustomRoleAssignment from '@/components/admin/CustomRoleAssignment';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import AdminFeeManage from './AdminFeeManage';
+import AdminBookingForm from '@/components/admin/AdminBookingForm';
 import { 
   isSuperAdmin, 
   isChannelPartner,
@@ -406,7 +407,7 @@ return (
                   <CardDescription>Create bookings and view your performance reports</CardDescription>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Button onClick={() => navigate('/booking')} className="w-full bg-medical-600 hover:bg-medical-700">
+                  <Button onClick={() => setActiveTab('create-booking')} className="w-full bg-medical-600 hover:bg-medical-700">
                     Create New Booking
                   </Button>
                   <Button onClick={() => setActiveTab('reports')} className="w-full">
@@ -503,39 +504,11 @@ return (
         </TabsContent>
         
         <TabsContent value="bookings" className="space-y-6">
-          <div className="space-y-4">
-            <Card>
-            <CardHeader>
-              <CardTitle>Bookings Management</CardTitle>
-              <CardDescription>View and manage all bookings in the system</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Bookings list will be displayed here based on user role permissions.</p>
-            </CardContent>
-            <CardFooter>
-              <Button onClick={() => navigate('/booking')}>View All Bookings</Button>
-            </CardFooter>
-          </Card>
-          </div>
+          <AdminBookingForm />
         </TabsContent>
 
         <TabsContent value="create-booking" className="space-y-6">
-          <div className="space-y-4">
-            <Card>
-            <CardHeader>
-              <CardTitle>Create Booking</CardTitle>
-              <CardDescription>Create new bookings for patients</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Access the booking system to create appointments for any doctor and dispensary.</p>
-            </CardContent>
-            <CardFooter>
-              <Button onClick={() => navigate('/booking')} className="bg-medical-600 hover:bg-medical-700">
-                Create New Booking
-              </Button>
-            </CardFooter>
-          </Card>
-          </div>
+          <AdminBookingForm />
         </TabsContent>
         
         <TabsContent value="reports" className="space-y-6">

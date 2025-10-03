@@ -116,7 +116,7 @@ const HeroBookingForm = () => {
 
   return (
     <div className="w-full max-w-4xl mx-auto">
-      <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6 md:p-8 border border-white/20">
+      <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6 md:p-8 border border-white/20 hover:shadow-3xl transition-all duration-300">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           {/* Doctor Selection */}
           <div className="space-y-2">
@@ -130,7 +130,7 @@ const HeroBookingForm = () => {
             >
               <SelectTrigger 
                 id="hero-doctor" 
-                className="w-full h-12 bg-white/90 border-white/30 text-gray-900 placeholder:text-gray-500 hover:bg-white focus:bg-white"
+                className="w-full h-12 bg-white/90 border-white/30 text-gray-900 placeholder:text-gray-500 hover:bg-white focus:bg-white shadow-lg"
               >
                 <SelectValue placeholder="Select Doctor" />
               </SelectTrigger>
@@ -156,7 +156,7 @@ const HeroBookingForm = () => {
             >
               <SelectTrigger 
                 id="hero-dispensary" 
-                className="w-full h-12 bg-white/90 border-white/30 text-gray-900 placeholder:text-gray-500 hover:bg-white focus:bg-white"
+                className="w-full h-12 bg-white/90 border-white/30 text-gray-900 placeholder:text-gray-500 hover:bg-white focus:bg-white shadow-lg"
               >
                 <SelectValue placeholder="Select Dispensary" />
               </SelectTrigger>
@@ -181,7 +181,7 @@ const HeroBookingForm = () => {
                   id="hero-date"
                   variant="outline"
                   className={cn(
-                    "w-full h-12 bg-white/90 border-white/30 text-gray-900 placeholder:text-gray-500 hover:bg-white focus:bg-white justify-start text-left font-normal",
+                    "w-full h-12 bg-white/90 border-white/30 text-gray-900 hover:bg-white focus:bg-white hover:text-gray-900 focus:text-gray-900 justify-start text-left font-normal shadow-lg",
                     !selectedDate && "text-gray-500"
                   )}
                 >

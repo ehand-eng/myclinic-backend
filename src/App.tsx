@@ -1,13 +1,47 @@
 
 import Index from './pages/Index';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import NotFound from './pages/NotFound';
+
+// Component to scroll to top on route change
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    // More aggressive scroll to top approach
+    const scrollToTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      
+      // Force scroll on any scrollable containers
+      const scrollableElements = document.querySelectorAll('[style*="overflow"], .overflow-auto, .overflow-y-auto');
+      scrollableElements.forEach(el => {
+        el.scrollTop = 0;
+      });
+    };
+
+    // Immediate scroll
+    scrollToTop();
+    
+    // Multiple fallbacks with different timing
+    setTimeout(scrollToTop, 0);
+    setTimeout(scrollToTop, 10);
+    setTimeout(scrollToTop, 50);
+    setTimeout(scrollToTop, 100);
+  }, [pathname]);
+
+  return null;
+};
 import AdminDashboard from './pages/AdminDashboard';
 import AdminDoctors from './pages/AdminDoctors';
 import AdminReports from './pages/AdminReports';
 import AdminTimeSlots from './pages/AdminTimeSlots';
 import Booking from './pages/Booking';
 import Contact from './pages/Contact';
+import AboutUs from './pages/AboutUs';
 import Doctors from './pages/Doctors';
 import Login from './pages/Login';
 import CreateDoctor from './pages/CreateDoctor';
@@ -33,11 +67,35 @@ import CustomRoleManagement from './pages/admin/CustomRoleManagement';
 import { Dashboard } from '@mui/icons-material';
 
 const App = () => {
+  useEffect(() => {
+    // Disable browser's default scroll restoration to ensure programmatic scrolling works
+    if (window.history.scrollRestoration) {
+      window.history.scrollRestoration = 'manual';
+    }
+    
+    // Also listen for popstate events (back/forward button)
+    const handlePopState = () => {
+      setTimeout(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      }, 0);
+    };
+    
+    window.addEventListener('popstate', handlePopState);
+    
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []); // Run once on mount
+
   return (
     <Router>
+      <ScrollToTop />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Index />} />
+        <Route path="/about" element={<AboutUs />} />
         <Route path="/booking" element={<Booking />} />
         <Route path="/doctors" element={<Doctors />} />
         <Route path="/contact" element={<Contact />} />

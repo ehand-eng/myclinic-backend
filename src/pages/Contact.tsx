@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { MapPin, Mail, Phone, Clock } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const Contact = () => {
   const { toast } = useToast();
@@ -16,6 +16,11 @@ const Contact = () => {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, []);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
