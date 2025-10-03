@@ -1,4 +1,5 @@
 
+import { useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { BookingForm } from '@/components/booking';
@@ -10,6 +11,23 @@ const Booking = () => {
   const dispensaryId = searchParams.get('dispensaryId') || undefined;
   const dateStr = searchParams.get('date') || undefined;
   const initialDate = dateStr ? new Date(dateStr) : undefined;
+
+  // Aggressive scroll to top for booking page
+  useEffect(() => {
+    const forceScrollToTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+
+    // Multiple attempts to ensure scroll works
+    forceScrollToTop();
+    setTimeout(forceScrollToTop, 0);
+    setTimeout(forceScrollToTop, 10);
+    setTimeout(forceScrollToTop, 50);
+    setTimeout(forceScrollToTop, 100);
+    setTimeout(forceScrollToTop, 200);
+  }, []);
   
   return (
     <div className="flex flex-col min-h-screen">

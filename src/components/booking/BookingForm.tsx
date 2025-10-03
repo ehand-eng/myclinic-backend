@@ -26,6 +26,19 @@ interface BookingFormProps {
 const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCalendar }: BookingFormProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Force scroll to top when BookingForm mounts
+  useEffect(() => {
+    const scrollToTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+    
+    scrollToTop();
+    setTimeout(scrollToTop, 0);
+    setTimeout(scrollToTop, 10);
+  }, []);
   
   // Role-based access control
   const [userRole, setUserRole] = useState<string>('');

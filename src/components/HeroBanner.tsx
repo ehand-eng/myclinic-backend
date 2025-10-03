@@ -6,7 +6,7 @@ import HeroBookingForm from './HeroBookingForm';
 
 const HeroBanner = () => {
   return (
-    <div className="relative bg-gradient-to-br from-medicalBlue-600 via-medicalBlue-700 to-medicalTeal-700 text-white overflow-hidden">
+    <div className="relative bg-gradient-to-br from-medicalGray-900 via-medicalBlue-900 to-medicalTeal-900 text-white overflow-hidden">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0" style={{
@@ -30,14 +30,14 @@ const HeroBanner = () => {
           <div className="fade-in-up">
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-8 leading-tight">
               Book Your Doctor
-              <span className="block text-transparent bg-gradient-to-r from-white to-medicalTeal-200 bg-clip-text">
+              <span className="block text-transparent bg-gradient-to-r from-white to-medicalTeal-300 bg-clip-text drop-shadow-lg">
                 Appointment Online
               </span>
             </h1>
           </div>
           
           <div className="fade-in-up" style={{ animationDelay: '0.2s' }}>
-            <p className="text-xl md:text-2xl mb-12 text-blue-100 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl md:text-2xl mb-12 text-white/90 max-w-3xl mx-auto leading-relaxed drop-shadow-md">
               Skip the queue and save time with our modern, easy-to-use 
               online booking system designed for healthcare excellence.
             </p>
