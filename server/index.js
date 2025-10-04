@@ -11,6 +11,7 @@ const doctorRoutes = require('./routes/doctorRoutes');
 const dispensaryRoutes = require('./routes/dispensaryRoutes');
 const authRoutes = require('./routes/authRoutes');
 const customAuthRoutes = require('./routes/customAuthRoutes');
+const mobileAuthRoutes = require('./routes/mobileAuthRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const timeSlotRoutes = require('./routes/timeSlotRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
@@ -44,6 +45,7 @@ app.use('/api/dispensaries', dispensaryRoutes);
 // app.use('/api/auth', authRoutes); // Keep for backward compatibility during migration
 app.use('/api/auth', customAuthRoutes);
 app.use('/api/custom-auth', customAuthRoutes); // New custom authentication
+app.use('/api/auth', mobileAuthRoutes); // Mobile authentication routes
 app.use('/api/admin', adminRoutes); // New admin routes
 app.use('/api/timeslots', timeSlotRoutes);
 app.use('/api/bookings', bookingRoutes);

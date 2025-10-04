@@ -8,8 +8,30 @@ const userSchema = new mongoose.Schema({
   },
   email: { 
     type: String, 
-    required: true,
-    unique: true
+    required: function() {
+      // Required if no mobile number
+      return !this.mobile;
+    },
+    unique: function() {
+      // Unique only if email is provided
+      return this.email;
+    }
+  },
+  mobile: {
+    type: String,
+    required: function() {
+      // Required if no email
+      return !this.email;
+    },
+    unique: function() {
+      // Unique only if mobile is provided
+      return this.mobile;
+    }
+  },
+  nationality: {
+    type: String,
+    enum: ['sri_lanka', 'other'],
+    required: true
   },
   passwordHash: { 
     type: String, 
