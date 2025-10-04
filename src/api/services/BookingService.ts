@@ -381,5 +381,21 @@ export const BookingService = {
       console.error('Error searching bookings:', error);
       throw new Error('Failed to search bookings');
     }
+  },
+
+  // Adjust booking to new date/time
+  adjustBooking: async (id: string, newDate: Date, doctorId?: string, dispensaryId?: string): Promise<Booking | null> => {
+    try {
+      const response = await api.patch(`/bookings/${id}/adjust`, {
+        newDate: newDate.toISOString(),
+        doctorId,
+        dispensaryId
+      });
+      
+      return response.data.booking;
+    } catch (error) {
+      console.error('Error adjusting booking:', error);
+      throw new Error('Failed to adjust booking');
+    }
   }
 };

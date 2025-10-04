@@ -143,17 +143,23 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
       };
 
       const response = await BookingService.createBooking(bookingData);
+      console.log("confirm booking response", response);
       
+      // Show success message
       toast({
         title: 'Success',
         description: `Booking created successfully! Transaction ID: ${response.transactionId}`,
+        variant: 'default',
       });
 
-      // Reset form
+      // Reset form completely
       setName('');
       setPhone('');
       setEmail('');
       setSymptoms('');
+      setSelectedDoctor('');
+      setSelectedDispensary('');
+      setSelectedDate(undefined);
       setCurrentStep(0);
       setAvailability(null);
       
@@ -196,19 +202,32 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
         fees: feesObj
       };
 
-      await BookingService.updateBooking(currentBooking.id, updateData);
+      await BookingService.adjustBooking(
+        currentBooking.id, 
+        selectedDate!, 
+        selectedDoctor, 
+        selectedDispensary
+      );
       
       toast({
         title: 'Success',
         description: 'Booking updated successfully!',
+        variant: 'default',
       });
 
-      // Reset form
+      // Reset form completely
       setCurrentBooking(null);
       setAdjustBookingId('');
       setAdjustStep(0);
       setAvailability(null);
       setShowSearchResults(false);
+      setSelectedDoctor('');
+      setSelectedDispensary('');
+      setSelectedDate(undefined);
+      setName('');
+      setPhone('');
+      setEmail('');
+      setSymptoms('');
       
     } catch (error: any) {
       console.error('Error updating booking:', error);

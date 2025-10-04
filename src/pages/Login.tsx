@@ -87,7 +87,7 @@ console.log("======== response ============== "+JSON.stringify(response));
                 </div>
               </div>
               <CardTitle className="text-3xl font-bold medical-text-gradient mb-2">Admin Login</CardTitle>
-              <p className="text-medicalGray-600">Welcome to DocSpot Connect</p>
+              <p className="text-medicalGray-600">Welcome to MyClinic</p>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleLogin} className="space-y-6">
