@@ -65,6 +65,7 @@ import MobileHome from './pages/MobileHome';
 import TimeSlotManagement from './pages/TimeSlotManagement';
 import CustomRoleManagement from './pages/admin/CustomRoleManagement';
 import { Dashboard } from '@mui/icons-material';
+import { Toaster } from '@/components/ui/toaster';
 
 const App = () => {
   useEffect(() => {
@@ -92,6 +93,7 @@ const App = () => {
   return (
     <Router>
       <ScrollToTop />
+      <Toaster />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Index />} />
