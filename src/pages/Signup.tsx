@@ -118,7 +118,7 @@ const Signup = () => {
         mobile: formData.mobile
       };
 
-      await axios.post(`${API_URL}/auth/send-otp`, otpData);
+      await axios.post(`${API_URL}/mobile/auth/send-otp`, otpData);
       
       setOtpSent(true);
       toast({

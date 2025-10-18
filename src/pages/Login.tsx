@@ -168,7 +168,7 @@ const Login = () => {
           password: loginData.password,
           keepSignedIn: loginData.keepSignedIn
         };
-        response = await axios.post(`${API_URL}/auth/login-email`, loginPayload);
+        response = await axios.post(`${API_URL}/custom-auth/login`, loginPayload);
       } catch (mobileAuthError) {
         // Fallback to existing custom auth for backward compatibility
         response = await axios.post(`${API_URL}/custom-auth/login`, {
