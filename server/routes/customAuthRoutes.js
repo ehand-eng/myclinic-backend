@@ -94,7 +94,8 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-
+console.log("email", email);
+console.log("password", password);
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
     }
@@ -116,9 +117,8 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    // Update last login
-    user.lastLogin = new Date();
-    await user.save();
+    // Update last login without triggering full validation
+    await User.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } });
 
     // Generate JWT token
     const token = jwt.sign(
@@ -131,7 +131,7 @@ router.post('/login', async (req, res) => {
       JWT_SECRET,
       { expiresIn: '24h' }
     );
-
+console.log("token", token);
     res.json({
       message: 'Login successful',
       token,

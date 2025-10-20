@@ -22,7 +22,7 @@ const doctorDispensaryRoutes = require('./routes/doctorDispensaryRoutes');
 const cleanFeeRoutes = require('./routes/cleanFeeRoutes');
 const feeManagementRoutes = require('./routes/feeManagementRoutes');
 const channelPartnerRoutes = require('./routes/channelPartnerRoutes');
-
+const fcmRoutes = require('./routes/fcmRoutes');
 // Create Express app
 const app = express();
 
@@ -42,10 +42,11 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/doctor-re
 // Routes
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/dispensaries', dispensaryRoutes);
+app.use('/api/fcm-token', fcmRoutes);
 // app.use('/api/auth', authRoutes); // Keep for backward compatibility during migration
-app.use('/api/auth', customAuthRoutes);
+// app.use('/api/auth', customAuthRoutes);
 app.use('/api/custom-auth', customAuthRoutes); // New custom authentication
-app.use('/api/auth', mobileAuthRoutes); // Mobile authentication routes
+app.use('/api/mobile/auth', mobileAuthRoutes); // Mobile authentication routes
 app.use('/api/admin', adminRoutes); // New admin routes
 app.use('/api/timeslots', timeSlotRoutes);
 app.use('/api/bookings', bookingRoutes);

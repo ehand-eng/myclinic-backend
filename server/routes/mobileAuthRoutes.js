@@ -36,10 +36,11 @@ router.post('/send-otp', async (req, res) => {
 
       // Check if user already exists
       const existingUser = await User.findOne({ mobile });
+      console.log("existingUser found in mobile auth routes", existingUser);
       if (existingUser) {
         return res.status(400).json({ message: 'User with this mobile number already exists' });
       }
-
+      console.log("sending OTP to mobile number", mobile);
       result = await OTPService.sendSMSOTP(mobile);
     } else {
       // Validate email

@@ -7,6 +7,7 @@ const DoctorDispensary = require('../models/DoctorDispensary');
 const mongoose = require('mongoose');
 const roleMiddleware = require('../middleware/roleMiddleware');
 const { validateCustomJwt } = require('../middleware/customAuthMiddleware');
+const fcmServerClient = require('../services/fcmServerClient');
 
 // Search bookings - restricted to Super Admin and Dispensary Admin only
 router.get('/search', roleMiddleware.requireAdvancedBookingAccess, async (req, res) => {
@@ -553,6 +554,11 @@ router.post('/', async (req, res) => {
     
     await booking.save();
     console.log("Booking created successfully:", booking);
+
+    // Send FCM notification to the patient
+    await fcmServerClient.sendNotification("BPT1zMXQaTa-d3We90UFv8u32Yljil4_4zu2yKEOz81331JRZU-qNY0q5peAhuDgX3YetDWm7N2WIZqRBHIzyMQ", 
+      'Booking Created', 'Your booking has been created successfully');
+
     res.status(201).json(booking);
     
   } catch (error) {

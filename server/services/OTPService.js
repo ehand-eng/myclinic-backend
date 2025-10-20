@@ -114,9 +114,9 @@ class OTPService {
           }
         }
       };
-
+      console.log("params", params);
       const result = await sns.publish(params).promise();
-      
+      console.log("result", result);
       // Store OTP for verification
       this.storeOTP(phoneNumber, otp);
       
