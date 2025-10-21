@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar, User, Building } from 'lucide-react';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+import AdminHeader from '@/components/AdminHeader';
+import AdminFooter from '@/components/AdminFooter';
 
 const AdminTimeSlots = () => {
   const navigate = useNavigate();
@@ -93,16 +93,11 @@ const AdminTimeSlots = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header />
+      <AdminHeader />
       <main className="flex-grow container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Time Slot Management</h1>
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/admin/dashboard')}
-          >
-            Back to Dashboard
-          </Button>
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold medical-text-gradient">Time Slot Management</h1>
+          <p className="text-medicalGray-600 mt-2">Manage doctor time slots and availability</p>
         </div>
 
         <Card className="mb-6">
@@ -196,7 +191,7 @@ const AdminTimeSlots = () => {
           </Card>
         </div>
       </main>
-      <Footer />
+      <AdminFooter />
     </div>
   );
 };

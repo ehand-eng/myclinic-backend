@@ -1,8 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+import AdminHeader from '@/components/AdminHeader';
+import AdminFooter from '@/components/AdminFooter';
 import { Button } from '@/components/ui/button';
 import { DoctorService } from '@/api/services';
 import { Doctor } from '@/api/models';
@@ -79,7 +79,7 @@ const AdminDoctors = () => {
   
   return (
     <div className="flex flex-col min-h-screen">
-      <Header />
+      <AdminHeader />
       <main className="container mx-auto px-4 py-8 flex-grow">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Manage Doctors</h1>
@@ -174,7 +174,7 @@ const AdminDoctors = () => {
           </CardContent>
         </Card>
       </main>
-      <Footer />
+      <AdminFooter />
     </div>
   );
 };

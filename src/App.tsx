@@ -64,6 +64,7 @@ import AdminFeeManage from './pages/AdminFeeManage';
 import MobileHome from './pages/MobileHome';
 import TimeSlotManagement from './pages/TimeSlotManagement';
 import CustomRoleManagement from './pages/admin/CustomRoleManagement';
+import Appointments from './pages/Appointments';
 import { Dashboard } from '@mui/icons-material';
 import { Toaster } from '@/components/ui/toaster';
 
@@ -111,13 +112,14 @@ const App = () => {
         <Route path="/admin/dispensaries" element={<AdminDispensaries />} />
         <Route path="/admin/reports" element={<AdminReports />} />
         <Route path="/admin/time-slots" element={<AdminTimeSlots />} />
+        <Route path="/admin/bookings" element={<Appointments />} />
         <Route path="/admin/doctors/create" element={<CreateDoctor />} />
         <Route path="/admin/doctors/edit/:id" element={<EditDoctor />} />
         <Route path="/admin/doctors/view/:id" element={<ViewDoctor />} />
         <Route path="/admin/dispensaries/create" element={<CreateDispensary />} />
         <Route path="/admin/dispensaries/edit/:id" element={<EditDispensary />} />
         <Route path="/admin/dispensaries/view/:id" element={<ViewDispensary />} />
-        <Route path="/admin/user-dispensary" element={<UserDispensaryAssignment />} />
+        <Route path="/admin/user-dispensary" element={<CustomRoleManagement />} />
         <Route path="/admin/roles" element={<CustomRoleManagement />} />
         <Route path='/admin/fees' element={<AdminFeeManage/>}/>
         

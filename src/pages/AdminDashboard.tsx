@@ -36,8 +36,8 @@ import UserManagement from '@/components/admin/UserManagement';
 import RoleAssignment from '@/components/admin/RoleAssignment';
 import ReportGenerator from '@/components/admin/ReportGenerator';
 import CustomRoleAssignment from '@/components/admin/CustomRoleAssignment';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+import AdminHeader from '@/components/AdminHeader';
+import AdminFooter from '@/components/AdminFooter';
 import AdminFeeManage from './AdminFeeManage';
 import AdminBookingForm from '@/components/admin/AdminBookingForm';
 import { 
@@ -184,18 +184,18 @@ const AdminDashboard = () => {
 if (isLoading) {
   return (
     <div className="flex flex-col min-h-screen">
-      <Header />
+      <AdminHeader />
       <main className="flex-grow flex items-center justify-center">
         <p className="text-xl">Loading dashboard...</p>
       </main>
-      <Footer />
+      <AdminFooter />
     </div>
   );
 }
 
 return (
   <div className="flex flex-col min-h-screen">
-    <Header />
+    <AdminHeader />
     
     <main className="flex-grow bg-gradient-to-br from-medicalBlue-50 via-white to-medicalTeal-50 min-h-screen">
       <div className="container mx-auto px-4 py-8">
@@ -217,26 +217,7 @@ return (
           </div>
         </div> */}
       
-      <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 mb-8 bg-white/80 backdrop-blur-sm border border-medicalBlue-100 shadow-lg">
-          <TabsTrigger value="overview" className="data-[state=active]:bg-medicalBlue-600 data-[state=active]:text-white">Overview</TabsTrigger>
-          {canManageDispensaries(currentUser?.role) && (
-            <TabsTrigger value="dispensaries" className="data-[state=active]:bg-medicalBlue-600 data-[state=active]:text-white">Dispensaries</TabsTrigger>)}
-          {canManageDoctors(currentUser?.role) && (
-            <TabsTrigger value="doctors" className="data-[state=active]:bg-medicalBlue-600 data-[state=active]:text-white">Doctors</TabsTrigger>)}
-          {canManageTimeslots(currentUser?.role) && (
-            <TabsTrigger value="timeslots" className="data-[state=active]:bg-medicalBlue-600 data-[state=active]:text-white">TimeSlots</TabsTrigger>)}
-          {canManageBookings(currentUser?.role) && (
-            <TabsTrigger value="bookings" className="data-[state=active]:bg-medicalBlue-600 data-[state=active]:text-white">Bookings</TabsTrigger>)}
-          {canViewReports(currentUser?.role) && (
-            <TabsTrigger value="reports" className="data-[state=active]:bg-medicalBlue-600 data-[state=active]:text-white">Reports</TabsTrigger>)}
-          {canManageFees(currentUser?.role) && (
-            <TabsTrigger value="fee-management" className="data-[state=active]:bg-medicalBlue-600 data-[state=active]:text-white">Fee Management</TabsTrigger>)}
-          {isSuperAdmin(currentUser?.role) && (
-            <TabsTrigger value="user-dispensary" className="data-[state=active]:bg-medicalBlue-600 data-[state=active]:text-white">Assign Users</TabsTrigger>)}
-        </TabsList>
-        
-        <TabsContent value="overview" className="space-y-6">
+      <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card className="medical-card group hover:scale-105 transition-all duration-300 fade-in-up">
               <CardHeader className="pb-2">
@@ -426,175 +407,11 @@ return (
         
 
 
-        </TabsContent>
-        
-        <TabsContent value="dispensaries" className="space-y-6">
-          <div className="space-y-4">
-           <Card>
-            <CardHeader>
-              <div className="flex items-center space-x-3">
-                <div className="medical-icon-bg">
-                  <Building2 className="h-6 w-6 text-medicalBlue-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-2xl font-bold text-medicalGray-800">Dispensaries Management</CardTitle>
-                  <CardDescription className="text-medicalGray-600">View and manage all dispensaries in the system</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-medicalGray-600">Manage dispensary locations, contact information, and associated doctors.</p>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button onClick={() => navigate('/admin/dispensaries')} className="medical-button">
-                <Building2 className="h-4 w-4 mr-2" />
-                View All Dispensaries
-              </Button>
-              <Button onClick={() => navigate('/admin/dispensaries/create')} variant="outline" className="medical-button-outline">
-                <Building2 className="h-4 w-4 mr-2" />
-                Add New Dispensary
-              </Button>
-            </CardFooter>
-          </Card>
-            
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="doctors" className="space-y-6">
-          <div className="space-y-4">
-            <Card>
-            <CardHeader>
-              <CardTitle>Doctors Management</CardTitle>
-              <CardDescription>View and manage all doctors in the system</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Manage doctor profiles, specializations, qualifications, and dispensary assignments.</p>
-            </CardContent>
-            <CardFooter className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center justify-between">
-              <Button onClick={() => navigate('/admin/doctors')} className="bg-medical-600 hover:bg-medical-700">
-                View All Doctors
-              </Button>
-              <Button onClick={() => navigate('/admin/doctors/create')} variant="outline">
-                Add New Doctor
-              </Button>
-              <Button onClick={() => navigate('/admin/time-slots')} variant="outline">
-                Manage Time Slots
-              </Button>
-            </CardFooter>
-          </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="timeslots" className="space-y-6">
-          <div className="space-y-4">
-            <Card>
-            <CardHeader>
-              <CardTitle>Time Slot Management</CardTitle>
-              <CardDescription>
-                Manage doctor time slots and availability at dispensaries
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 gap-4">
-              <Button onClick={() => navigate('/admin/time-slots')} className="bg-medical-600 hover:bg-medical-700">
-                Manage Time Slots
-              </Button>
-            </CardContent>
-          </Card>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="bookings" className="space-y-6">
-          <AdminBookingForm />
-        </TabsContent>
-
-        <TabsContent value="create-booking" className="space-y-6">
-          <AdminBookingForm />
-        </TabsContent>
-        
-        <TabsContent value="reports" className="space-y-6">
-          <div className="space-y-4">
-            <Card>
-            <CardHeader>
-              <CardTitle>Reports</CardTitle>
-              <CardDescription>
-                {isChannelPartner(currentUser?.role) 
-                  ? "View your booking performance and commission reports" 
-                  : "Generate and view system reports"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isChannelPartner(currentUser?.role) ? (
-                <div className="text-center py-8">
-                  <Button 
-                    onClick={() => navigate('/reports/channel-partner')}
-                    className="bg-medical-600 hover:bg-medical-700"
-                    size="lg"
-                  >
-                    View My Reports
-                  </Button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <Button onClick={() => navigate('/reports/daily-bookings')}>
-                    Daily Bookings Report
-                  </Button>
-                  <Button onClick={() => navigate('/reports/monthly-summary')}>
-                    Monthly Summary Report
-                  </Button>
-                  <Button onClick={() => navigate('/reports/doctor-performance')}>
-                    Doctor Performance Report
-                  </Button>
-                  {isSuperAdmin(currentUser?.role) && (
-                    <Button onClick={() => navigate('/reports/dispensary-revenue')}>
-                      Dispensary Revenue Report
-                    </Button>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="fee-management" className="space-y-6">
-          <div className="space-y-6">
-            <AdminFeeManage />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="user-dispensary" className="space-y-6">
-          <div className="space-y-6">
-            <Tabs defaultValue="manage-users" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="manage-users">Manage Users</TabsTrigger>
-              <TabsTrigger value="assign-roles">Assign Roles</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="manage-users" className="space-y-4">
-              <CustomRoleAssignment />
-            </TabsContent>
-            
-            <TabsContent value="assign-roles" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Role Assignment Management</CardTitle>
-                  <CardDescription>
-                    View and manage existing user-role assignments
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <RoleAssignment />
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-          </div>
-        </TabsContent>
-      </Tabs>
+      </div>
       </div>
     </main>
     
-    <Footer />
+    <AdminFooter />
   </div>
 );
 };

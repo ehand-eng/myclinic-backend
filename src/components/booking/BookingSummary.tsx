@@ -564,7 +564,7 @@ const BookingSummary = () => {
                           </div>
                           <div className="flex-1">
                             <p className="text-sm text-gray-600">Doctor Fee</p>
-                            <p className="font-bold text-lg text-blue-700">${summary.fees.doctorFee.toFixed(2)}</p>
+                            <p className="font-bold text-lg text-blue-700">Rs {summary.fees.doctorFee.toFixed(2)}</p>
                           </div>
                         </div>
                       </div>
@@ -576,7 +576,7 @@ const BookingSummary = () => {
                           </div>
                           <div className="flex-1">
                             <p className="text-sm text-gray-600">Dispensary Fee</p>
-                            <p className="font-bold text-lg text-orange-700">${summary.fees.dispensaryFee.toFixed(2)}</p>
+                            <p className="font-bold text-lg text-orange-700">Rs {summary.fees.dispensaryFee.toFixed(2)}</p>
                           </div>
                         </div>
                       </div>
@@ -588,7 +588,7 @@ const BookingSummary = () => {
                           </div>
                           <div className="flex-1">
                             <p className="text-sm text-gray-600">Booking Commission</p>
-                            <p className="font-bold text-lg text-purple-700">${summary.fees.bookingCommission.toFixed(2)}</p>
+                            <p className="font-bold text-lg text-purple-700">Rs {summary.fees.bookingCommission.toFixed(2)}</p>
                           </div>
                         </div>
                       </div>
@@ -606,7 +606,7 @@ const BookingSummary = () => {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-3xl font-bold text-emerald-800">${summary.fees.totalAmount.toFixed(2)}</p>
+                          <p className="text-3xl font-bold text-emerald-800">Rs {summary.fees.totalAmount.toFixed(2)}</p>
                           <p className="text-sm text-emerald-600">Payment completed</p>
                         </div>
                       </div>
@@ -630,19 +630,19 @@ const BookingSummary = () => {
                   <tbody>
                     <tr>
                       <td>Doctor Fee</td>
-                      <td className="amount">${summary.fees.doctorFee.toFixed(2)}</td>
+                      <td className="amount">Rs {summary.fees.doctorFee.toFixed(2)}</td>
                     </tr>
                     <tr>
                       <td>Dispensary Fee</td>
-                      <td className="amount">${summary.fees.dispensaryFee.toFixed(2)}</td>
+                      <td className="amount">Rs {summary.fees.dispensaryFee.toFixed(2)}</td>
                     </tr>
                     <tr>
                       <td>Booking Commission</td>
-                      <td className="amount">${summary.fees.bookingCommission.toFixed(2)}</td>
+                      <td className="amount">Rs {summary.fees.bookingCommission.toFixed(2)}</td>
                     </tr>
                     <tr className="fee-total">
                       <td><strong>TOTAL AMOUNT</strong></td>
-                      <td className="amount"><strong>${summary.fees.totalAmount.toFixed(2)}</strong></td>
+                      <td className="amount"><strong>Rs {summary.fees.totalAmount.toFixed(2)}</strong></td>
                     </tr>
                   </tbody>
                 </table>

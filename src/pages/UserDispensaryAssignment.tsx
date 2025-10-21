@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+import AdminHeader from '@/components/AdminHeader';
+import AdminFooter from '@/components/AdminFooter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -52,9 +52,11 @@ const UserDispensaryAssignment: React.FC = () => {
   const handleUserChange = (value: string) => {
     setSelectedUser(value);
   };
+  
   const handleDispensaryChange = (value: string) => {
     setSelectedDispensary(value);
   };
+  
   const handleRoleChange = (value: 'hospital_admin' | 'hospital_staff') => {
     setSelectedRole(value);
   };
@@ -62,23 +64,30 @@ const UserDispensaryAssignment: React.FC = () => {
   const handleAssign = async () => {
     try {
       if (!selectedUser || !selectedDispensary) {
-        setError('Please select both a user and a dispensary');
+        toast({
+          title: 'Error',
+          description: 'Please select both user and dispensary',
+          variant: 'destructive',
+        });
         return;
       }
+
       await UserDispensaryService.assignUserToDispensary(
         selectedUser,
         selectedDispensary,
         selectedRole
       );
-      await fetchData();
+      
+      toast({
+        title: 'Success',
+        description: 'User assigned to dispensary successfully',
+      });
+      
       setSelectedUser('');
       setSelectedDispensary('');
       setSelectedRole('hospital_staff');
       setError(null);
-      toast({
-        title: 'Success',
-        description: 'User assigned successfully',
-      });
+      await fetchData();
     } catch (err) {
       setError('Failed to assign user to dispensary');
       toast({
@@ -89,7 +98,7 @@ const UserDispensaryAssignment: React.FC = () => {
     }
   };
 
-  const handleEdit = (userId: string, dispensaryId: string, role: 'hospital_admin' | 'hospital_staff') => {
+  const handleEditRole = (userId: string, dispensaryId: string, role: 'hospital_admin' | 'hospital_staff') => {
     setEditingAssignment({ userId, dispensaryId, role });
     setEditingRole(role);
     setEditDialogOpen(true);
@@ -143,163 +152,163 @@ const UserDispensaryAssignment: React.FC = () => {
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen">
-        <Header />
-        <main className="flex-grow flex items-center justify-center">
+        <AdminHeader />
+        <main className="flex-grow flex items-center justify-center bg-gradient-to-br from-medicalBlue-50 via-white to-medicalTeal-50">
           <div className="flex items-center space-x-2">
             <Loader2 className="h-6 w-6 animate-spin" />
             <p className="text-xl">Loading assignments...</p>
           </div>
         </main>
-        <Footer />
+        <AdminFooter />
       </div>
     );
   }
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header />
-      <main className="container mx-auto px-4 py-8 flex-grow">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">User-Dispensary Assignment</h1>
-        </div>
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-600">{error}</p>
+      <AdminHeader />
+      <main className="flex-grow bg-gradient-to-br from-medicalBlue-50 via-white to-medicalTeal-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-3xl font-bold medical-text-gradient">User-Dispensary Assignment</h1>
           </div>
-        )}
-        {/* Assignment Form */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Assign User to Dispensary</CardTitle>
-            <CardDescription>
-              Select a user, dispensary, and role to create a new assignment
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">User</label>
-                <Select value={selectedUser} onValueChange={handleUserChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a user" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.map((user) => (
-                      <SelectItem key={user._id} value={user._id}>
-                        {user.name} ({user.email})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Dispensary</label>
-                <Select value={selectedDispensary} onValueChange={handleDispensaryChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a dispensary" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {dispensaries.map((dispensary) => (
-                      <SelectItem key={dispensary._id} value={dispensary._id}>
-                        {dispensary.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Role</label>
-                <Select value={selectedRole} onValueChange={handleRoleChange}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="hospital_admin">Admin</SelectItem>
-                    <SelectItem value="hospital_staff">Staff</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">&nbsp;</label>
-                <Button
-                  onClick={handleAssign}
-                  disabled={!selectedUser || !selectedDispensary}
-                  className="w-full bg-medical-600 hover:bg-medical-700"
-                >
-                  Assign
-                </Button>
-              </div>
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-600">{error}</p>
             </div>
-          </CardContent>
-        </Card>
-        {/* Assignments Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Current Assignments</CardTitle>
-            <CardDescription>
-              View and manage existing user-dispensary assignments
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {!hasAssignments ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500 text-lg">No records exist</p>
-                <p className="text-gray-400 text-sm mt-2">No user assignments have been created yet.</p>
+          )}
+          {/* Assignment Form */}
+          <Card className="mb-6 medical-card">
+            <CardHeader>
+              <CardTitle>Assign User to Dispensary</CardTitle>
+              <CardDescription>
+                Select a user, dispensary, and role to create a new assignment
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">User</label>
+                  <Select value={selectedUser} onValueChange={handleUserChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select user" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.name} ({user.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Dispensary</label>
+                  <Select value={selectedDispensary} onValueChange={handleDispensaryChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select dispensary" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {dispensaries.map((dispensary) => (
+                        <SelectItem key={dispensary.id} value={dispensary.id}>
+                          {dispensary.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Role</label>
+                  <Select value={selectedRole} onValueChange={handleRoleChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hospital_staff">Hospital Staff</SelectItem>
+                      <SelectItem value="hospital_admin">Hospital Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-end">
+                  <Button onClick={handleAssign} className="w-full">
+                    Assign
+                  </Button>
+                </div>
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>User</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Dispensary</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.map((user) =>
-                      (user.dispensaryAssignments || []).map((assignment) => (
-                        <TableRow key={`${user._id}-${assignment.dispensaryId}`}>
-                          <TableCell className="font-medium">{user.name}</TableCell>
-                          <TableCell>{user.email}</TableCell>
-                          <TableCell>{assignment.dispensaryName}</TableCell>
-                          <TableCell>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              assignment.role === 'hospital_admin' 
-                                ? 'bg-blue-100 text-blue-800' 
-                                : 'bg-green-100 text-green-800'
-                            }`}>
-                              {assignment.role === 'hospital_admin' ? 'Admin' : 'Staff'}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEdit(user._id, assignment.dispensaryId, assignment.role)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveAssignment(user._id, assignment.dispensaryId)}
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+          {/* Assignments Table */}
+          <Card className="medical-card">
+            <CardHeader>
+              <CardTitle>Current Assignments</CardTitle>
+              <CardDescription>
+                View and manage existing user-dispensary assignments
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!hasAssignments ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-500 text-lg">No records exist</p>
+                  <p className="text-gray-400 text-sm mt-2">No user assignments have been created yet.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Dispensary</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {users.map((user) =>
+                        (user.dispensaryAssignments || []).map((assignment) => (
+                          <TableRow key={`${user.id}-${assignment.dispensaryId}`}>
+                            <TableCell className="font-medium">{user.name}</TableCell>
+                            <TableCell>{user.email}</TableCell>
+                            <TableCell>
+                              {dispensaries.find(d => d.id === assignment.dispensaryId)?.name || 'Unknown'}
+                            </TableCell>
+                            <TableCell>
+                              <span className={`px-2 py-1 rounded-full text-xs ${
+                                assignment.role === 'hospital_admin' 
+                                  ? 'bg-blue-100 text-blue-800' 
+                                  : 'bg-green-100 text-green-800'
+                              }`}>
+                                {assignment.role === 'hospital_admin' ? 'Admin' : 'Staff'}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end space-x-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEditRole(user.id, assignment.dispensaryId, assignment.role)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleRemoveAssignment(user.id, assignment.dispensaryId)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </main>
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent>
@@ -317,8 +326,8 @@ const UserDispensaryAssignment: React.FC = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="hospital_admin">Admin</SelectItem>
-                  <SelectItem value="hospital_staff">Staff</SelectItem>
+                  <SelectItem value="hospital_staff">Hospital Staff</SelectItem>
+                  <SelectItem value="hospital_admin">Hospital Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -333,9 +342,9 @@ const UserDispensaryAssignment: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <Footer />
+      <AdminFooter />
     </div>
   );
 };
 
-export default UserDispensaryAssignment; 
+export default UserDispensaryAssignment;
