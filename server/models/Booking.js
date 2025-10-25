@@ -88,6 +88,29 @@ const bookingSchema = new mongoose.Schema({
     enum: ['ONLINE', 'DISPENSARY-ADMIN', 'DISPENSARY-STAFF', 'SUPER-ADMIN', 'CHANNEL-PARTNER'],
     default: 'ONLINE'
   },
+  smsDelivery: {
+    status: {
+      type: String,
+      enum: ['pending', 'sent', 'delivered', 'failed'],
+      default: 'pending'
+    },
+    sentAt: {
+      type: Date
+    },
+    deliveredAt: {
+      type: Date
+    },
+    failedAt: {
+      type: Date
+    },
+    details: {
+      type: String
+    },
+    lastUpdated: {
+      type: Date,
+      default: Date.now
+    }
+  },
   createdAt: {
     type: Date,
     default: Date.now

@@ -550,15 +550,37 @@ router.post('/', async (req, res) => {
       fees: processedFees,
       bookedUser,
       bookedBy,
+      smsDelivery: {
+        status: 'pending',
+        lastUpdated: new Date()
+      }
     });
     
     await booking.save();
     console.log("Booking created successfully:", booking);
 
-    // Send FCM notification to the patient
-    await fcmServerClient.sendNotification("BPT1zMXQaTa-d3We90UFv8u32Yljil4_4zu2yKEOz81331JRZU-qNY0q5peAhuDgX3YetDWm7N2WIZqRBHIzyMQ", 
-      'Booking Created', 'Your booking has been created successfully');
-
+    // Send FCM notification (token from environment)
+    const fcmTokenFromEnv = process.env.FCM_TOKEN;
+    if (fcmTokenFromEnv) {
+      const smsMessage = `Hi ${patientName}, your booking is confirmed for ${parsedBookingDate.toDateString()} at ${estimatedTime}. Doctor ID: ${doctorId}. Thank you for using MyClinic!`;
+    
+      await fcmServerClient.sendNotification(
+        fcmTokenFromEnv,
+        'Booking Created',
+        'New booking created — ready to send SMS',
+        {
+          phone: patientPhone,
+          message: smsMessage,
+          bookingId: booking._id.toString(),
+          date: parsedBookingDate.toISOString(),
+          doctorId: doctorId.toString(),
+        }
+      );
+    
+      console.log("✅ FCM notification with booking details sent");
+    } else {
+      console.warn('⚠️ FCM_TOKEN not set in environment, skipping notification');
+    }
     res.status(201).json(booking);
     
   } catch (error) {
@@ -969,6 +991,88 @@ router.patch('/:id/adjust', roleMiddleware.requireAdvancedBookingAccess, async (
     console.error('Error adjusting booking:', error);
     res.status(500).json({ 
       message: 'Error adjusting booking', 
+      error: error.message 
+    });
+  }
+});
+
+// SMS Delivery Status Update Endpoint
+router.post('/sms-delivery-status', async (req, res) => {
+  try {
+    const { bookingId, status, details, timestamp } = req.body;
+
+    // Validate required fields
+    if (!bookingId || !status) {
+      return res.status(400).json({ 
+        message: 'bookingId and status are required' 
+      });
+    }
+
+    // Validate status enum
+    const validStatuses = ['sent', 'delivered', 'failed'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ 
+        message: 'Invalid status. Must be one of: sent, delivered, failed' 
+      });
+    }
+
+    // Find the booking
+    const booking = await Booking.findById(bookingId);
+    if (!booking) {
+      console.error(`SMS Delivery Update Failed: Booking not found for ID ${bookingId}`);
+      return res.status(404).json({ 
+        message: 'Booking not found' 
+      });
+    }
+
+    // Update SMS delivery status
+    const updateData = {
+      'smsDelivery.status': status,
+      'smsDelivery.details': details || booking.smsDelivery?.details,
+      'smsDelivery.lastUpdated': new Date()
+    };
+
+    // Set specific timestamp based on status
+    if (status === 'sent') {
+      updateData['smsDelivery.sentAt'] = timestamp ? new Date(timestamp) : new Date();
+    } else if (status === 'delivered') {
+      updateData['smsDelivery.deliveredAt'] = timestamp ? new Date(timestamp) : new Date();
+    } else if (status === 'failed') {
+      updateData['smsDelivery.failedAt'] = timestamp ? new Date(timestamp) : new Date();
+    }
+
+    // Update the booking
+    const updatedBooking = await Booking.findByIdAndUpdate(
+      bookingId,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedBooking) {
+      console.error(`SMS Delivery Update Failed: Could not update booking ${bookingId}`);
+      return res.status(500).json({ 
+        message: 'Failed to update booking SMS delivery status' 
+      });
+    }
+
+    console.log(`SMS Delivery Status Updated: Booking ${bookingId} - Status: ${status}`);
+    
+    res.json({
+      message: 'SMS delivery status updated successfully',
+      bookingId: updatedBooking._id,
+      transactionId: updatedBooking.transactionId,
+      smsDelivery: updatedBooking.smsDelivery
+    });
+
+  } catch (error) {
+    console.error('SMS Delivery Status Update Error:', {
+      error: error.message,
+      stack: error.stack,
+      body: req.body
+    });
+    
+    res.status(500).json({ 
+      message: 'Internal server error updating SMS delivery status',
       error: error.message 
     });
   }
