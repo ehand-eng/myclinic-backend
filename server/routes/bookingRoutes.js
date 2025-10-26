@@ -540,7 +540,7 @@ router.post('/', async (req, res) => {
       appointmentNumber: nextAppointmentNumber,
       estimatedTime,
       status: 'scheduled',
-      symptoms,
+      symptoms: symptoms || undefined,
       isPaid: false,
       isPatientVisited: false,
       patientName,

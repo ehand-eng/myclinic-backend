@@ -210,7 +210,6 @@ const AppointmentCard: React.FC<{ appointment: AvailableTimeSlot }> = ({ appoint
           </div>
           <div>
             <h3 className="font-bold text-lg text-green-800">Appointment #{appointment.appointmentNumber}</h3>
-            <p className="text-sm text-green-600">Your appointment is confirmed</p>
           </div>
         </div>
         <div className="bg-green-100 px-3 py-1 rounded-full">

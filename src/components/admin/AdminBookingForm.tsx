@@ -36,7 +36,6 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [symptoms, setSymptoms] = useState('');
   
   // UI state
   const [isLoading, setIsLoading] = useState(false);
@@ -138,7 +137,6 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
         patientName: name,
         patientPhone: phone,
         patientEmail: email || undefined,
-        symptoms: symptoms || undefined,
         fees: feesObj
       };
 
@@ -156,7 +154,6 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
       setName('');
       setPhone('');
       setEmail('');
-      setSymptoms('');
       setSelectedDoctor('');
       setSelectedDispensary('');
       setSelectedDate(undefined);
@@ -198,7 +195,6 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
         patientName: currentBooking.patient.name,
         patientPhone: currentBooking.patient.phone,
         patientEmail: currentBooking.patient.email || undefined,
-        symptoms: currentBooking.symptoms || undefined,
         fees: feesObj
       };
 
@@ -227,7 +223,6 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
       setName('');
       setPhone('');
       setEmail('');
-      setSymptoms('');
       
     } catch (error: any) {
       console.error('Error updating booking:', error);
@@ -284,7 +279,6 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
     setName(booking.patient.name);
     setPhone(booking.patient.phone);
     setEmail(booking.patient.email || '');
-    setSymptoms(booking.symptoms || '');
     setAdjustStep(1);
     setShowSearchResults(false);
     setAdjustBookingId('');
@@ -368,11 +362,9 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
                     name={name}
                     phone={phone}
                     email={email}
-                    symptoms={symptoms}
                     setName={setName}
                     setPhone={setPhone}
                     setEmail={setEmail}
-                    setSymptoms={setSymptoms}
                     isLoading={isLoading}
                     onBack={() => setCurrentStep(0)}
                     onConfirm={handleBooking}
@@ -493,11 +485,9 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
                         name={name}
                         phone={phone}
                         email={email}
-                        symptoms={symptoms}
                         setName={setName}
                         setPhone={setPhone}
                         setEmail={setEmail}
-                        setSymptoms={setSymptoms}
                         isLoading={isLoading}
                         onBack={() => setAdjustStep(1)}
                         onConfirm={handleAdjustBooking}
@@ -579,12 +569,6 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
                           </div>
                         </div>
                         
-                        {foundBooking.symptoms && (
-                          <div>
-                            <h4 className="font-semibold mb-2">Symptoms</h4>
-                            <p className="text-sm bg-gray-50 p-3 rounded border">{foundBooking.symptoms}</p>
-                          </div>
-                        )}
                         
                         <div className="text-xs text-gray-500 pt-4 border-t">
                           <p><strong>Created:</strong> {format(new Date(foundBooking.createdAt), 'PPpp')}</p>
