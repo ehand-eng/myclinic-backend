@@ -1,1 +1,0 @@
-# myclinic-backend
