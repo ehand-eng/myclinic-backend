@@ -2,14 +2,16 @@ import { UserRole } from '@/api/models';
 
 // Utility functions for role-based access control
 export const hasRole = (userRole: string | undefined, allowedRoles: string[]): boolean => {
+  console.log('hasRole check:', userRole, '->', allowedRoles);
   if (!userRole) return false;
   
   // Convert user role to lowercase and normalize
   const normalizedUserRole = userRole.toLowerCase().replace(/_/g, '-');
-  
+  console.log('normalizedUserRole:', normalizedUserRole);
   // Check against allowed roles (normalize them too)
   return allowedRoles.some(role => {
     const normalizedRole = role.toLowerCase().replace(/_/g, '-');
+    console.log('normalizedRole:', normalizedRole);
     return normalizedUserRole === normalizedRole;
   });
 };
@@ -33,6 +35,8 @@ export const isDoctor = (userRole: string | undefined): boolean => {
 };
 
 export const isChannelPartner = (userRole: string | undefined): boolean => {
+  console.log('isChannelPartner check:', userRole);
+  console.log('hasRole check:::::::::;',hasRole(userRole, ['channel-partner']));
   return hasRole(userRole, ['channel-partner']);
 };
 
