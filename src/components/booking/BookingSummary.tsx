@@ -8,12 +8,8 @@ import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-<<<<<<< HEAD
-import { Calendar, Clock, User, Phone, Mail, MapPin, Building, Receipt, CheckCircle, DollarSign, Stethoscope } from 'lucide-react';
-=======
 import { Calendar, Clock, User, Phone, Mail, MapPin, Building, Receipt, CheckCircle, DollarSign, Stethoscope, Download } from 'lucide-react';
 import { exportBookingSummaryToPDF } from '@/lib/bookingPdfExport';
->>>>>>> feature/ui
 
 const BookingSummary = () => {
   const { transactionId } = useParams();
@@ -27,8 +23,6 @@ const BookingSummary = () => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, []);
 
-<<<<<<< HEAD
-=======
   const handleDownloadPDF = () => {
     if (!summary) return;
     
@@ -81,7 +75,6 @@ const BookingSummary = () => {
     }
   };
 
->>>>>>> feature/ui
   useEffect(() => {
     const fetchSummary = async () => {
       if (!transactionId) return;
@@ -116,11 +109,7 @@ const BookingSummary = () => {
   return (
     <>
       {/* Print styles */}
-<<<<<<< HEAD
-      <style jsx>{`
-=======
       <style>{`
->>>>>>> feature/ui
         @media print {
           @page {
             margin: 2cm 1.5cm;
@@ -317,11 +306,7 @@ const BookingSummary = () => {
             </h1>
             <p className="text-lg text-gray-600 no-print">Your appointment has been successfully booked</p>
             <div className="mt-4 inline-flex items-center bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium">
-<<<<<<< HEAD
-              <strong>Transaction ID: {summary.transactionId}</strong>
-=======
               <strong>Booking Reference: {summary.transactionId}</strong>
->>>>>>> feature/ui
             </div>
             <div className="print-only hidden text-center">
               <p><strong>Booking Date:</strong> {new Date().toLocaleDateString()}</p>
@@ -379,11 +364,7 @@ const BookingSummary = () => {
                         <User className="h-5 w-5 text-purple-600" />
                       </div>
                       <div>
-<<<<<<< HEAD
-                        <p className="text-sm text-gray-600">Appointment #</p>
-=======
                         <p className="text-sm text-gray-600">Appointment Number</p>
->>>>>>> feature/ui
                         <p className="font-bold text-lg text-purple-700">#{summary.appointmentNumber}</p>
                       </div>
                     </div>
@@ -764,18 +745,11 @@ const BookingSummary = () => {
               </Button>
               <Button 
                 variant="outline" 
-<<<<<<< HEAD
-                onClick={() => window.print()}
-                className="border-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 px-8 py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
-              >
-                Print Summary
-=======
                 onClick={handleDownloadPDF}
                 className="border-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 px-8 py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 <Download className="mr-2 h-5 w-5" />
                 Download PDF
->>>>>>> feature/ui
               </Button>
             </div>
           </div>

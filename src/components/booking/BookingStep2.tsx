@@ -15,17 +15,9 @@ interface BookingStep2Props {
   name: string;
   phone: string;
   email: string;
-<<<<<<< HEAD
-  symptoms: string;
   setName: (name: string) => void;
   setPhone: (phone: string) => void;
   setEmail: (email: string) => void;
-  setSymptoms: (symptoms: string) => void;
-=======
-  setName: (name: string) => void;
-  setPhone: (phone: string) => void;
-  setEmail: (email: string) => void;
->>>>>>> feature/ui
   isLoading: boolean;
   onBack: () => void;
   onConfirm: (fees: any) => void;
@@ -39,17 +31,9 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
   name,
   phone,
   email,
-<<<<<<< HEAD
-  symptoms,
   setName,
   setPhone,
   setEmail,
-  setSymptoms,
-=======
-  setName,
-  setPhone,
-  setEmail,
->>>>>>> feature/ui
   isLoading,
   onBack,
   onConfirm,
@@ -59,8 +43,6 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
   const [fees, setFees] = useState<any>(null);
   const [feesLoading, setFeesLoading] = useState(false);
   const [feesError, setFeesError] = useState<string | null>(null);
-<<<<<<< HEAD
-=======
   const [validationErrors, setValidationErrors] = useState<{
     name?: string;
     phone?: string;
@@ -136,7 +118,6 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
     
     return !nameError && !phoneError && !emailError;
   };
->>>>>>> feature/ui
 
   useEffect(() => {
     const fetchFees = async () => {
@@ -167,18 +148,9 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
                 </div>
                 <div>
                   <h3 className="font-bold text-xl text-blue-800">Appointment Summary</h3>
-<<<<<<< HEAD
-                  <p className="text-sm text-blue-600">Your appointment details are confirmed</p>
-                </div>
-              </div>
-              <div className="bg-blue-100 px-4 py-2 rounded-full">
-                <span className="text-sm font-semibold text-blue-800">Confirmed</span>
-              </div>
-=======
                   <p className="text-sm text-blue-600">Your appointment details</p>
                 </div>
               </div>
->>>>>>> feature/ui
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -326,14 +298,6 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
           <Input
             id="name"
             value={name}
-<<<<<<< HEAD
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Enter your full name"
-            required
-            className="mt-1"
-          />
-        </div>
-=======
             onChange={(e) => handleNameChange(e.target.value)}
             placeholder="Enter your full name"
             required
@@ -346,20 +310,11 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
           <p className="text-gray-500 text-xs mt-1">{name.length}/25 characters</p>
         </div>
         
->>>>>>> feature/ui
         <div>
           <Label htmlFor="phone">Phone Number</Label>
           <Input
             id="phone"
             value={phone}
-<<<<<<< HEAD
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="Enter your phone number"
-            required
-            className="mt-1"
-          />
-        </div>
-=======
             onChange={(e) => handlePhoneChange(e.target.value)}
             placeholder="Enter your phone number"
             required
@@ -374,30 +329,12 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
           </p>
         </div>
         
->>>>>>> feature/ui
         <div>
           <Label htmlFor="email">Email (Optional)</Label>
           <Input
             id="email"
             type="email"
             value={email}
-<<<<<<< HEAD
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter your email"
-            className="mt-1"
-          />
-        </div>
-        <div>
-          <Label htmlFor="symptoms">Symptoms (Optional)</Label>
-          <Input
-            id="symptoms"
-            value={symptoms}
-            onChange={(e) => setSymptoms(e.target.value)}
-            placeholder="Briefly describe your symptoms"
-            className="mt-1"
-          />
-        </div>
-=======
             onChange={(e) => handleEmailChange(e.target.value)}
             placeholder="Enter your email"
             className={`mt-1 ${validationErrors.email ? 'border-red-500' : ''}`}
@@ -407,21 +344,16 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
           )}
         </div>
         
->>>>>>> feature/ui
         <div className="pt-4 flex justify-between">
           <Button variant="outline" onClick={onBack}>
             Back
           </Button>
           <Button
-<<<<<<< HEAD
-            onClick={() => onConfirm(fees)}
-=======
             onClick={() => {
               if (isFormValid()) {
                 onConfirm(fees);
               }
             }}
->>>>>>> feature/ui
             disabled={isLoading || !name || !phone || !fees}
             className="bg-medical-600 hover:bg-medical-700"
           >
