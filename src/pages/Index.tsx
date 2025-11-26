@@ -251,10 +251,20 @@ const Index = () => {
             </div>
             
             <div className="mt-16 text-center fade-in-up">
-              <Button asChild size="lg" className="medical-button text-xl px-12 py-6">
-                <Link to="/booking">
-                  Book Your Appointment Now
-                </Link>
+              <Button 
+                size="lg" 
+                className="medical-button text-xl px-12 py-6"
+                onClick={() => {
+                  const heroSection = document.querySelector('.hero-banner-section');
+                  if (heroSection) {
+                    heroSection.scrollIntoView({ 
+                      behavior: 'smooth',
+                      block: 'start'
+                    });
+                  }
+                }}
+              >
+                Book Your Appointment Now
               </Button>
             </div>
           </div>

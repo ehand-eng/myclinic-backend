@@ -15,11 +15,17 @@ interface BookingStep2Props {
   name: string;
   phone: string;
   email: string;
+<<<<<<< HEAD
   symptoms: string;
   setName: (name: string) => void;
   setPhone: (phone: string) => void;
   setEmail: (email: string) => void;
   setSymptoms: (symptoms: string) => void;
+=======
+  setName: (name: string) => void;
+  setPhone: (phone: string) => void;
+  setEmail: (email: string) => void;
+>>>>>>> feature/ui
   isLoading: boolean;
   onBack: () => void;
   onConfirm: (fees: any) => void;
@@ -33,11 +39,17 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
   name,
   phone,
   email,
+<<<<<<< HEAD
   symptoms,
   setName,
   setPhone,
   setEmail,
   setSymptoms,
+=======
+  setName,
+  setPhone,
+  setEmail,
+>>>>>>> feature/ui
   isLoading,
   onBack,
   onConfirm,
@@ -47,6 +59,84 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
   const [fees, setFees] = useState<any>(null);
   const [feesLoading, setFeesLoading] = useState(false);
   const [feesError, setFeesError] = useState<string | null>(null);
+<<<<<<< HEAD
+=======
+  const [validationErrors, setValidationErrors] = useState<{
+    name?: string;
+    phone?: string;
+    email?: string;
+  }>({});
+
+  // Validation functions
+  const validateName = (value: string) => {
+    if (!value.trim()) {
+      return 'Full name is required';
+    }
+    if (value.length > 25) {
+      return 'Full name must be 25 characters or less';
+    }
+    return null;
+  };
+
+  const validatePhone = (value: string) => {
+    if (!value.trim()) {
+      return 'Phone number is required';
+    }
+    // Allow + at the beginning, then digits, spaces, and hyphens
+    const phoneRegex = /^\+?[\d\s\-\(\)]+$/;
+    if (!phoneRegex.test(value)) {
+      return 'Please enter a valid phone number';
+    }
+    // Remove all non-digit characters except + at the beginning
+    const digitsOnly = value.replace(/[^\d]/g, '');
+    if (digitsOnly.length < 7 || digitsOnly.length > 15) {
+      return 'Phone number must be between 7 and 15 digits';
+    }
+    return null;
+  };
+
+  const validateEmail = (value: string) => {
+    if (!value.trim()) {
+      return null; // Email is optional
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(value)) {
+      return 'Please enter a valid email address';
+    }
+    return null;
+  };
+
+  const handleNameChange = (value: string) => {
+    if (value.length <= 25) {
+      setName(value);
+      setValidationErrors(prev => ({ ...prev, name: validateName(value) }));
+    }
+  };
+
+  const handlePhoneChange = (value: string) => {
+    setPhone(value);
+    setValidationErrors(prev => ({ ...prev, phone: validatePhone(value) }));
+  };
+
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    setValidationErrors(prev => ({ ...prev, email: validateEmail(value) }));
+  };
+
+  const isFormValid = () => {
+    const nameError = validateName(name);
+    const phoneError = validatePhone(phone);
+    const emailError = validateEmail(email);
+    
+    setValidationErrors({
+      name: nameError,
+      phone: phoneError,
+      email: emailError
+    });
+    
+    return !nameError && !phoneError && !emailError;
+  };
+>>>>>>> feature/ui
 
   useEffect(() => {
     const fetchFees = async () => {
@@ -77,12 +167,18 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
                 </div>
                 <div>
                   <h3 className="font-bold text-xl text-blue-800">Appointment Summary</h3>
+<<<<<<< HEAD
                   <p className="text-sm text-blue-600">Your appointment details are confirmed</p>
                 </div>
               </div>
               <div className="bg-blue-100 px-4 py-2 rounded-full">
                 <span className="text-sm font-semibold text-blue-800">Confirmed</span>
               </div>
+=======
+                  <p className="text-sm text-blue-600">Your appointment details</p>
+                </div>
+              </div>
+>>>>>>> feature/ui
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -230,29 +326,62 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
           <Input
             id="name"
             value={name}
+<<<<<<< HEAD
             onChange={(e) => setName(e.target.value)}
             placeholder="Enter your full name"
             required
             className="mt-1"
           />
         </div>
+=======
+            onChange={(e) => handleNameChange(e.target.value)}
+            placeholder="Enter your full name"
+            required
+            className={`mt-1 ${validationErrors.name ? 'border-red-500' : ''}`}
+            maxLength={25}
+          />
+          {validationErrors.name && (
+            <p className="text-red-500 text-sm mt-1">{validationErrors.name}</p>
+          )}
+          <p className="text-gray-500 text-xs mt-1">{name.length}/25 characters</p>
+        </div>
+        
+>>>>>>> feature/ui
         <div>
           <Label htmlFor="phone">Phone Number</Label>
           <Input
             id="phone"
             value={phone}
+<<<<<<< HEAD
             onChange={(e) => setPhone(e.target.value)}
             placeholder="Enter your phone number"
             required
             className="mt-1"
           />
         </div>
+=======
+            onChange={(e) => handlePhoneChange(e.target.value)}
+            placeholder="Enter your phone number"
+            required
+            className={`mt-1 ${validationErrors.phone ? 'border-red-500' : ''}`}
+          />
+          {validationErrors.phone && (
+            <p className="text-red-500 text-sm mt-1">{validationErrors.phone}</p>
+          )}
+          <p className="text-gray-500 text-xs mt-1">
+            Enter a valid phone number because we are using this number to send you the SMS with OTP/booking details/etc... 
+            (Ex: +94 777 123 456 or 0777123456)
+          </p>
+        </div>
+        
+>>>>>>> feature/ui
         <div>
           <Label htmlFor="email">Email (Optional)</Label>
           <Input
             id="email"
             type="email"
             value={email}
+<<<<<<< HEAD
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter your email"
             className="mt-1"
@@ -268,12 +397,31 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
             className="mt-1"
           />
         </div>
+=======
+            onChange={(e) => handleEmailChange(e.target.value)}
+            placeholder="Enter your email"
+            className={`mt-1 ${validationErrors.email ? 'border-red-500' : ''}`}
+          />
+          {validationErrors.email && (
+            <p className="text-red-500 text-sm mt-1">{validationErrors.email}</p>
+          )}
+        </div>
+        
+>>>>>>> feature/ui
         <div className="pt-4 flex justify-between">
           <Button variant="outline" onClick={onBack}>
             Back
           </Button>
           <Button
+<<<<<<< HEAD
             onClick={() => onConfirm(fees)}
+=======
+            onClick={() => {
+              if (isFormValid()) {
+                onConfirm(fees);
+              }
+            }}
+>>>>>>> feature/ui
             disabled={isLoading || !name || !phone || !fees}
             className="bg-medical-600 hover:bg-medical-700"
           >

@@ -56,7 +56,10 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCa
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+<<<<<<< HEAD
   const [symptoms, setSymptoms] = useState('');
+=======
+>>>>>>> feature/ui
   
   // UI state
   const [isLoading, setIsLoading] = useState(false);
@@ -269,11 +272,23 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCa
         patientName: name,
         patientPhone: phone,
         patientEmail: email || undefined,
+<<<<<<< HEAD
         symptoms: symptoms || undefined,
         doctorId: selectedDoctor,
         dispensaryId: selectedDispensary,
         bookingDate: selectedDate,
         fees: feesObj || fees
+=======
+        doctorId: selectedDoctor,
+        dispensaryId: selectedDispensary,
+        bookingDate: selectedDate,
+        fees: feesObj || fees,
+        // Pass the appointment details from availability
+        timeSlot: availability?.slots?.[0]?.timeSlot,
+        appointmentNumber: availability?.slots?.[0]?.appointmentNumber,
+        estimatedTime: availability?.slots?.[0]?.estimatedTime,
+        minutesPerPatient: availability?.slots?.[0]?.minutesPerPatient
+>>>>>>> feature/ui
       });
       
       // Navigate to booking summary page
@@ -351,7 +366,10 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCa
       setName(booking.patient.name || '');
       setPhone(booking.patient.phone || '');
       setEmail(booking.patient.email || '');
+<<<<<<< HEAD
       setSymptoms(booking.symptoms || '');
+=======
+>>>>>>> feature/ui
       setAdjustStep(1);
       setShowSearchResults(false);
       
@@ -499,11 +517,17 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCa
                   name={name}
                   phone={phone}
                   email={email}
+<<<<<<< HEAD
                   symptoms={symptoms}
                   setName={setName}
                   setPhone={setPhone}
                   setEmail={setEmail}
                   setSymptoms={setSymptoms}
+=======
+                  setName={setName}
+                  setPhone={setPhone}
+                  setEmail={setEmail}
+>>>>>>> feature/ui
                   isLoading={isLoading}
                   onBack={() => setCurrentStep(0)}
                   onConfirm={(feesObj) => handleBooking(feesObj)}
@@ -789,12 +813,15 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCa
                       </div>
                     </div>
                     
+<<<<<<< HEAD
                     {foundBooking.symptoms && (
                       <div>
                         <h4 className="font-semibold mb-2">Symptoms</h4>
                         <p className="text-sm bg-white p-3 rounded border">{foundBooking.symptoms}</p>
                       </div>
                     )}
+=======
+>>>>>>> feature/ui
                     
                     <div className="text-xs text-gray-500 pt-4 border-t">
                       <p><strong>Transaction ID:</strong> {foundBooking.transactionId}</p>

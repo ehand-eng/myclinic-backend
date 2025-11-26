@@ -20,6 +20,11 @@ export interface BookingCreateParams {
   };
   bookedUser?: string;
   bookedBy?: string;
+  // Additional fields required by backend
+  timeSlot?: string;
+  appointmentNumber?: number;
+  estimatedTime?: string;
+  minutesPerPatient?: number;
 }
 
 export interface BookingSummary {

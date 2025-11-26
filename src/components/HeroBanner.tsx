@@ -6,7 +6,11 @@ import HeroBookingForm from './HeroBookingForm';
 
 const HeroBanner = () => {
   return (
+<<<<<<< HEAD
     <div className="relative bg-gradient-to-br from-medicalGray-900 via-medicalBlue-900 to-medicalTeal-900 text-white overflow-hidden">
+=======
+    <div className="hero-banner-section relative bg-gradient-to-br from-medicalGray-900 via-medicalBlue-900 to-medicalTeal-900 text-white overflow-hidden">
+>>>>>>> feature/ui
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0" style={{

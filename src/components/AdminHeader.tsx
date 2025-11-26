@@ -120,39 +120,146 @@ const AdminHeader = () => {
         <div className="container mx-auto px-4 py-2">
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center justify-center space-x-1">
-            {filteredNavItems.map(item => {
-              const Icon = item.icon;
-              return (
-                <Link 
-                  key={item.key}
-                  to={item.path}
-                  className="flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors min-w-[100px]"
-                >
-                  <Icon className="h-4 w-4" />
-                  <span className="text-xs font-medium text-center">{item.label}</span>
-                </Link>
-              );
-            })}
+            <Link 
+              to="/admin/dashboard" 
+              className="flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors min-w-[100px]"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              <span className="text-xs font-medium text-center">Dashboard</span>
+            </Link>
+            
+            <Link 
+              to="/admin/dispensaries" 
+              className="flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors min-w-[100px]"
+            >
+              <Building2 className="h-4 w-4" />
+              <span className="text-xs font-medium text-center">Dispensaries</span>
+            </Link>
+            
+            <Link 
+              to="/admin/doctors" 
+              className="flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors min-w-[100px]"
+            >
+              <Stethoscope className="h-4 w-4" />
+              <span className="text-xs font-medium text-center">Doctors</span>
+            </Link>
+            
+            <Link 
+              to="/admin/time-slots" 
+              className="flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors min-w-[100px]"
+            >
+              <Clock className="h-4 w-4" />
+              <span className="text-xs font-medium text-center">Time Slots</span>
+            </Link>
+            
+            <Link 
+              to="/admin/reports" 
+              className="flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors min-w-[100px]"
+            >
+              <BarChart3 className="h-4 w-4" />
+              <span className="text-xs font-medium text-center">Reports</span>
+            </Link>
+            
+            <Link 
+              to="/admin/bookings" 
+              className="flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors min-w-[100px]"
+            >
+              <Calendar className="h-4 w-4" />
+              <span className="text-xs font-medium text-center">Bookings</span>
+            </Link>
+            
+            <Link 
+              to="/admin/fees" 
+              className="flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors min-w-[100px]"
+            >
+              <DollarSign className="h-4 w-4" />
+              <span className="text-xs font-medium text-center">Fee Management</span>
+            </Link>
+            
+            <Link 
+              to="/admin/user-dispensary" 
+              className="flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors min-w-[100px]"
+            >
+              <Users className="h-4 w-4" />
+              <span className="text-xs font-medium text-center">Assign Users</span>
+            </Link>
           </nav>
 
           {/* Mobile Navigation */}
           {mobileMenuOpen && (
             <nav className="lg:hidden">
               <div className="grid grid-cols-2 gap-2 pt-2">
-                {filteredNavItems.map(item => {
-                  const Icon = item.icon;
-                  return (
-                    <Link 
-                      key={item.key}
-                      to={item.path}
-                      className="flex items-center space-x-2 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span className="text-sm font-medium">{item.label}</span>
-                    </Link>
-                  );
-                })}
+                <Link 
+                  to="/admin/dashboard" 
+                  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  <span className="text-sm font-medium">Dashboard</span>
+                </Link>
+                
+                <Link 
+                  to="/admin/dispensaries" 
+                  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Building2 className="h-4 w-4" />
+                  <span className="text-sm font-medium">Dispensaries</span>
+                </Link>
+                
+                <Link 
+                  to="/admin/doctors" 
+                  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Stethoscope className="h-4 w-4" />
+                  <span className="text-sm font-medium">Doctors</span>
+                </Link>
+                
+                <Link 
+                  to="/admin/time-slots" 
+                  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Clock className="h-4 w-4" />
+                  <span className="text-sm font-medium">Time Slots</span>
+                </Link>
+                
+                <Link 
+                  to="/admin/reports" 
+                  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  <span className="text-sm font-medium">Reports</span>
+                </Link>
+                
+                <Link 
+                  to="/admin/bookings" 
+                  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Calendar className="h-4 w-4" />
+                  <span className="text-sm font-medium">Bookings</span>
+                </Link>
+                
+                <Link 
+                  to="/admin/fees" 
+                  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <DollarSign className="h-4 w-4" />
+                  <span className="text-sm font-medium">Fee Management</span>
+                </Link>
+                
+                <Link 
+                  to="/admin/user-dispensary" 
+                  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Users className="h-4 w-4" />
+                  <span className="text-sm font-medium">Assign Users</span>
+                </Link>
               </div>
             </nav>
           )}
