@@ -102,10 +102,6 @@ console.log("password", password);
 
     // Find user and populate role
     const user = await User.findOne({ email }).populate('role');
-<<<<<<< HEAD
-    console.log("user", user);
-=======
->>>>>>> feature/ui
     if (!user) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
@@ -116,13 +112,7 @@ console.log("password", password);
     }
 
     // Verify password
-<<<<<<< HEAD
-    console.log("user.passwordHash", user.passwordHash);
     const isValidPassword = await bcrypt.compare(password, user.passwordHash);
-    console.log("isValidPassword", isValidPassword);
-=======
-    const isValidPassword = await bcrypt.compare(password, user.passwordHash);
->>>>>>> feature/ui
     if (!isValidPassword) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
