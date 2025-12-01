@@ -15,7 +15,7 @@ function initializeFCM() {
     console.log("process.env.FIREBASE_SERVICE_ACCOUNT_PATH", process.env.FIREBASE_SERVICE_ACCOUNT_PATH);
     const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH
       ? path.resolve(process.env.FIREBASE_SERVICE_ACCOUNT_PATH)
-      : path.resolve(__dirname, "myclinic-smsgateway-firebase-adminsdk-fbsvc-2ac77163da.json");
+      : path.resolve(__dirname, "myclinic-smsgateway-firebase-adminsdk-fbsvc-7d769f9adb.json");
     
     console.log("serviceAccountPath", serviceAccountPath);
 
