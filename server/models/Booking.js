@@ -23,6 +23,11 @@ const bookingSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  timeSlotConfigId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'TimeSlotConfig',
+    required: false // Optional for backward compatibility with existing bookings
+  },
   appointmentNumber: {
     type: Number,
     required: true

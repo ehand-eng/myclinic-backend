@@ -18,19 +18,19 @@ const getAllowedDispensaries = async (req) => {
   } else if (req.headers['x-user-role']) {
     userRole = req.headers['x-user-role'].toLowerCase();
   }
-  
-  console.log("Report role check:", { 
-    tokenRole: req.user?.role, 
-    headerRole: req.headers['x-user-role'], 
-    finalRole: userRole 
+
+  console.log("Report role check:", {
+    tokenRole: req.user?.role,
+    headerRole: req.headers['x-user-role'],
+    finalRole: userRole
   });
-  
+
   if (!userRole) {
     throw new Error("Missing X-User-Role header");
   }
-  
+
   const userId = req.user?.id || req.user?._id;
-  
+
   // Super admin can access all dispensaries
   if (userRole.toLowerCase().replace(/\s+/g, '-') === 'super-admin') {
     const allDispensaries = await Dispensary.find({}, '_id');
@@ -38,24 +38,24 @@ const getAllowedDispensaries = async (req) => {
     console.log('Super admin access - all dispensaries:', dispensaryIds.length);
     return dispensaryIds;
   }
-  
+
   // Dispensary admin/staff can only access their assigned dispensaries
   if (userRole.toLowerCase().includes('dispensary') || userRole.toLowerCase().includes('hospital')) {
     if (!userId) {
       throw new Error('User ID required for dispensary role');
     }
-    
+
     const user = await User.findById(userId).populate('dispensaryIds');
     if (!user || !user.dispensaryIds || user.dispensaryIds.length === 0) {
       console.log('No dispensaries assigned to user:', userId);
       return [];
     }
-    
+
     const dispensaryIds = user.dispensaryIds.map(d => d._id.toString());
     console.log('Dispensary role access - assigned dispensaries:', dispensaryIds);
     return dispensaryIds;
   }
-  
+
   // Other roles have no dispensary access
   console.log('Role has no dispensary access:', userRole);
   return [];
@@ -78,7 +78,7 @@ router.get('/dispensary/:dispensaryId', async (req, res) => {
     const reports = await Report.find({
       dispensaryId: req.params.dispensaryId
     }).sort({ createdAt: -1 });
-    
+
     res.json(reports);
   } catch (error) {
     console.error('Error getting dispensary reports:', error);
@@ -90,7 +90,7 @@ router.get('/dispensary/:dispensaryId', async (req, res) => {
 router.post('/generate/daily-bookings', async (req, res) => {
   try {
     const { title, startDate, endDate, dispensaryId } = req.body;
-    
+
     // Find bookings within the date range
     const bookingQuery = {
       bookingDate: {
@@ -98,19 +98,19 @@ router.post('/generate/daily-bookings', async (req, res) => {
         $lte: new Date(endDate)
       }
     };
-    
+
     if (dispensaryId) {
       bookingQuery.dispensaryId = dispensaryId;
     }
-    
+
     const bookings = await Booking.find(bookingQuery);
-    
+
     // Process booking data for the report
     const totalBookings = bookings.length;
     const completedBookings = bookings.filter(b => b.status === 'completed').length;
     const cancelledBookings = bookings.filter(b => b.status === 'cancelled').length;
     const noShowBookings = bookings.filter(b => b.status === 'no_show').length;
-    
+
     // Group bookings by doctor
     const doctorBookings = {};
     for (const booking of bookings) {
@@ -125,9 +125,9 @@ router.post('/generate/daily-bookings', async (req, res) => {
       }
       doctorBookings[doctorId].bookings++;
     }
-    
+
     const bookingsByDoctor = Object.values(doctorBookings);
-    
+
     // Create the report data
     const reportData = {
       totalBookings,
@@ -136,7 +136,7 @@ router.post('/generate/daily-bookings', async (req, res) => {
       noShowBookings,
       bookingsByDoctor
     };
-    
+
     // Create a new report
     const report = new Report({
       type: 'daily_bookings',
@@ -148,10 +148,10 @@ router.post('/generate/daily-bookings', async (req, res) => {
       endDate: new Date(endDate),
       data: reportData
     });
-    
+
     await report.save();
     res.json(report);
-    
+
   } catch (error) {
     console.error('Error generating daily bookings report:', error);
     res.status(500).json({ message: 'Server error' });
@@ -162,7 +162,7 @@ router.post('/generate/daily-bookings', async (req, res) => {
 router.post('/generate/monthly-summary', async (req, res) => {
   try {
     const { title, startDate, endDate, dispensaryId } = req.body;
-    
+
     // Find bookings within the date range
     const bookingQuery = {
       bookingDate: {
@@ -170,22 +170,22 @@ router.post('/generate/monthly-summary', async (req, res) => {
         $lte: new Date(endDate)
       }
     };
-    
+
     if (dispensaryId) {
       bookingQuery.dispensaryId = dispensaryId;
     }
-    
+
     const bookings = await Booking.find(bookingQuery);
-    
+
     // Process booking data for the report
     const totalBookings = bookings.length;
     const completedBookings = bookings.filter(b => b.status === 'completed').length;
     const cancelledBookings = bookings.filter(b => b.status === 'cancelled').length;
     const noShowBookings = bookings.filter(b => b.status === 'no_show').length;
-    
+
     // Calculate revenue (assuming each completed booking has a fixed price of $100)
     const revenue = completedBookings * 100;
-    
+
     // Group bookings by doctor
     const doctorBookings = {};
     for (const booking of bookings) {
@@ -200,12 +200,12 @@ router.post('/generate/monthly-summary', async (req, res) => {
       }
       doctorBookings[doctorId].bookings++;
     }
-    
+
     // Sort doctors by number of bookings
     const popularDoctors = Object.values(doctorBookings)
       .sort((a, b) => b.bookings - a.bookings)
       .slice(0, 5);
-    
+
     // Create the report data
     const reportData = {
       totalBookings,
@@ -215,7 +215,7 @@ router.post('/generate/monthly-summary', async (req, res) => {
       revenue,
       popularDoctors
     };
-    
+
     // Create a new report
     const report = new Report({
       type: 'monthly_summary',
@@ -227,10 +227,10 @@ router.post('/generate/monthly-summary', async (req, res) => {
       endDate: new Date(endDate),
       data: reportData
     });
-    
+
     await report.save();
     res.json(report);
-    
+
   } catch (error) {
     console.error('Error generating monthly summary report:', error);
     res.status(500).json({ message: 'Server error' });
@@ -241,14 +241,14 @@ router.post('/generate/monthly-summary', async (req, res) => {
 router.get('/session/:doctorId/:dispensaryId/:date', async (req, res) => {
   try {
     const { doctorId, dispensaryId, date } = req.params;
-    
+
     // Create start and end date for the specified date
     const startDate = new Date(date);
     startDate.setHours(0, 0, 0, 0);
-    
+
     const endDate = new Date(date);
     endDate.setHours(23, 59, 59, 999);
-    
+
     const bookings = await Booking.find({
       doctorId,
       dispensaryId,
@@ -269,21 +269,21 @@ router.get('/session/:doctorId/:dispensaryId/:date', async (req, res) => {
 router.post('/generate/doctor-performance', async (req, res) => {
   try {
     const { title, startDate, endDate, dispensaryId } = req.body;
-    
+
     // Get all doctors, optionally filtered by dispensary
     let doctorQuery = {};
     if (dispensaryId) {
       doctorQuery.dispensaries = dispensaryId;
     }
-    
+
     const doctors = await Doctor.find(doctorQuery);
-    
+
     // For each doctor, get performance metrics
     const doctorPerformanceData = [];
-    
+
     for (const doctor of doctors) {
       const doctorId = doctor._id;
-      
+
       // Find bookings for this doctor within the date range
       const bookingQuery = {
         doctorId,
@@ -292,24 +292,24 @@ router.post('/generate/doctor-performance', async (req, res) => {
           $lte: new Date(endDate)
         }
       };
-      
+
       if (dispensaryId) {
         bookingQuery.dispensaryId = dispensaryId;
       }
-      
+
       const doctorBookings = await Booking.find(bookingQuery);
-      
+
       const totalPatients = doctorBookings.length;
       const completedAppointments = doctorBookings.filter(b => b.status === 'completed').length;
-      
+
       // Calculate completion rate as a percentage
-      const completionRate = totalPatients > 0 
-        ? Math.round((completedAppointments / totalPatients) * 100) 
+      const completionRate = totalPatients > 0
+        ? Math.round((completedAppointments / totalPatients) * 100)
         : 0;
-      
+
       // Mock average rating (would come from a real ratings system)
       const avgRating = 4 + Math.random();
-      
+
       doctorPerformanceData.push({
         doctorId: doctorId.toString(),
         doctorName: doctor.name,
@@ -318,12 +318,12 @@ router.post('/generate/doctor-performance', async (req, res) => {
         completionRate
       });
     }
-    
+
     // Create the report data
     const reportData = {
       doctors: doctorPerformanceData
     };
-    
+
     // Create a new report
     const report = new Report({
       type: 'doctor_performance',
@@ -335,10 +335,10 @@ router.post('/generate/doctor-performance', async (req, res) => {
       endDate: new Date(endDate),
       data: reportData
     });
-    
+
     await report.save();
     res.json(report);
-    
+
   } catch (error) {
     console.error('Error generating doctor performance report:', error);
     res.status(500).json({ message: 'Server error' });
@@ -349,7 +349,7 @@ router.post('/generate/doctor-performance', async (req, res) => {
 router.post('/generate/dispensary-revenue', async (req, res) => {
   try {
     const { title, startDate, endDate, dispensaryId } = req.body;
-    
+
     // Find bookings within the date range for the specified dispensary
     const bookingQuery = {
       bookingDate: {
@@ -358,23 +358,23 @@ router.post('/generate/dispensary-revenue', async (req, res) => {
       },
       status: 'completed' // Only count completed bookings for revenue
     };
-    
+
     if (dispensaryId) {
       bookingQuery.dispensaryId = dispensaryId;
     }
-    
+
     const bookings = await Booking.find(bookingQuery);
-    
+
     // Calculate total revenue (assuming each completed booking has a fixed price of $100)
     const totalRevenue = bookings.length * 100;
-    
+
     // Mock revenue by service (would come from a real system with service details)
     const revenueByService = [
       { service: 'Consultation', revenue: Math.floor(totalRevenue * 0.6) },
       { service: 'Treatment', revenue: Math.floor(totalRevenue * 0.3) },
       { service: 'Medication', revenue: Math.floor(totalRevenue * 0.1) }
     ];
-    
+
     // Group bookings by doctor
     const doctorRevenue = {};
     for (const booking of bookings) {
@@ -389,15 +389,15 @@ router.post('/generate/dispensary-revenue', async (req, res) => {
       }
       doctorRevenue[doctorId].revenue += 100; // $100 per completed booking
     }
-    
+
     const revenueByDoctor = Object.values(doctorRevenue);
-    
+
     // Create mock revenue by month data
     const revenueByMonth = [
       { month: 'January', revenue: Math.floor(Math.random() * 10000) + 5000 },
       { month: 'February', revenue: Math.floor(Math.random() * 10000) + 5000 }
     ];
-    
+
     // Create the report data
     const reportData = {
       totalRevenue,
@@ -405,7 +405,7 @@ router.post('/generate/dispensary-revenue', async (req, res) => {
       revenueByDoctor,
       revenueByMonth
     };
-    
+
     // Create a new report
     const report = new Report({
       type: 'dispensary_revenue',
@@ -417,10 +417,10 @@ router.post('/generate/dispensary-revenue', async (req, res) => {
       endDate: new Date(endDate),
       data: reportData
     });
-    
+
     await report.save();
     res.json(report);
-    
+
   } catch (error) {
     console.error('Error generating dispensary revenue report:', error);
     res.status(500).json({ message: 'Server error' });
@@ -428,7 +428,7 @@ router.post('/generate/dispensary-revenue', async (req, res) => {
 });
 
 // Get daily bookings report
-router.get('/daily-bookings', roleMiddleware.requireRole(['super-admin', 'dispensary-admin', 'dispensary-staff']), async (req, res) => {
+router.get('/daily-bookings', validateJwt, roleMiddleware.requireRole(['super-admin', 'dispensary-admin', 'dispensary-staff']), async (req, res) => {
   try {
     // Reliable role detection
     let userRole = null;
@@ -451,40 +451,45 @@ router.get('/daily-bookings', roleMiddleware.requireRole(['super-admin', 'dispen
       allowedDispensaries = await getAllowedDispensaries(req);
     } catch (error) {
       console.error('❌ Error getting allowed dispensaries:', error.message);
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: error.message,
         hint: 'Make sure you are logged in and the X-User-Role header is being sent'
       });
     }
-    
+
     // Parse as UTC
     const start = new Date(date + 'T00:00:00.000Z');
     const end = new Date(date + 'T23:59:59.999Z');
     const query = { bookingDate: { $gte: start, $lte: end } };
 
     // Apply dispensary filtering based on role
-    if (req.userRole?.toLowerCase().replace(/\s+/g, '-') === 'super-admin') {
+    if (userRole.replace(/\s+/g, '-') === 'super-admin') {
       // Super admin can optionally filter by dispensary
       if (dispensaryId) query.dispensaryId = dispensaryId;
     } else {
       // Dispensary admin/staff must select a dispensary and can only see their assigned ones
       if (!dispensaryId) {
-        return res.status(400).json({ 
-          message: 'Dispensary selection is required for your role',
-          allowedDispensaries 
-        });
+        // If not provided, try to default to the first allowed dispensary if there's only one
+        if (allowedDispensaries.length === 1) {
+          dispensaryId = allowedDispensaries[0];
+          query.dispensaryId = dispensaryId;
+        } else {
+          return res.status(400).json({
+            message: 'Dispensary selection is required for your role',
+            allowedDispensaries
+          });
+        }
+      } else {
+        if (!allowedDispensaries.includes(dispensaryId)) {
+          return res.status(403).json({
+            message: 'Access denied to this dispensary',
+            allowedDispensaries
+          });
+        }
+        query.dispensaryId = dispensaryId;
       }
-      
-      if (!allowedDispensaries.includes(dispensaryId)) {
-        return res.status(403).json({ 
-          message: 'Access denied to this dispensary',
-          allowedDispensaries 
-        });
-      }
-      
-      query.dispensaryId = dispensaryId;
     }
-    
+
     if (doctorId) query.doctorId = doctorId;
     if (timeSlot) query.timeSlot = timeSlot;
 
@@ -493,13 +498,32 @@ router.get('/daily-bookings', roleMiddleware.requireRole(['super-admin', 'dispen
       .populate('dispensaryId', 'name address')
       .sort({ bookingDate: 1 });
 
+    // Calculate financials
+    let totalAmount = 0;
+    let totalCommission = 0;
+
+    bookings.forEach(booking => {
+      // Only include fees from non-cancelled bookings, or maybe all? Usually only completed/scheduled count towards potential revenue, or strictly completed.
+      // For a "Daily Booking Report", it usually shows all expected revenue or actual revenue.
+      // Let's sum up for all valid bookings (not cancelled/no_show for revenue projections, but let's see requirement)
+      // Requirement: "Total Booking Amount, Total Commission. Must be calculated from filtered results"
+      // We will sum for all displayed bookings.
+      if (booking.fees) {
+        if (booking.fees.totalFee) totalAmount += booking.fees.totalFee;
+        if (booking.fees.bookingCommission) totalCommission += booking.fees.bookingCommission;
+      }
+    });
+
     const summary = {
       total: bookings.length,
       completed: bookings.filter(b => b.status === 'completed').length,
       cancelled: bookings.filter(b => b.status === 'cancelled').length,
       noShow: bookings.filter(b => b.status === 'no_show').length,
+      totalAmount,
+      totalCommission,
       bookings: bookings.map(booking => ({
         id: booking._id,
+        bookingReference: booking.transactionId, // Added reference
         timeSlot: booking.timeSlot,
         patientName: booking.patientName,
         patientPhone: booking.patientPhone,
@@ -511,6 +535,7 @@ router.get('/daily-bookings', roleMiddleware.requireRole(['super-admin', 'dispen
         checkedInTime: booking.checkedInTime,
         completedTime: booking.completedTime,
         bookingDate: booking.bookingDate,
+        fees: booking.fees // Include fees in individual items if needed
       }))
     };
 
@@ -535,7 +560,7 @@ router.get('/monthly-summary', validateJwt, async (req, res) => {
     if (!userRole) {
       return res.status(400).json({ message: "Missing X-User-Role header" });
     }
-    
+
     const { month, year, dispensaryId } = req.query;
     const startDate = moment(`${year}-${month}-01`).startOf('month').toDate();
     const endDate = moment(startDate).endOf('month').toDate();
@@ -600,7 +625,7 @@ router.get('/doctor-performance', validateJwt, async (req, res) => {
     if (!userRole) {
       return res.status(400).json({ message: "Missing X-User-Role header" });
     }
-    
+
     const { doctorId, startDate, endDate, dispensaryId } = req.query;
     const query = {
       doctorId,
@@ -625,10 +650,10 @@ router.get('/doctor-performance', validateJwt, async (req, res) => {
     const noShowBookings = bookings.filter(b => b.status === 'no_show').length;
 
     // Calculate average consultation time
-    const completedBookingsWithTimes = bookings.filter(b => 
+    const completedBookingsWithTimes = bookings.filter(b =>
       b.status === 'completed' && b.checkedInTime && b.completedTime
     );
-    
+
     const totalConsultationTime = completedBookingsWithTimes.reduce((total, booking) => {
       const duration = moment(booking.completedTime).diff(moment(booking.checkedInTime), 'minutes');
       return total + duration;
@@ -665,9 +690,9 @@ router.get('/doctor-performance', validateJwt, async (req, res) => {
   }
 });
 
-router.get('/advance-bookings', roleMiddleware.requireRole(['super-admin', 'dispensary-admin', 'dispensary-staff']), async (req, res) => {
+router.get('/advance-bookings', validateJwt, roleMiddleware.requireRole(['super-admin', 'dispensary-admin', 'dispensary-staff']), async (req, res) => {
   try {
-    console.log("======== advance-bookings ============== "+req.query);
+    console.log("======== advance-bookings ============== " + req.query);
     // Reliable role detection
     let userRole = null;
     if (req.user && req.user.role) {
@@ -689,39 +714,44 @@ router.get('/advance-bookings', roleMiddleware.requireRole(['super-admin', 'disp
       allowedDispensaries = await getAllowedDispensaries(req);
     } catch (error) {
       console.error('❌ Error getting allowed dispensaries:', error.message);
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: error.message,
         hint: 'Make sure you are logged in and the X-User-Role header is being sent'
       });
     }
-    
+
     const start = new Date(startDate + 'T00:00:00.000Z');
     const end = new Date(endDate + 'T23:59:59.999Z');
     const query = { bookingDate: { $gte: start, $lte: end } };
 
     // Apply dispensary filtering based on role
-    if (req.userRole?.toLowerCase().replace(/\s+/g, '-') === 'super-admin') {
+    if (userRole.replace(/\s+/g, '-') === 'super-admin') {
       // Super admin can optionally filter by dispensary
       if (dispensaryId) query.dispensaryId = dispensaryId;
     } else {
       // Dispensary admin/staff must select a dispensary and can only see their assigned ones
       if (!dispensaryId) {
-        return res.status(400).json({ 
-          message: 'Dispensary selection is required for your role',
-          allowedDispensaries 
-        });
+        // If not provided, try to default to the first allowed dispensary if there's only one
+        if (allowedDispensaries.length === 1) {
+          dispensaryId = allowedDispensaries[0];
+          query.dispensaryId = dispensaryId;
+        } else {
+          return res.status(400).json({
+            message: 'Dispensary selection is required for your role',
+            allowedDispensaries
+          });
+        }
+      } else {
+        if (!allowedDispensaries.includes(dispensaryId)) {
+          return res.status(403).json({
+            message: 'Access denied to this dispensary',
+            allowedDispensaries
+          });
+        }
+        query.dispensaryId = dispensaryId;
       }
-      
-      if (!allowedDispensaries.includes(dispensaryId)) {
-        return res.status(403).json({ 
-          message: 'Access denied to this dispensary',
-          allowedDispensaries 
-        });
-      }
-      
-      query.dispensaryId = dispensaryId;
     }
-    
+
     if (doctorId) query.doctorId = doctorId;
     if (timeSlot) query.timeSlot = timeSlot;
     console.log(query);
@@ -730,13 +760,27 @@ router.get('/advance-bookings', roleMiddleware.requireRole(['super-admin', 'disp
       .populate('dispensaryId', 'name address')
       .sort({ bookingDate: 1 });
 
+    // Calculate financials
+    let totalAmount = 0;
+    let totalCommission = 0;
+
+    bookings.forEach(booking => {
+      if (booking.fees) {
+        if (booking.fees.totalFee) totalAmount += booking.fees.totalFee;
+        if (booking.fees.bookingCommission) totalCommission += booking.fees.bookingCommission;
+      }
+    });
+
     const summary = {
       total: bookings.length,
       completed: bookings.filter(b => b.status === 'completed').length,
       cancelled: bookings.filter(b => b.status === 'cancelled').length,
       noShow: bookings.filter(b => b.status === 'no_show').length,
+      totalAmount,
+      totalCommission,
       bookings: bookings.map(booking => ({
         id: booking._id,
+        bookingReference: booking.transactionId, // Added reference
         timeSlot: booking.timeSlot,
         patientName: booking.patientName,
         patientPhone: booking.patientPhone,
@@ -748,6 +792,7 @@ router.get('/advance-bookings', roleMiddleware.requireRole(['super-admin', 'disp
         checkedInTime: booking.checkedInTime,
         completedTime: booking.completedTime,
         bookingDate: booking.bookingDate,
+        fees: booking.fees // Include fees
       }))
     };
     console.log(summary);

@@ -46,7 +46,7 @@ const CustomRoleAssignment = () => {
   const [dispensaries, setDispensaries] = useState<Dispensary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Create user modal state
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [createUserForm, setCreateUserForm] = useState({
@@ -56,7 +56,7 @@ const CustomRoleAssignment = () => {
     role: '',
     dispensaryId: ''
   });
-  
+
   // Edit user modal state
   const [showEditUser, setShowEditUser] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -104,7 +104,36 @@ const CustomRoleAssignment = () => {
 
       setUsers(usersData);
       setRoles(rolesData);
-      setDispensaries(dispensariesData);
+      setUsers(usersData);
+      setRoles(rolesData);
+
+      // Filter dispensaries based on current user role
+      const currentUserStr = localStorage.getItem('current_user');
+      if (currentUserStr) {
+        const currentUser = JSON.parse(currentUserStr);
+        // Helper to check for super admin
+        const isSuper = currentUser.role === 'super-admin' ||
+          (currentUser.roles && currentUser.roles.includes('super-admin'));
+
+        if (!isSuper) {
+          if (currentUser.dispensaryIds && currentUser.dispensaryIds.length > 0) {
+            // Normalize IDs
+            const permittedIds = currentUser.dispensaryIds.map((d: any) => typeof d === 'string' ? d : d._id || d.id);
+
+            const filteredDispensaries = dispensariesData.filter((d: any) => permittedIds.includes(d._id || d.id));
+            setDispensaries(filteredDispensaries);
+          } else {
+            // Non-super admin with no assigned dispensaries -> Show NONE
+            setDispensaries([]);
+          }
+        } else {
+          // Super admin -> Show ALL
+          setDispensaries(dispensariesData);
+        }
+      } else {
+        // Fallback if no user found (shouldn't happen if auth token exists)
+        setDispensaries(dispensariesData);
+      }
     } catch (error: any) {
       console.error('Error fetching data:', error);
       setError(error.message || 'Failed to fetch data');
@@ -117,14 +146,17 @@ const CustomRoleAssignment = () => {
     try {
       setIsUpdating(true);
       const token = localStorage.getItem('auth_token');
-      
+
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(createUserForm)
+        body: JSON.stringify({
+          ...createUserForm,
+          nationality: 'sri_lanka'
+        })
       });
 
       const data = await response.json();
@@ -391,7 +423,7 @@ const CustomRoleAssignment = () => {
               <Button variant="outline" onClick={() => setShowCreateUser(false)}>
                 Cancel
               </Button>
-              <Button 
+              <Button
                 onClick={handleCreateUser}
                 disabled={isUpdating || !createUserForm.name || !createUserForm.email || !createUserForm.password || !createUserForm.role}
               >
@@ -446,7 +478,7 @@ const CustomRoleAssignment = () => {
               <Button variant="outline" onClick={() => setShowEditUser(false)}>
                 Cancel
               </Button>
-              <Button 
+              <Button
                 onClick={handleUpdateUser}
                 disabled={isUpdating || !editUserForm.role}
               >

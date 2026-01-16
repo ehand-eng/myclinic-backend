@@ -16,7 +16,7 @@ const dispensarySchema = new mongoose.Schema({
   },
   email: { 
     type: String, 
-    required: true 
+    required: false 
   },
   description: String,
   doctors: [{ 

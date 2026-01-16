@@ -20,6 +20,13 @@ export interface Booking {
   status: string;
   checkedInTime?: string;
   completedTime?: string;
+  bookingReference?: string;
+  fees?: {
+    totalFee: number;
+    bookingCommission: number;
+    doctorFee: number;
+    dispensaryFee: number;
+  };
 }
 
 export interface DailyBookingSummary {
@@ -27,6 +34,8 @@ export interface DailyBookingSummary {
   completed: number;
   cancelled: number;
   noShow: number;
+  totalAmount?: number;
+  totalCommission?: number;
   bookings: Booking[];
 }
 
@@ -57,26 +66,26 @@ export const ReportService = {
   getAllReports: async (): Promise<Report[]> => {
     try {
       const response = await api.get('/reports');
-      
+
       return response.data;
     } catch (error) {
       console.error('Error fetching reports:', error);
       return [];
     }
   },
-  
+
   // Get reports by dispensary
   getReportsByDispensary: async (dispensaryId: string): Promise<Report[]> => {
     try {
       const response = await api.get(`/reports/dispensary/${dispensaryId}`);
-      
+
       return response.data;
     } catch (error) {
       console.error('Error fetching dispensary reports:', error);
       return [];
     }
   },
-  
+
   // Generate a new report
   generateReport: async (
     type: ReportType,
@@ -89,8 +98,8 @@ export const ReportService = {
   ): Promise<Report> => {
     try {
       let endpoint = '';
-      
-      switch(type) {
+
+      switch (type) {
         case ReportType.DAILY_BOOKINGS:
           endpoint = '/reports/generate/daily-bookings';
           break;
@@ -106,7 +115,7 @@ export const ReportService = {
         default:
           throw new Error('Invalid report type');
       }
-      
+
       const response = await api.post(
         endpoint,
         {
@@ -117,22 +126,22 @@ export const ReportService = {
           endDate: endDate ? endDate.toISOString() : new Date().toISOString()
         }
       );
-      
+
       return response.data;
     } catch (error) {
       console.error('Error generating report:', error);
-      
+
       // Fallback to mock data for development purposes
       console.log('Falling back to mock data');
-      
+
       // Generate mock report data based on type
       const now = new Date();
       const reportStartDate = startDate || now;
       const reportEndDate = endDate || now;
-      
+
       // Generate mock report data (same as before for fallback)
       let reportData: Record<string, any> = {};
-      
+
       switch (type) {
         case ReportType.DAILY_BOOKINGS:
           reportData = {
@@ -146,7 +155,7 @@ export const ReportService = {
             ]
           };
           break;
-          
+
         case ReportType.MONTHLY_SUMMARY:
           reportData = {
             totalBookings: Math.floor(Math.random() * 500) + 100,
@@ -160,7 +169,7 @@ export const ReportService = {
             ]
           };
           break;
-          
+
         case ReportType.DOCTOR_PERFORMANCE:
           reportData = {
             doctors: [
@@ -181,7 +190,7 @@ export const ReportService = {
             ]
           };
           break;
-          
+
         case ReportType.DISPENSARY_REVENUE:
           reportData = {
             totalRevenue: Math.floor(Math.random() * 100000) + 50000,
@@ -200,11 +209,11 @@ export const ReportService = {
             ]
           };
           break;
-          
+
         default:
           reportData = { message: 'No data available for this report type' };
       }
-      
+
       // Create mock report object
       const mockReport: Report = {
         id: Math.random().toString(36).substring(2, 11),
@@ -219,7 +228,7 @@ export const ReportService = {
         createdAt: now,
         updatedAt: now
       };
-      
+
       return mockReport;
     }
   },
@@ -230,7 +239,7 @@ export const ReportService = {
       const response = await api.get(
         `/reports/session/${doctorId}/${dispensaryId}/${date}`
       );
-      
+
       return response.data;
     } catch (error) {
       console.error('Error fetching session report:', error);

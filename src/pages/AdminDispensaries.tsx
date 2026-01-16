@@ -19,15 +19,40 @@ const AdminDispensaries = () => {
   const [filteredDispensaries, setFilteredDispensaries] = useState<Dispensary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   useEffect(() => {
     fetchDispensaries();
   }, []);
-  
+
   const fetchDispensaries = async () => {
     try {
       setIsLoading(true);
-      const data = await DispensaryService.getAllDispensaries();
+
+      // Get current user for role-based filtering
+      const userStr = localStorage.getItem('current_user');
+      const user = userStr ? JSON.parse(userStr) : null;
+
+      const isSuper = user?.role === 'super-admin' || (user?.roles && user.roles.includes('super-admin'));
+
+      let data: Dispensary[] = [];
+
+      if (isSuper) {
+        // Super admin sees all
+        data = await DispensaryService.getAllDispensaries();
+      } else if (user?.dispensaryIds && user.dispensaryIds.length > 0) {
+        // Dispensary user sees only assigned
+        const normalizedIds = user.dispensaryIds.map((d: any) => typeof d === 'string' ? d : d._id || d.id);
+
+        const results = await Promise.all(
+          normalizedIds.map((id: string) => DispensaryService.getDispensaryById(id))
+        );
+
+        data = results.filter((d): d is Dispensary => d !== null);
+      } else {
+        // No access
+        data = [];
+      }
+
       console.log('Fetched dispensaries:', data);
       setDispensaries(data);
       setFilteredDispensaries(data);
@@ -42,12 +67,12 @@ const AdminDispensaries = () => {
       setIsLoading(false);
     }
   };
-  
+
   useEffect(() => {
     if (searchTerm) {
       const lowercasedSearch = searchTerm.toLowerCase();
-      const filtered = dispensaries.filter(dispensary => 
-        dispensary.name.toLowerCase().includes(lowercasedSearch) || 
+      const filtered = dispensaries.filter(dispensary =>
+        dispensary.name.toLowerCase().includes(lowercasedSearch) ||
         dispensary.address.toLowerCase().includes(lowercasedSearch) ||
         dispensary.email.toLowerCase().includes(lowercasedSearch)
       );
@@ -56,10 +81,10 @@ const AdminDispensaries = () => {
       setFilteredDispensaries(dispensaries);
     }
   }, [searchTerm, dispensaries]);
-  
+
   const handleDeleteDispensary = async (dispensaryId: string) => {
     if (!window.confirm('Are you sure you want to delete this dispensary?')) return;
-    
+
     try {
       await DispensaryService.deleteDispensary(dispensaryId);
       toast({
@@ -76,7 +101,7 @@ const AdminDispensaries = () => {
       });
     }
   };
-  
+
   return (
     <div className="flex flex-col min-h-screen">
       <AdminHeader />
@@ -87,7 +112,7 @@ const AdminDispensaries = () => {
             <Plus className="mr-2 h-4 w-4" /> Add New Dispensary
           </Button>
         </div>
-        
+
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>Dispensaries Directory</CardTitle>
@@ -98,14 +123,14 @@ const AdminDispensaries = () => {
           <CardContent>
             <div className="mb-4 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-              <Input 
-                placeholder="Search by name, address or email" 
-                value={searchTerm} 
+              <Input
+                placeholder="Search by name, address or email"
+                value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
-            
+
             {isLoading ? (
               <div className="flex justify-center py-8">
                 <p>Loading dispensaries...</p>
@@ -114,8 +139,8 @@ const AdminDispensaries = () => {
               <div className="text-center py-8">
                 <p className="text-gray-500">No dispensaries found</p>
                 {searchTerm && (
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => setSearchTerm('')}
                     className="mt-2"
                   >
@@ -148,22 +173,22 @@ const AdminDispensaries = () => {
                         <TableCell>{dispensary.email}</TableCell>
                         <TableCell>{dispensary.contactNumber}</TableCell>
                         <TableCell className="space-x-2">
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="sm"
                             onClick={() => navigate(`/admin/dispensaries/view/${dispensary.id}`)}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="sm"
                             onClick={() => navigate(`/admin/dispensaries/edit/${dispensary.id}`)}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteDispensary(dispensary.id)}
                           >

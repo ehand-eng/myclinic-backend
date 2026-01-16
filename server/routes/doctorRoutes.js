@@ -116,23 +116,20 @@ router.post('/by-dispensaries', async (req, res) => {
     // Find doctors who are associated with any of the given dispensary IDs
     const doctors = await Doctor.find({ dispensaries: { $in: dispensaryIds } });
     
-    const duration = Date.now() - startTime;
+    // const duration = Date.now() - startTime;
     logger.info('Successfully fetched doctors by dispensary IDs', {
       requestId: req.requestId,
       dispensaryIds,
-      doctorCount: doctors.length,
-      duration: `${duration}ms`
+      doctorCount: doctors.length
     });
     
     res.json(doctors);
   } catch (error) {
-    const duration = Date.now() - startTime;
     logger.error('Error fetching doctors by dispensary IDs', {
       requestId: req.requestId,
       dispensaryIds,
       error: error.message,
-      stack: error.stack,
-      duration: `${duration}ms`
+      stack: error.stack
     });
     res.status(500).json({ message: 'Server error', error: error.message });
   }

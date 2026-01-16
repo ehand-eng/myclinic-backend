@@ -6,6 +6,23 @@ import { Doctor } from '../models';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export const DoctorService = {
+  // Get doctors by dispensary ID
+  getDoctorsByDispensaryId: async (dispensaryId: string): Promise<Doctor[]> => {
+    try {
+      const response = await api.get(`/doctors/dispensary/${dispensaryId}`);
+      
+      return response.data.map((doctor: any) => ({
+        ...doctor,
+        id: doctor._id,
+        createdAt: new Date(doctor.createdAt),
+        updatedAt: new Date(doctor.updatedAt)
+      }));
+    } catch (error) {
+      console.error(`Error fetching doctors for dispensary ${dispensaryId}:`, error);
+      throw new Error('Failed to fetch doctors for dispensary');
+    }
+  },
+
   // Get all doctors
   getAllDoctors: async (): Promise<Doctor[]> => {
     try {

@@ -90,8 +90,9 @@ router.get('/users', requireSuperAdmin, async (req, res) => {
 
 // Create new user (Super Admin only)
 router.post('/users', requireSuperAdmin, async (req, res) => {
+  console.log("++++++++++++++ req.body ++++++++++++++", req.body);
   try {
-    const { name, email, password, role, dispensaryId } = req.body;
+    const { name, email, password, role, dispensaryId, nationality } = req.body;
 
     // Validation
     if (!name || !email || !password || !role) {
@@ -129,7 +130,8 @@ router.post('/users', requireSuperAdmin, async (req, res) => {
       passwordHash,
       role: roleDoc._id,
       dispensaryIds: dispensaryId ? [dispensaryId] : [],
-      isActive: true
+      isActive: true,
+      nationality: nationality || 'sri_lanka' // Default to 'sri_lanka' if not provided
     });
 
     await user.save();

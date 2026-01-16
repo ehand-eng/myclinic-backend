@@ -65,6 +65,7 @@ import MobileHome from './pages/MobileHome';
 import TimeSlotManagement from './pages/TimeSlotManagement';
 import CustomRoleManagement from './pages/admin/CustomRoleManagement';
 import Appointments from './pages/Appointments';
+import DispensaryCheckIn from './pages/DispensaryCheckIn';
 import { Dashboard } from '@mui/icons-material';
 import { Toaster } from '@/components/ui/toaster';
 
@@ -122,6 +123,9 @@ const App = () => {
         <Route path="/admin/user-dispensary" element={<CustomRoleManagement />} />
         <Route path="/admin/roles" element={<CustomRoleManagement />} />
         <Route path='/admin/fees' element={<AdminFeeManage/>}/>
+        
+        {/* Dispensary Routes */}
+        <Route path="/dispensary/check-in" element={<DispensaryCheckIn />} />
         
         {/* Specific Routes */}
         <Route path="/doctor/:doctorId/dispensary/:dispensaryId/time-slots" element={<TimeSlotManagement />} />

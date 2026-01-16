@@ -71,6 +71,9 @@ export const canViewReports = (userRole: string | undefined): boolean => {
 export const canManageFees = (userRole: string | undefined): boolean => {
   return isSuperAdmin(userRole);
 };
+export const canManagePatientCheckIn = (userRole: string | undefined): boolean => {
+  return isDispensaryAdmin(userRole);
+};
 
 export const getRoleDisplayName = (role: string): string => {
   const roleMap: Record<string, string> = {

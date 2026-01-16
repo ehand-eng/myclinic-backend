@@ -29,6 +29,7 @@ interface BookingStep1Props {
     dispensary?: boolean;
   };
   showCalendar?: boolean; // when false, hide inline calendar
+  disableDispensarySelection?: boolean; // when true, disable and hide dispensary dropdown
 }
 
 const BookingStep1: React.FC<BookingStep1Props> = ({
@@ -44,12 +45,13 @@ const BookingStep1: React.FC<BookingStep1Props> = ({
   isLoading,
   onContinue,
   readOnly,
-  showCalendar
+  showCalendar,
+  disableDispensarySelection = false
 }) => {
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div className={`grid gap-6 mb-6 ${disableDispensarySelection ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
         <div className="space-y-4">
           <Label htmlFor="doctor">Select Doctor</Label>
           <Select
@@ -70,25 +72,39 @@ const BookingStep1: React.FC<BookingStep1Props> = ({
           </Select>
         </div>
         
-        <div className="space-y-4">
-          <Label htmlFor="dispensary">Select Dispensary</Label>
-          <Select
-            value={selectedDispensary}
-            onValueChange={setSelectedDispensary}
-            disabled={isLoading || readOnly?.dispensary}
-          >
-            <SelectTrigger id="dispensary" className="w-full">
-              <SelectValue placeholder="Choose a dispensary" />
-            </SelectTrigger>
-            <SelectContent>
-              {dispensaries.map((dispensary) => (
-                <SelectItem key={dispensary.id} value={dispensary.id}>
-                  {dispensary.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {!disableDispensarySelection && (
+          <div className="space-y-4">
+            <Label htmlFor="dispensary">Select Dispensary</Label>
+            <Select
+              value={selectedDispensary}
+              onValueChange={setSelectedDispensary}
+              disabled={isLoading || readOnly?.dispensary}
+            >
+              <SelectTrigger id="dispensary" className="w-full">
+                <SelectValue placeholder="Choose a dispensary" />
+              </SelectTrigger>
+              <SelectContent>
+                {dispensaries.map((dispensary) => (
+                  <SelectItem key={dispensary.id} value={dispensary.id}>
+                    {dispensary.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        
+        {disableDispensarySelection && dispensaries.length > 0 && (
+          <div className="space-y-4">
+            <Label htmlFor="dispensary">Dispensary</Label>
+            <div className="px-3 py-2 border border-input bg-muted rounded-md text-sm text-muted-foreground">
+              {dispensaries[0].name}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Your assigned dispensary (cannot be changed)
+            </p>
+          </div>
+        )}
       </div>
       
       <div className="space-y-4">

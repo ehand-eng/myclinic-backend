@@ -49,9 +49,16 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
     email?: string;
   }>({});
 
+  // Reset validation errors when form fields are cleared (after booking completion)
+  useEffect(() => {
+    if (!name && !phone && !email) {
+      setValidationErrors({});
+    }
+  }, [name, phone, email]);
+
   // Validation functions
   const validateName = (value: string) => {
-    if (!value.trim()) {
+    if (!value || typeof value !== 'string' || !value.trim()) {
       return 'Full name is required';
     }
     if (value.length > 25) {
@@ -61,7 +68,7 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
   };
 
   const validatePhone = (value: string) => {
-    if (!value.trim()) {
+    if (!value || typeof value !== 'string' || !value.trim()) {
       return 'Phone number is required';
     }
     // Allow + at the beginning, then digits, spaces, and hyphens
@@ -78,7 +85,7 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
   };
 
   const validateEmail = (value: string) => {
-    if (!value.trim()) {
+    if (!value || typeof value !== 'string' || !value.trim()) {
       return null; // Email is optional
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -89,26 +96,33 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
   };
 
   const handleNameChange = (value: string) => {
-    if (value.length <= 25) {
-      setName(value);
-      setValidationErrors(prev => ({ ...prev, name: validateName(value) }));
+    const safeValue = (value || '').toString();
+    if (safeValue.length <= 25) {
+      setName(safeValue);
+      setValidationErrors(prev => ({ ...prev, name: validateName(safeValue) }));
     }
   };
 
   const handlePhoneChange = (value: string) => {
-    setPhone(value);
-    setValidationErrors(prev => ({ ...prev, phone: validatePhone(value) }));
+    const safeValue = value || '';
+    setPhone(safeValue);
+    setValidationErrors(prev => ({ ...prev, phone: validatePhone(safeValue) }));
   };
 
   const handleEmailChange = (value: string) => {
-    setEmail(value);
-    setValidationErrors(prev => ({ ...prev, email: validateEmail(value) }));
+    const safeValue = value || '';
+    setEmail(safeValue);
+    setValidationErrors(prev => ({ ...prev, email: validateEmail(safeValue) }));
   };
 
   const isFormValid = () => {
-    const nameError = validateName(name);
-    const phoneError = validatePhone(phone);
-    const emailError = validateEmail(email);
+    const safeName = name || '';
+    const safePhone = phone || '';
+    const safeEmail = email || '';
+    
+    const nameError = validateName(safeName);
+    const phoneError = validatePhone(safePhone);
+    const emailError = validateEmail(safeEmail);
     
     setValidationErrors({
       name: nameError,
@@ -307,7 +321,7 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
           {validationErrors.name && (
             <p className="text-red-500 text-sm mt-1">{validationErrors.name}</p>
           )}
-          <p className="text-gray-500 text-xs mt-1">{name.length}/25 characters</p>
+          <p className="text-gray-500 text-xs mt-1">{(name?.length || 0)}/25 characters</p>
         </div>
         
         <div>
@@ -354,7 +368,7 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
                 onConfirm(fees);
               }
             }}
-            disabled={isLoading || !name || !phone || !fees}
+            disabled={isLoading || !name || !phone || !fees || !!validationErrors.name || !!validationErrors.phone || !!validationErrors.email}
             className="bg-medical-600 hover:bg-medical-700"
           >
             {isLoading ? 'Processing...' : 'Confirm Booking'}

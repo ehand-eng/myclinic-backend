@@ -8,8 +8,8 @@ const validateJwt = (req, res, next) => {
   // Skip validation if no auth header is present (for development)
   if (process.env.NODE_ENV === 'development' && !req.headers.authorization) {
     console.log('Development mode: Skipping JWT validation');
-    req.auth = { 
-      payload: { 
+    req.auth = {
+      payload: {
         sub: 'dev-user',
         permissions: ['read:doctors', 'read:dispensaries']
       }
@@ -18,21 +18,21 @@ const validateJwt = (req, res, next) => {
   }
 
   console.log('Auth header:', req.headers.authorization ? 'Present' : 'Not present');
-  
+
   // Check if authentication header exists
   if (!req.headers.authorization) {
     return res.status(401).json({ message: 'Authorization header is required' });
   }
-  
+
   try {
     // Basic validation of the token format
     const token = req.headers.authorization.split(' ')[1];
     if (!token) {
       return res.status(401).json({ message: 'Invalid authorization format' });
     }
-    
+
     console.log('Token format check passed, proceeding with Auth0 validation');
-    
+
     // Debug token information
     try {
       const decodedHeader = jwt.decode(token, { complete: true })?.header;
@@ -40,7 +40,7 @@ const validateJwt = (req, res, next) => {
     } catch (err) {
       console.log('Token decode attempt failed:', err.message);
     }
-    
+
     // Use Auth0 JWT validation
     const authMiddleware = auth({
       audience: process.env.AUTH0_AUDIENCE,
@@ -48,29 +48,52 @@ const validateJwt = (req, res, next) => {
       tokenSigningAlg: 'RS256',
       credentialsRequired: true
     });
-    
+
     // Handle potential errors from the auth middleware
     authMiddleware(req, res, (err) => {
       if (err) {
         console.error('JWT validation error:', err.message);
-        
+
         // Special handling for development mode
         if (process.env.NODE_ENV === 'development' && process.env.BYPASS_AUTH === 'true') {
           console.log('Development mode with BYPASS_AUTH: Proceeding despite JWT error');
-          req.auth = { 
-            payload: { 
+          req.auth = {
+            payload: {
               sub: 'dev-user',
               permissions: ['read:doctors', 'read:dispensaries', 'manage:timeslots', 'update:bookings', 'create:bookings', 'read:bookings']
             }
           };
+          // Mock user for dev mode
+          req.user = {
+            id: 'dev-user',
+            _id: 'dev-user',
+            role: 'super-admin',
+            roles: ['super-admin']
+          };
           return next();
         }
-        
+
         return res.status(401).json({
           message: 'Authentication failed',
           error: err.message
         });
       }
+
+      // Populate req.user from req.auth (Auth0)
+      if (req.auth && req.auth.payload) {
+        // Extract roles from custom namespace or permissions
+        const roles = req.auth.payload[`${process.env.AUTH0_AUDIENCE}/roles`] || [];
+
+        req.user = {
+          id: req.auth.payload.sub,
+          _id: req.auth.payload.sub, // Compatibility
+          role: roles.length > 0 ? roles[0] : null,
+          roles: roles,
+          email: req.auth.payload.email
+        };
+        console.log('User populated from JWT:', { id: req.user.id, role: req.user.role });
+      }
+
       next();
     });
   } catch (error) {
@@ -88,9 +111,9 @@ const checkPermissions = (requiredPermissions) => {
     }
 
     const permissions = req.auth?.permissions || [];
-    
+
     // Check if the user has all the required permissions
-    const hasRequiredPermissions = requiredPermissions.every(permission => 
+    const hasRequiredPermissions = requiredPermissions.every(permission =>
       permissions.includes(permission)
     );
 
@@ -117,34 +140,34 @@ const requireRole = (roles) => {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ message: 'Authorization token required' });
     }
-    
+
     const token = authHeader.split(' ')[1];
-    
+
     try {
       // Decode JWT (already validated by validateJwt)
       const decoded = jwt.decode(token);
-      
+
       if (!decoded) {
         return res.status(401).json({ message: 'Invalid token' });
       }
-      
+
       // Get user roles from Auth0 token
       const userRoles = decoded[`${process.env.AUTH0_AUDIENCE}/roles`] || [];
-      
+
       // Check if user has any of the required roles
       const hasRole = roles.some(role => userRoles.includes(role));
-      
+
       if (!hasRole) {
         return res.status(403).json({ message: 'Insufficient role' });
       }
-      
+
       // Add user info to request
       req.user = {
         id: decoded.sub,
         email: decoded.email,
         roles: userRoles
       };
-      
+
       next();
     } catch (error) {
       console.error('Role validation error:', error);
@@ -160,21 +183,21 @@ const PERMISSIONS = {
   UPDATE_DOCTOR: 'update:doctors',
   DELETE_DOCTOR: 'delete:doctors',
   READ_DOCTORS: 'read:doctors',
-  
+
   // Dispensary permissions
   CREATE_DISPENSARY: 'create:dispensaries',
   UPDATE_DISPENSARY: 'update:dispensaries',
   DELETE_DISPENSARY: 'delete:dispensaries',
   READ_DISPENSARIES: 'read:dispensaries',
-  
+
   // TimeSlot permissions
   MANAGE_TIMESLOTS: 'manage:timeslots',
-  
+
   // Booking permissions
   UPDATE_BOOKING: 'update:bookings',
   CREATE_BOOKING: 'create:bookings',
   READ_BOOKINGS: 'read:bookings',
-  
+
   // Reports permissions
   VIEW_REPORTS: 'view:reports'
 };

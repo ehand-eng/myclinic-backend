@@ -12,10 +12,8 @@ const userSchema = new mongoose.Schema({
       // Required if no mobile number
       return !this.mobile;
     },
-    unique: function() {
-      // Unique only if email is provided
-      return this.email;
-    }
+    sparse: true,
+    unique: true
   },
   mobile: {
     type: String,
@@ -23,10 +21,8 @@ const userSchema = new mongoose.Schema({
       // Required if no email
       return !this.email;
     },
-    unique: function() {
-      // Unique only if mobile is provided
-      return this.mobile;
-    }
+    sparse: true,
+    unique: true
   },
   nationality: {
     type: String,

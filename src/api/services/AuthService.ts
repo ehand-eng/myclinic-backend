@@ -21,7 +21,7 @@ export const AuthService = {
       
       // Store token in localStorage
       if (response.data.token) {
-        localStorage.setItem('authToken', response.data.token);
+        localStorage.setItem('auth_token', response.data.token);
         
         // Set default role if not provided
         if (!response.data.user.role) {
@@ -42,7 +42,7 @@ export const AuthService = {
       
       // Store token in localStorage
       if (response.data.token) {
-        localStorage.setItem('authToken', response.data.token);
+        localStorage.setItem('auth_token', response.data.token);
         
         // Set default role if not provided
         if (!response.data.user.role) {
@@ -58,11 +58,11 @@ export const AuthService = {
   },
 
   logout(): void {
-    localStorage.removeItem('authToken');
+    localStorage.removeItem('auth_token');
   },
 
   getToken(): string | null {
-    return localStorage.getItem('authToken');
+    return localStorage.getItem('auth_token');
   },
 
   isAuthenticated(): boolean {

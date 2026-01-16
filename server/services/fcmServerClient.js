@@ -80,8 +80,6 @@ function stringifyData(data) {
 }
 
 async function sendNotification(fcmToken, title, body, data = {}) {
-  console.log("[FCM] Sending notification:", { fcmToken: fcmToken?.substring(0, 20) + "...", title, body });
-  console.log("[FCM] Data payload:", data);
   
   // Re-initialize if needed
   if (!appInitialized) {
@@ -112,10 +110,10 @@ async function sendNotification(fcmToken, title, body, data = {}) {
 
   const message = {
     token: fcmToken,
-    notification: {
-      title,
-      body,
-    },
+    // notification: {
+    //   title,
+    //   body,
+    // },
     data: stringifiedData,
     android: {
       priority: "high",
@@ -128,6 +126,7 @@ async function sendNotification(fcmToken, title, body, data = {}) {
   };
 
   try {
+    console.log("Sending message to FCM :", message);
     const response = await admin.messaging(app).send(message);
     console.log("✅ Successfully sent FCM message:", response);
     return { success: true, messageId: response };

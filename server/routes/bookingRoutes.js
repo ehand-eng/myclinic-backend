@@ -8,23 +8,24 @@ const mongoose = require('mongoose');
 const roleMiddleware = require('../middleware/roleMiddleware');
 const { validateCustomJwt } = require('../middleware/customAuthMiddleware');
 const fcmServerClient = require('../services/fcmServerClient');
+const smsService = require('../services/smsService');
 
 // Search bookings - restricted to Super Admin and Dispensary Admin only
 router.get('/search', roleMiddleware.requireAdvancedBookingAccess, async (req, res) => {
   try {
-    console.log("======== bookingRoutes ============== "+req.query);
+    console.log("======== bookingRoutes ============== " + req.query);
     const { query, searchType } = req.query;
-    
+
     // Validate required parameters
     if (!query || !query.trim()) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'Search query is required',
         example: '/api/bookings/search?query=0773837922&searchType=phone'
       });
     }
 
     if (!searchType) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'searchType parameter is required',
         validTypes: ['id', 'transactionId', 'phone', 'name'],
         example: '/api/bookings/search?query=0773837922&searchType=phone'
@@ -33,37 +34,37 @@ router.get('/search', roleMiddleware.requireAdvancedBookingAccess, async (req, r
 
     const trimmedQuery = query.trim();
     let searchCriteria = {};
-    
+
     // Build search criteria based on searchType - NEVER cast to ObjectId unless searchType is "id"
     switch (searchType) {
       case 'id':
         // Only cast to ObjectId when specifically searching by _id
         if (!mongoose.Types.ObjectId.isValid(trimmedQuery)) {
-          return res.status(400).json({ 
+          return res.status(400).json({
             message: 'Invalid booking ID format. Must be a valid MongoDB ObjectId.',
             example: '507f1f77bcf86cd799439011'
           });
         }
         searchCriteria = { _id: new mongoose.Types.ObjectId(trimmedQuery) };
         break;
-        
+
       case 'transactionId':
         // Exact match for transaction ID
         searchCriteria = { transactionId: trimmedQuery };
         break;
-        
+
       case 'phone':
         // Exact or partial match for phone number
         searchCriteria = { patientPhone: { $regex: trimmedQuery, $options: 'i' } };
         break;
-        
+
       case 'name':
         // Case-insensitive partial match for patient name
         searchCriteria = { patientName: { $regex: trimmedQuery, $options: 'i' } };
         break;
-        
+
       default:
-        return res.status(400).json({ 
+        return res.status(400).json({
           message: `Invalid searchType: "${searchType}"`,
           validTypes: ['id', 'transactionId', 'phone', 'name'],
           example: '/api/bookings/search?query=0773837922&searchType=phone'
@@ -82,7 +83,7 @@ router.get('/search', roleMiddleware.requireAdvancedBookingAccess, async (req, r
 
     // Handle no results case
     if (!bookings || bookings.length === 0) {
-      return res.status(200).json({ 
+      return res.status(200).json({
         message: 'No bookings found',
         searchType,
         query: trimmedQuery,
@@ -121,7 +122,7 @@ router.get('/search', roleMiddleware.requireAdvancedBookingAccess, async (req, r
 
   } catch (error) {
     console.error('Error in booking search:', error);
-    
+
     // Handle specific MongoDB errors
     if (error.name === 'CastError') {
       return res.status(400).json({
@@ -133,7 +134,7 @@ router.get('/search', roleMiddleware.requireAdvancedBookingAccess, async (req, r
     }
 
     // Generic error response
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Server error during booking search',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
       searchType: req.query.searchType,
@@ -226,13 +227,13 @@ router.get('/', async (req, res) => {
 router.get('/doctor/:doctorId/dispensary/:dispensaryId/date/:date', async (req, res) => {
   try {
     const { doctorId, dispensaryId, date } = req.params;
-    
+
     const startDate = new Date(date);
     startDate.setHours(0, 0, 0, 0);
-    
+
     const endDate = new Date(date);
     endDate.setHours(23, 59, 59, 999);
-    
+
     const bookings = await Booking.find({
       doctorId: doctorId,
       dispensaryId: dispensaryId,
@@ -241,7 +242,7 @@ router.get('/doctor/:doctorId/dispensary/:dispensaryId/date/:date', async (req, 
         $lte: endDate
       }
     }).sort({ appointmentNumber: 1 });
-    
+
     res.status(200).json(bookings);
   } catch (error) {
     console.error('Error getting bookings by date:', error);
@@ -252,7 +253,7 @@ router.get('/doctor/:doctorId/dispensary/:dispensaryId/date/:date', async (req, 
 // Get a specific booking
 router.get('/:id', async (req, res) => {
   try {
-    console.log("======== booking ============== "+req.params.id);
+    console.log("======== booking ============== " + req.params.id);
     const booking = await Booking.findById(req.params.id);
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
@@ -291,49 +292,64 @@ router.post('/', async (req, res) => {
     } = req.body;
 
     console.log("Received booking request:", req.body);
-    console.log("======== user ============== "+req.user);
-    
+    console.log("======== user ============== " + req.user);
+
     // Generate a temporary patientId if not provided
     const patientId = req.body.patientId || `temp-${patientPhone}`;
-    
+
     // Generate transaction ID
     const timestamp = Date.now().toString();
     const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
     const transactionId = `TRX-${timestamp}-${random}`;
-    
+
     // Generate booking date from string - ensure we use the date only
     // Create date with the local timezone, without any time component
     const parsedDate = bookingDate.split('T')[0];
     const parsedBookingDate = new Date(bookingDate);
-    
+
     console.log("Parsed booking date:", parsedBookingDate);
-    
+
     // 1. Find the next available appointment
     const dayOfWeek = parsedBookingDate.getDay();
     console.log("Day of week:", dayOfWeek);
-    
+
     // Get the time slot configuration
-    const timeSlotConfig = await TimeSlotConfig.findOne({
-      doctorId,
-      dispensaryId,
-      dayOfWeek
-    });
-    
-    console.log("Time slot config:", timeSlotConfig);
-    
-    if (!timeSlotConfig) {
-      return res.status(400).json({ 
-        message: 'No time slot configuration found for this doctor and dispensary on this day' 
+    // If timeSlotConfigId is provided in request, use it; otherwise find by dayOfWeek
+    let timeSlotConfig = null;
+
+    if (req.body.timeSlotConfigId) {
+      timeSlotConfig = await TimeSlotConfig.findById(req.body.timeSlotConfigId);
+      if (!timeSlotConfig ||
+        timeSlotConfig.doctorId.toString() !== doctorId ||
+        timeSlotConfig.dispensaryId.toString() !== dispensaryId) {
+        return res.status(400).json({
+          message: 'Invalid timeSlotConfigId or mismatch with doctor/dispensary'
+        });
+      }
+    } else {
+      // Fallback: find first config for this day (for backward compatibility)
+      timeSlotConfig = await TimeSlotConfig.findOne({
+        doctorId,
+        dispensaryId,
+        dayOfWeek
       });
     }
-    
+
+    console.log("Time slot config:", timeSlotConfig);
+
+    if (!timeSlotConfig) {
+      return res.status(400).json({
+        message: 'No time slot configuration found for this doctor and dispensary on this day'
+      });
+    }
+
     // Check if there's a modified session for this date
     const startOfDay = new Date(parsedBookingDate);
     startOfDay.setHours(0, 0, 0, 0);
-    
+
     const endOfDay = new Date(parsedBookingDate);
     endOfDay.setHours(23, 59, 59, 999);
-    
+
     const absentSlot = await AbsentTimeSlot.findOne({
       doctorId,
       dispensaryId,
@@ -342,19 +358,19 @@ router.post('/', async (req, res) => {
         $lte: endOfDay
       }
     });
-    
+
     console.log("Absent/Modified slot:", absentSlot);
-    
+
     // If completely absent (not a modified session), return an error
     if (absentSlot && !absentSlot.isModifiedSession) {
-      return res.status(400).json({ 
-        message: 'Doctor is not available on this date' 
+      return res.status(400).json({
+        message: 'Doctor is not available on this date'
       });
     }
-    
+
     // Determine session parameters based on regular config or modified session
     let startTime, endTime, maxPatients, minutesPerPatient;
-    
+
     if (absentSlot && absentSlot.isModifiedSession) {
       startTime = absentSlot.startTime;
       endTime = absentSlot.endTime;
@@ -366,9 +382,9 @@ router.post('/', async (req, res) => {
       maxPatients = timeSlotConfig.maxPatients;
       minutesPerPatient = timeSlotConfig.minutesPerPatient || 15; // Default to 15 minutes if not set
     }
-    
+
     console.log("Session parameters:", { startTime, endTime, maxPatients, minutesPerPatient });
-    
+
     // Find existing bookings for this session
     const existingBookings = await Booking.find({
       doctorId,
@@ -379,55 +395,55 @@ router.post('/', async (req, res) => {
       },
       status: { $ne: 'cancelled' }
     }).sort({ appointmentNumber: 1 });
-    
+
     console.log("Existing bookings count:", existingBookings.length);
-    
+
     // If all slots are booked
     if (existingBookings.length >= maxPatients) {
-      return res.status(400).json({ 
-        message: 'All appointments for this day are booked' 
+      return res.status(400).json({
+        message: 'All appointments for this day are booked'
       });
     }
-    
+
     // Find the next available appointment number
     let nextAppointmentNumber = 1;
-    
+
     // Create a set of existing appointment numbers for quick lookup
     const bookedAppointments = new Set();
     existingBookings.forEach(booking => {
       bookedAppointments.add(booking.appointmentNumber);
     });
-    
+
     // Find the first available appointment number
     while (bookedAppointments.has(nextAppointmentNumber) && nextAppointmentNumber <= maxPatients) {
       nextAppointmentNumber++;
     }
-    
+
     console.log("Next appointment number:", nextAppointmentNumber);
-    
+
     // Calculate the estimated time for this appointment
     const [startHour, startMinute] = startTime.split(':').map(Number);
     const appointmentOffset = (nextAppointmentNumber - 1) * minutesPerPatient; // Minutes from start time
-    
+
     const appointmentDateTime = new Date(parsedBookingDate);
     appointmentDateTime.setHours(startHour, startMinute, 0, 0);
     appointmentDateTime.setMinutes(appointmentDateTime.getMinutes() + appointmentOffset);
-    
+
     const estimatedHours = appointmentDateTime.getHours().toString().padStart(2, '0');
     const estimatedMinutes = appointmentDateTime.getMinutes().toString().padStart(2, '0');
     const estimatedTime = `${estimatedHours}:${estimatedMinutes}`;
-    
+
     console.log("Estimated time:", estimatedTime);
-    
+
     // Calculate the time slot range (e.g., "18:00-18:20")
     const endOfAppointment = new Date(appointmentDateTime);
     endOfAppointment.setMinutes(endOfAppointment.getMinutes() + minutesPerPatient);
-    
+
     const endHours = endOfAppointment.getHours().toString().padStart(2, '0');
     const endMinutes = endOfAppointment.getMinutes().toString().padStart(2, '0');
-    
+
     const timeSlot = `${estimatedHours}:${estimatedMinutes}-${endHours}:${endMinutes}`;
-    
+
     // Create the booking with role-based logic
     let bookedUser = 'online';
     let bookedBy = 'ONLINE';
@@ -451,18 +467,18 @@ router.post('/', async (req, res) => {
       userRole = req.body.userRole.toLowerCase();
       bookedUser = req.body.bookedUser || 'online';
     }
-    
-    console.log("======== userRole ===  11111 =========== "+userRole);
-    
+
+    console.log("======== userRole ===  11111 =========== " + userRole);
+
     // Normalize role for consistent checking
     const normalizedUserRole = userRole ? userRole.toLowerCase().replace(/\s+/g, '-') : '';
-    
-    console.log("Checking role access:", { 
-      userRole: userRole, 
+
+    console.log("Checking role access:", {
+      userRole: userRole,
       normalizedUserRole: normalizedUserRole,
       operation: 'booking creation'
     });
-    
+
     // Set bookedBy based on normalized role
     if (normalizedUserRole === 'channel-partner') {
       bookedBy = 'CHANNEL-PARTNER';
@@ -484,7 +500,7 @@ router.post('/', async (req, res) => {
 
     // Handle channel partner fee calculation and ensure correct totalFee calculation
     let processedFees = { ...fees };
-    
+
     // Get channel partner fee configuration from DoctorDispensary for all bookings
     const feeConfig = await DoctorDispensary.findOne({
       doctorId,
@@ -519,9 +535,9 @@ router.post('/', async (req, res) => {
     const dispensaryFee = processedFees.dispensaryFee || 0;
     const channelPartnerFee = processedFees.channelPartnerFee || 0;
     const bookingCommission = processedFees.bookingCommission || 0;
-    
+
     processedFees.totalFee = doctorFee + dispensaryFee + channelPartnerFee + bookingCommission;
-    
+
     console.log(`Final fee calculation:`, {
       doctorFee,
       dispensaryFee,
@@ -537,6 +553,7 @@ router.post('/', async (req, res) => {
       dispensaryId,
       bookingDate: parsedBookingDate,
       timeSlot,
+      timeSlotConfigId: timeSlotConfig._id, // Store reference to TimeSlotConfig
       appointmentNumber: nextAppointmentNumber,
       estimatedTime,
       status: 'scheduled',
@@ -555,7 +572,7 @@ router.post('/', async (req, res) => {
         lastUpdated: new Date()
       }
     });
-    
+
     await booking.save();
     console.log("Booking created successfully:", booking);
 
@@ -563,7 +580,7 @@ router.post('/', async (req, res) => {
     const fcmTokenFromEnv = process.env.FCM_TOKEN;
     if (fcmTokenFromEnv) {
       const smsMessage = `Hi ${patientName}, your booking is confirmed for ${parsedBookingDate.toDateString()} at ${estimatedTime}. Doctor ID: ${doctorId}. Thank you for using MyClinic!`;
-    
+
       await fcmServerClient.sendNotification(
         fcmTokenFromEnv,
         'Booking Created',
@@ -576,13 +593,55 @@ router.post('/', async (req, res) => {
           doctorId: doctorId.toString(),
         }
       );
-    
+
       console.log("✅ FCM notification with booking details sent");
     } else {
       console.warn('⚠️ FCM_TOKEN not set in environment, skipping notification');
     }
+
+    // Send SMS notification (non-blocking)
+    // This runs asynchronously and won't block the response
+    if (patientPhone) {
+      // Get doctor and dispensary names for SMS
+      const Doctor = require('../models/Doctor');
+      const Dispensary = require('../models/Dispensary');
+
+      Promise.all([
+        Doctor.findById(doctorId),
+        Dispensary.findById(dispensaryId)
+      ]).then(([doctor, dispensary]) => {
+        const bookingDetails = {
+          patientPhone,
+          patientName,
+          transactionId,
+          doctorName: doctor?.name || 'Doctor',
+          dispensaryName: dispensary?.name || 'Dispensary',
+          bookingDate: parsedBookingDate.toLocaleDateString('en-US', {
+            weekday: 'short',
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          }),
+          timeSlot,
+          appointmentNumber: nextAppointmentNumber
+        };
+
+        return smsService.sendBookingConfirmation(bookingDetails);
+      }).then(result => {
+        if (result.success) {
+          console.log('✅ SMS sent successfully to', patientPhone);
+        } else {
+          console.warn('⚠️ SMS sending failed:', result.reason || result.error);
+        }
+      }).catch(error => {
+        console.error('❌ Error in SMS sending process:', error.message);
+      });
+    } else {
+      console.warn('⚠️ No phone number provided, skipping SMS');
+    }
+
     res.status(201).json(booking);
-    
+
   } catch (error) {
     console.error('Error creating booking:', error);
     res.status(500).json({ message: 'Error creating booking', error: error.message });
@@ -593,8 +652,8 @@ router.post('/', async (req, res) => {
 router.patch('/:id/status', async (req, res) => {
   try {
     const { status, checkedInTime, completedTime, notes, isPaid, isPatientVisited } = req.body;
-    
-    const updateData = { 
+
+    const updateData = {
       status,
       ...(checkedInTime && { checkedInTime }),
       ...(completedTime && { completedTime }),
@@ -602,17 +661,17 @@ router.patch('/:id/status', async (req, res) => {
       ...(typeof isPaid !== 'undefined' && { isPaid }),
       ...(typeof isPatientVisited !== 'undefined' && { isPatientVisited })
     };
-    
+
     const booking = await Booking.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true, runValidators: true }
     );
-    
+
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }
-    
+
     res.status(200).json(booking);
   } catch (error) {
     console.error('Error updating booking status:', error);
@@ -624,20 +683,20 @@ router.patch('/:id/status', async (req, res) => {
 router.patch('/:id/cancel', async (req, res) => {
   try {
     const { reason } = req.body;
-    
+
     const booking = await Booking.findById(req.params.id);
-    
+
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }
-    
+
     booking.status = 'cancelled';
     if (reason) {
-      booking.notes = booking.notes 
+      booking.notes = booking.notes
         ? `${booking.notes} Cancellation reason: ${reason}`
         : `Cancellation reason: ${reason}`;
     }
-    
+
     await booking.save();
     res.status(200).json(booking);
   } catch (error) {
@@ -650,32 +709,32 @@ router.patch('/:id/cancel', async (req, res) => {
 router.get('/next-available/:doctorId/:dispensaryId/:date', async (req, res) => {
   try {
     const { doctorId, dispensaryId, date } = req.params;
-    
+
     // Parse the date - ensure it's just the date part
     const parsedDate = date.split('T')[0];
     const bookingDate = new Date(parsedDate + 'T00:00:00');
-    
+
     // Get day of week (0-6, where 0 is Sunday)
     const dayOfWeek = bookingDate.getDay();
-    
+
     // 1. Get the regular time slot configuration for this day
     const timeSlotConfig = await TimeSlotConfig.findOne({
       doctorId,
       dispensaryId,
       dayOfWeek
     });
-    
+
     if (!timeSlotConfig) {
       return res.status(404).json({ message: 'No time slot configuration found for this day' });
     }
-    
+
     // 2. Check if there's a modified/absent session for this specific date
     const startOfDay = new Date(bookingDate);
     startOfDay.setHours(0, 0, 0, 0);
-    
+
     const endOfDay = new Date(bookingDate);
     endOfDay.setHours(23, 59, 59, 999);
-    
+
     const absentSlot = await AbsentTimeSlot.findOne({
       doctorId,
       dispensaryId,
@@ -684,21 +743,21 @@ router.get('/next-available/:doctorId/:dispensaryId/:date', async (req, res) => 
         $lte: endOfDay
       }
     });
-    
+
     // Variables to hold session details
     let startTime, endTime, minutesPerPatient, maxPatients;
-    
+
     // If completely absent, return no slots
     if (absentSlot && !absentSlot.isModifiedSession) {
       return res.status(404).json({ message: 'Doctor is not available on this date' });
-    } 
+    }
     // If modified session, use those parameters
     else if (absentSlot && absentSlot.isModifiedSession) {
       startTime = absentSlot.startTime;
       endTime = absentSlot.endTime;
       maxPatients = absentSlot.maxPatients || timeSlotConfig.maxPatients;
       minutesPerPatient = absentSlot.minutesPerPatient || timeSlotConfig.minutesPerPatient;
-    } 
+    }
     // Otherwise use the regular config
     else {
       startTime = timeSlotConfig.startTime;
@@ -706,7 +765,7 @@ router.get('/next-available/:doctorId/:dispensaryId/:date', async (req, res) => 
       maxPatients = timeSlotConfig.maxPatients;
       minutesPerPatient = timeSlotConfig.minutesPerPatient || 15; // Default to 15 minutes if not set
     }
-    
+
     // 3. Get already booked appointments for this day
     const existingBookings = await Booking.find({
       doctorId,
@@ -717,47 +776,47 @@ router.get('/next-available/:doctorId/:dispensaryId/:date', async (req, res) => 
       },
       status: { $ne: 'cancelled' }
     }).sort({ appointmentNumber: 1 });
-    
+
     // If all slots are booked
     if (existingBookings.length >= maxPatients) {
       return res.status(404).json({ message: 'All appointments for this day are booked' });
     }
-    
+
     // 4. Find the next available appointment number
     let nextAppointmentNumber = 1;
-    
+
     // Create a set of existing appointment numbers for quick lookup
     const bookedAppointments = new Set();
     existingBookings.forEach(booking => {
       bookedAppointments.add(booking.appointmentNumber);
     });
-    
+
     // Find the first available appointment number
     while (bookedAppointments.has(nextAppointmentNumber) && nextAppointmentNumber <= maxPatients) {
       nextAppointmentNumber++;
     }
-    
+
     // 5. Calculate the estimated time for this appointment
     const [startHour, startMinute] = startTime.split(':').map(Number);
     const appointmentOffset = (nextAppointmentNumber - 1) * minutesPerPatient; // Minutes from start time
-    
+
     const appointmentDateTime = new Date(bookingDate);
     appointmentDateTime.setHours(startHour, startMinute, 0, 0);
     appointmentDateTime.setMinutes(appointmentDateTime.getMinutes() + appointmentOffset);
-    
+
     const estimatedHours = appointmentDateTime.getHours().toString().padStart(2, '0');
     const estimatedMinutes = appointmentDateTime.getMinutes().toString().padStart(2, '0');
     const estimatedTime = `${estimatedHours}:${estimatedMinutes}`;
-    
+
     // Calculate the time slot range (e.g., "18:00-18:20")
     const endOfAppointment = new Date(appointmentDateTime);
     endOfAppointment.setMinutes(endOfAppointment.getMinutes() + minutesPerPatient);
-    
+
     const endHours = endOfAppointment.getHours().toString().padStart(2, '0');
     const endMinutes = endOfAppointment.getMinutes().toString().padStart(2, '0');
-    
+
     const timeSlot = `${estimatedHours}:${estimatedMinutes}-${endHours}:${endMinutes}`;
-    
+
     // Return the next available appointment info
     res.status(200).json({
       appointmentNumber: nextAppointmentNumber,
@@ -765,7 +824,7 @@ router.get('/next-available/:doctorId/:dispensaryId/:date', async (req, res) => 
       estimatedTime,
       minutesPerPatient
     });
-    
+
   } catch (error) {
     console.error('Error getting next available appointment:', error);
     res.status(500).json({
@@ -851,32 +910,32 @@ router.patch('/:id/adjust', roleMiddleware.requireAdvancedBookingAccess, async (
 
     // Check if booking can be adjusted (only scheduled bookings)
     if (existingBooking.status !== 'scheduled') {
-      return res.status(400).json({ 
-        message: 'Only scheduled bookings can be adjusted' 
+      return res.status(400).json({
+        message: 'Only scheduled bookings can be adjusted'
       });
     }
 
     // Parse the new date
     const parsedDate = new Date(newDate);
     const dayOfWeek = parsedDate.getDay();
-    
+
     // Get the time slot configuration for the new date
     const timeSlotConfig = await TimeSlotConfig.findOne({
       doctorId: doctorId || existingBooking.doctorId,
       dispensaryId: dispensaryId || existingBooking.dispensaryId,
       dayOfWeek
     });
-    
+
     if (!timeSlotConfig) {
-      return res.status(400).json({ 
-        message: 'No time slot configuration found for this doctor and dispensary on the new date' 
+      return res.status(400).json({
+        message: 'No time slot configuration found for this doctor and dispensary on the new date'
       });
     }
 
     // Check if there's a modified session for the new date
     const startOfDay = new Date(parsedDate);
     startOfDay.setHours(0, 0, 0, 0);
-    
+
     const endOfDay = new Date(parsedDate);
     endOfDay.setHours(23, 59, 59, 999);
 
@@ -888,17 +947,17 @@ router.patch('/:id/adjust', roleMiddleware.requireAdvancedBookingAccess, async (
         $lte: endOfDay
       }
     });
-    
+
     // If completely absent, return an error
     if (absentSlot && !absentSlot.isModifiedSession) {
-      return res.status(400).json({ 
-        message: 'Doctor is not available on the new date' 
+      return res.status(400).json({
+        message: 'Doctor is not available on the new date'
       });
     }
-    
+
     // Determine session parameters
     let startTime, endTime, maxPatients, minutesPerPatient;
-    
+
     if (absentSlot && absentSlot.isModifiedSession) {
       startTime = absentSlot.startTime;
       endTime = absentSlot.endTime;
@@ -910,7 +969,7 @@ router.patch('/:id/adjust', roleMiddleware.requireAdvancedBookingAccess, async (
       maxPatients = timeSlotConfig.maxPatients;
       minutesPerPatient = timeSlotConfig.minutesPerPatient || 15;
     }
-    
+
     // Find existing bookings for the new date (excluding the current booking being adjusted)
     const existingBookings = await Booking.find({
       _id: { $ne: id }, // Exclude current booking
@@ -922,46 +981,46 @@ router.patch('/:id/adjust', roleMiddleware.requireAdvancedBookingAccess, async (
       },
       status: { $ne: 'cancelled' }
     }).sort({ appointmentNumber: 1 });
-    
+
     // If all slots are booked for the new date
     if (existingBookings.length >= maxPatients) {
-      return res.status(400).json({ 
-        message: 'All appointments for the new date are booked' 
+      return res.status(400).json({
+        message: 'All appointments for the new date are booked'
       });
     }
-    
+
     // Find the next available appointment number for the new date
     let nextAppointmentNumber = 1;
     const bookedAppointments = new Set();
     existingBookings.forEach(booking => {
       bookedAppointments.add(booking.appointmentNumber);
     });
-    
+
     while (bookedAppointments.has(nextAppointmentNumber) && nextAppointmentNumber <= maxPatients) {
       nextAppointmentNumber++;
     }
-    
+
     // Calculate the estimated time for the new appointment
     const [startHour, startMinute] = startTime.split(':').map(Number);
     const appointmentOffset = (nextAppointmentNumber - 1) * minutesPerPatient;
-    
+
     const appointmentDateTime = new Date(parsedDate);
     appointmentDateTime.setHours(startHour, startMinute, 0, 0);
     appointmentDateTime.setMinutes(appointmentDateTime.getMinutes() + appointmentOffset);
-    
+
     const estimatedHours = appointmentDateTime.getHours().toString().padStart(2, '0');
     const estimatedMinutes = appointmentDateTime.getMinutes().toString().padStart(2, '0');
     const estimatedTime = `${estimatedHours}:${estimatedMinutes}`;
-    
+
     // Calculate the time slot range
     const endOfAppointment = new Date(appointmentDateTime);
     endOfAppointment.setMinutes(endOfAppointment.getMinutes() + minutesPerPatient);
-    
+
     const endHours = endOfAppointment.getHours().toString().padStart(2, '0');
     const endMinutes = endOfAppointment.getMinutes().toString().padStart(2, '0');
-    
+
     const timeSlot = `${estimatedHours}:${estimatedMinutes}-${endHours}:${endMinutes}`;
-    
+
     // Update the existing booking with new date/time information
     const updatedBooking = await Booking.findByIdAndUpdate(
       id,
@@ -986,12 +1045,12 @@ router.patch('/:id/adjust', roleMiddleware.requireAdvancedBookingAccess, async (
       message: 'Booking adjusted successfully',
       booking: updatedBooking
     });
-    
+
   } catch (error) {
     console.error('Error adjusting booking:', error);
-    res.status(500).json({ 
-      message: 'Error adjusting booking', 
-      error: error.message 
+    res.status(500).json({
+      message: 'Error adjusting booking',
+      error: error.message
     });
   }
 });
@@ -1003,16 +1062,16 @@ router.post('/sms-delivery-status', async (req, res) => {
 
     // Validate required fields
     if (!bookingId || !status) {
-      return res.status(400).json({ 
-        message: 'bookingId and status are required' 
+      return res.status(400).json({
+        message: 'bookingId and status are required'
       });
     }
 
     // Validate status enum
     const validStatuses = ['sent', 'delivered', 'failed'];
     if (!validStatuses.includes(status)) {
-      return res.status(400).json({ 
-        message: 'Invalid status. Must be one of: sent, delivered, failed' 
+      return res.status(400).json({
+        message: 'Invalid status. Must be one of: sent, delivered, failed'
       });
     }
 
@@ -1020,8 +1079,8 @@ router.post('/sms-delivery-status', async (req, res) => {
     const booking = await Booking.findById(bookingId);
     if (!booking) {
       console.error(`SMS Delivery Update Failed: Booking not found for ID ${bookingId}`);
-      return res.status(404).json({ 
-        message: 'Booking not found' 
+      return res.status(404).json({
+        message: 'Booking not found'
       });
     }
 
@@ -1050,13 +1109,13 @@ router.post('/sms-delivery-status', async (req, res) => {
 
     if (!updatedBooking) {
       console.error(`SMS Delivery Update Failed: Could not update booking ${bookingId}`);
-      return res.status(500).json({ 
-        message: 'Failed to update booking SMS delivery status' 
+      return res.status(500).json({
+        message: 'Failed to update booking SMS delivery status'
       });
     }
 
     console.log(`SMS Delivery Status Updated: Booking ${bookingId} - Status: ${status}`);
-    
+
     res.json({
       message: 'SMS delivery status updated successfully',
       bookingId: updatedBooking._id,
@@ -1070,10 +1129,10 @@ router.post('/sms-delivery-status', async (req, res) => {
       stack: error.stack,
       body: req.body
     });
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       message: 'Internal server error updating SMS delivery status',
-      error: error.message 
+      error: error.message
     });
   }
 });

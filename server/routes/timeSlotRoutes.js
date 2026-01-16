@@ -84,6 +84,96 @@ router.delete('/config/:id', async (req, res) => {
   }
 });
 
+// Get sessions (start times) for a specific date
+// Returns all configured sessions for doctor + dispensary + dayOfWeek, considering AbsentTimeSlot modifications
+router.get('/sessions/:doctorId/:dispensaryId/:date', async (req, res) => {
+  try {
+    const { doctorId, dispensaryId, date } = req.params;
+    
+    // Parse the date - ensure we use local timezone, not UTC
+    // Date format: YYYY-MM-DD
+    const [year, month, day] = date.split('-').map(Number);
+    const bookingDate = new Date(year, month - 1, day); // month is 0-indexed
+    const dayOfWeek = bookingDate.getDay(); // 0-6 (Sunday-Saturday)
+    console.log("++++++++++++++ dayOfWeek ++++++++++++++", dayOfWeek);
+    console.log("++++++++++++++ doctorId ++++++++++++++", doctorId);
+    console.log("++++++++++++++ dispensaryId ++++++++++++++", dispensaryId);
+    // Get all time slot configurations for this doctor + dispensary + dayOfWeek
+    const timeSlotConfigs = await TimeSlotConfig.find({
+      doctorId: doctorId,
+      dispensaryId: dispensaryId,
+      dayOfWeek: dayOfWeek
+    }).sort({ startTime: 1 }); // Sort by start time
+    console.log("++++++++++++++ timeSlotConfigs ++++++++++++++", timeSlotConfigs);
+    if (!timeSlotConfigs || timeSlotConfigs.length === 0) {
+      return res.status(200).json({
+        sessions: [],
+        message: 'No sessions configured for this day'
+      });
+    }
+    
+    // Check for AbsentTimeSlot modifications for this specific date
+    const startOfDay = new Date(bookingDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(bookingDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    const absentSlot = await AbsentTimeSlot.findOne({
+      doctorId: doctorId,
+      dispensaryId: dispensaryId,
+      date: {
+        $gte: startOfDay,
+        $lte: endOfDay
+      }
+    });
+    
+    // If doctor is completely absent, return empty
+    if (absentSlot && !absentSlot.isModifiedSession) {
+      return res.status(200).json({
+        sessions: [],
+        message: 'Doctor is absent on this date'
+      });
+    }
+    
+    // Build sessions list
+    const sessions = [];
+    
+    if (absentSlot && absentSlot.isModifiedSession) {
+      // Use modified session instead of regular config
+      // Still reference the original timeSlotConfigId if available (use first one as fallback)
+      const baseConfigId = timeSlotConfigs.length > 0 ? timeSlotConfigs[0]._id : null;
+      sessions.push({
+        startTime: absentSlot.startTime,
+        endTime: absentSlot.endTime,
+        timeSlot: `${absentSlot.startTime}-${absentSlot.endTime}`,
+        timeSlotConfigId: baseConfigId ? baseConfigId.toString() : null,
+        isModified: true
+      });
+    } else {
+      // Use regular time slot configs
+      for (const config of timeSlotConfigs) {
+        sessions.push({
+          startTime: config.startTime,
+          endTime: config.endTime,
+          timeSlot: `${config.startTime}-${config.endTime}`,
+          timeSlotConfigId: config._id.toString(),
+          isModified: false
+        });
+      }
+    }
+    
+    res.status(200).json({
+      sessions: sessions,
+      date: date,
+      dayOfWeek: dayOfWeek
+    });
+    
+  } catch (error) {
+    console.error('Error getting sessions:', error);
+    res.status(500).json({ message: 'Error fetching sessions', error: error.message });
+  }
+});
+
 // Get absent time slots
 router.get('/absent/doctor/:doctorId/dispensary/:dispensaryId', async (req, res) => {
   try {

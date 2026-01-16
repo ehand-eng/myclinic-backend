@@ -489,4 +489,27 @@ export const TimeSlotService = {
       throw new Error('Failed to assign doctor-dispensary fees');
     }
   },
+
+  // Get sessions (start times) for a specific date
+  getSessionsForDate: async (
+    doctorId: string,
+    dispensaryId: string,
+    date: Date
+  ): Promise<Array<{ startTime: string; endTime: string; timeSlot: string; timeSlotConfigId: string | null; isModified: boolean }>> => {
+    try {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const formattedDate = `${year}-${month}-${day}`;
+      
+      const response = await api.get(
+        `/timeslots/sessions/${doctorId}/${dispensaryId}/${formattedDate}`
+      );
+      
+      return response.data.sessions || [];
+    } catch (error) {
+      console.error('Error fetching sessions for date:', error);
+      throw new Error('Failed to fetch sessions for date');
+    }
+  },
 };

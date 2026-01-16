@@ -25,6 +25,7 @@ const RoleAssignment = () => {
       try {
         setLoading(true);
         const token = AuthService.getToken();
+        console.log("++++++++++++++ token ++++++++++++++", token);
         if (!token) {
           setError('Authentication required');
           return;
@@ -63,6 +64,7 @@ const RoleAssignment = () => {
     const fetchDispensaries = async () => {
       try {
         const token = AuthService.getToken();
+        console.log("++++fetchDispensaries++++++++++ token ++++++++++++++", token);
         if (!token) {
           toast.error('Authentication required');
           return;
@@ -85,6 +87,7 @@ const RoleAssignment = () => {
   const fetchAssignedDispensary = async (userId: string) => {
     try {
       const token = AuthService.getToken();
+      console.log("++++fetchAssignedDispensary++++++++++ token ++++++++++++++", token);
       if (!token) {
         toast.error('Authentication required');
         return;
@@ -103,6 +106,7 @@ const RoleAssignment = () => {
       setIsUpdating(true);
       
       const token = AuthService.getToken();
+      console.log("++++handleRoleChange++++++++++ token ++++++++++++++", token);
       if (!token) {
         toast.error('Authentication required');
         return;
@@ -152,6 +156,7 @@ const RoleAssignment = () => {
     try {
       setIsUpdating(true);
       const token = AuthService.getToken();
+      console.log("++++handleDispensaryAssignment++++++++++ token ++++++++++++++", token);
       if (!token) {
         toast.error('Authentication required');
         return;

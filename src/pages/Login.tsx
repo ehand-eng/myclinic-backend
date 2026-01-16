@@ -66,17 +66,17 @@ const Login = () => {
 
     try {
       setIsLoading(true);
-      
+
       const otpData = {
         loginType: loginData.loginType,
-        ...(loginData.loginType === 'mobile' 
+        ...(loginData.loginType === 'mobile'
           ? { mobile: loginData.mobile }
           : { email: loginData.email }
         )
       };
 
       await axios.post(`${API_URL}/auth/send-login-otp`, otpData);
-      
+
       setOtpSent(true);
       toast({
         title: "Success",
@@ -95,7 +95,7 @@ const Login = () => {
 
   const handleMobileLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!loginData.otp) {
       toast({
         title: "Error",
@@ -107,7 +107,7 @@ const Login = () => {
 
     try {
       setIsLoading(true);
-      
+
       const loginPayload = {
         loginType: 'mobile',
         mobile: loginData.mobile,
@@ -146,7 +146,7 @@ const Login = () => {
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!loginData.email || !loginData.password) {
       toast({
         title: "Error",
@@ -158,7 +158,7 @@ const Login = () => {
 
     try {
       setIsLoading(true);
-      
+
       // Try the new mobile auth first, then fallback to existing custom auth
       let response;
       try {
@@ -179,6 +179,7 @@ const Login = () => {
 
       // Store the token
       const { token, access_token, user } = response.data;
+      console.log(response.data);
       localStorage.setItem('auth_token', token || access_token);
       localStorage.setItem('current_user', JSON.stringify(user));
 
@@ -356,7 +357,7 @@ const Login = () => {
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100">
       <Header />
-      
+
       <main className="flex-grow flex items-center justify-center py-12">
         <div className="w-full max-w-md px-4">
           <Card className="bg-white shadow-lg rounded-lg">
@@ -410,7 +411,7 @@ const Login = () => {
           </Card>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );

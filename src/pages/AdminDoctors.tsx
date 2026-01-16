@@ -19,15 +19,45 @@ const AdminDoctors = () => {
   const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   useEffect(() => {
     fetchDoctors();
   }, []);
-  
+
   const fetchDoctors = async () => {
     try {
       setIsLoading(true);
-      const data = await DoctorService.getAllDoctors();
+
+      // Get current user for role-based filtering
+      const userStr = localStorage.getItem('current_user');
+      const user = userStr ? JSON.parse(userStr) : null;
+
+      const isSuper = user?.role === 'super-admin' || (user?.roles && user.roles.includes('super-admin'));
+
+      let data: Doctor[] = [];
+
+      if (isSuper) {
+        // Super admin sees all
+        data = await DoctorService.getAllDoctors();
+      } else if (user?.dispensaryIds && user.dispensaryIds.length > 0) {
+        // Dispensary user sees doctors from assigned dispensaries
+        const normalizedIds = user.dispensaryIds.map((d: any) => typeof d === 'string' ? d : d._id || d.id);
+
+        // Fetch doctors for each assigned dispensary
+        const results = await Promise.all(
+          normalizedIds.map((id: string) => DoctorService.getDoctorsByDispensaryId(id))
+        );
+
+        // Flatten array and remove duplicates based on ID
+        const allDoctors = results.flat();
+        const uniqueDoctors = Array.from(new Map(allDoctors.map(item => [item.id, item])).values());
+
+        data = uniqueDoctors;
+      } else {
+        // No access
+        data = [];
+      }
+
       console.log('Fetched doctors:', data);
       setDoctors(data);
       setFilteredDoctors(data);
@@ -42,12 +72,12 @@ const AdminDoctors = () => {
       setIsLoading(false);
     }
   };
-  
+
   useEffect(() => {
     if (searchTerm) {
       const lowercasedSearch = searchTerm.toLowerCase();
-      const filtered = doctors.filter(doctor => 
-        doctor.name.toLowerCase().includes(lowercasedSearch) || 
+      const filtered = doctors.filter(doctor =>
+        doctor.name.toLowerCase().includes(lowercasedSearch) ||
         doctor.specialization.toLowerCase().includes(lowercasedSearch) ||
         doctor.email.toLowerCase().includes(lowercasedSearch)
       );
@@ -56,10 +86,10 @@ const AdminDoctors = () => {
       setFilteredDoctors(doctors);
     }
   }, [searchTerm, doctors]);
-  
+
   const handleDeleteDoctor = async (doctorId: string) => {
     if (!window.confirm('Are you sure you want to delete this doctor?')) return;
-    
+
     try {
       await DoctorService.deleteDoctor(doctorId);
       toast({
@@ -76,7 +106,7 @@ const AdminDoctors = () => {
       });
     }
   };
-  
+
   return (
     <div className="flex flex-col min-h-screen">
       <AdminHeader />
@@ -87,7 +117,7 @@ const AdminDoctors = () => {
             <Plus className="mr-2 h-4 w-4" /> Add New Doctor
           </Button>
         </div>
-        
+
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>Doctors Directory</CardTitle>
@@ -98,14 +128,14 @@ const AdminDoctors = () => {
           <CardContent>
             <div className="mb-4 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-              <Input 
-                placeholder="Search by name, specialization or email" 
-                value={searchTerm} 
+              <Input
+                placeholder="Search by name, specialization or email"
+                value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
-            
+
             {isLoading ? (
               <div className="flex justify-center py-8">
                 <p>Loading doctors...</p>
@@ -114,8 +144,8 @@ const AdminDoctors = () => {
               <div className="text-center py-8">
                 <p className="text-gray-500">No doctors found</p>
                 {searchTerm && (
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => setSearchTerm('')}
                     className="mt-2"
                   >
@@ -143,22 +173,22 @@ const AdminDoctors = () => {
                         <TableCell>{doctor.email}</TableCell>
                         <TableCell>{doctor.contactNumber}</TableCell>
                         <TableCell className="space-x-2">
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="sm"
                             onClick={() => navigate(`/admin/doctors/view/${doctor.id}`)}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="sm"
                             onClick={() => navigate(`/admin/doctors/edit/${doctor.id}`)}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteDoctor(doctor.id)}
                           >

@@ -38,8 +38,9 @@ const AdminHeader = () => {
     { key: 'reports', label: 'Reports', icon: BarChart3, path: '/admin/reports' },
     { key: 'bookings', label: 'Bookings', icon: Calendar, path: '/admin/bookings' },
     { key: 'fees', label: 'Fee Management', icon: DollarSign, path: '/admin/fees' },
-    { key: 'assign-users', label: 'Assign Users', icon: Users, path: '/admin/user-dispensary' },
-  ];
+    { key: 'assign-users', label: 'Assign Users aaa', icon: Users, path: '/admin/user-dispensary' },
+    { key: 'dispensary-check-in', label: 'Check-In', path: '/admin/dispensary-check-in' },
+  ]; 
 
   const getFilteredNavItems = () => {
     if (!normalizedRole) {
@@ -73,7 +74,7 @@ const AdminHeader = () => {
                 <Building2 className="h-6 w-6 text-medicalBlue-400" />
               </div>
               <Link to="/admin/dashboard" className="font-bold text-2xl text-white hover:text-medicalBlue-300 transition-colors">
-                Admin Dashboard
+                Admin Dashboard 2222
               </Link>
             </div>
 
@@ -125,7 +126,7 @@ const AdminHeader = () => {
               className="flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors min-w-[100px]"
             >
               <LayoutDashboard className="h-4 w-4" />
-              <span className="text-xs font-medium text-center">Dashboard</span>
+              <span className="text-xs font-medium text-center">Dashboard 33</span>
             </Link>
             
             <Link 
@@ -182,6 +183,13 @@ const AdminHeader = () => {
             >
               <Users className="h-4 w-4" />
               <span className="text-xs font-medium text-center">Assign Users</span>
+            </Link>
+            <Link 
+              to="/dispensary/check-in" 
+              className="flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors min-w-[100px]"
+            >
+              <Users className="h-4 w-4" />
+              <span className="text-xs font-medium text-center">Check-In</span>
             </Link>
           </nav>
 
@@ -254,6 +262,14 @@ const AdminHeader = () => {
                 
                 <Link 
                   to="/admin/user-dispensary" 
+                  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Users className="h-4 w-4" />
+                  <span className="text-sm font-medium">Assign Users111</span>
+                </Link>
+                <Link 
+                  to="/dispensary/check-in" 
                   className="flex items-center space-x-2 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors"
                   onClick={() => setMobileMenuOpen(false)}
                 >

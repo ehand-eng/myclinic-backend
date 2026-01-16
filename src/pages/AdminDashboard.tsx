@@ -50,7 +50,8 @@ import {
   canCreateBookings,
   canViewReports, 
   canViewOwnReports,
-  canManageFees 
+  canManageFees, 
+  canManagePatientCheckIn
 } from '@/lib/roleUtils';
 // import DoctorDispensaryFeeManager from '@/components/AdminF';
 
@@ -122,9 +123,15 @@ const AdminDashboard = () => {
     },
     {
       id: "user-dispensary",
-      label: "Assign Users",
+      label: "Assign Users vvv",
       icon: <UserPlus className="w-4 h-4" />,
       visible: isSuperAdmin(currentUser?.role),
+    },
+    {
+      id: "check-in",
+      label: "Check-In",
+      icon: <UserPlus className="w-4 h-4" />,
+      visible: canManagePatientCheckIn(currentUser?.role),
     },
   ];
 

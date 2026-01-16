@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { Doctor, Dispensary } from '@/api/models';
 import { DoctorService, DispensaryService } from '@/api/services';
@@ -31,6 +31,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Upload } from 'lucide-react';
 
 interface DoctorFormProps {
   doctorId?: string;
@@ -47,12 +48,43 @@ interface DoctorFormValues {
   dispensaries: string[];
 }
 
+// Phone number validation: accepts 0762199100, 762199100, or +94762199100
+const validatePhoneNumber = (phone: string): boolean | string => {
+  if (!phone) return true; // Allow empty for optional fields
+  
+  // Remove spaces
+  const cleanPhone = phone.trim();
+  
+  // Check formats: 0762199100, 762199100, +94762199100
+  const phoneRegex = /^(\+94|0)?7\d{8}$/;
+  
+  if (!phoneRegex.test(cleanPhone)) {
+    return 'Phone number must be in format: 0762199100, 762199100, or +94762199100';
+  }
+  
+  return true;
+};
+
+// Email validation regex
+const validateEmail = (email: string): boolean | string => {
+  if (!email) return 'Email is required';
+  
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  
+  if (!emailRegex.test(email)) {
+    return 'Please enter a valid email address';
+  }
+  
+  return true;
+};
+
 const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [dispensaries, setDispensaries] = useState<Dispensary[]>([]);
   const [selectedDispensaries, setSelectedDispensaries] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const form = useForm<DoctorFormValues>({
     defaultValues: {
@@ -175,6 +207,40 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
       
     form.setValue('dispensaries', updatedSelected);
   };
+
+  const handleProfilePictureUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Check if it's an image file
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: 'Error',
+          description: 'Please select an image file',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Convert to data URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        form.setValue('profilePicture', result);
+      };
+      reader.onerror = () => {
+        toast({
+          title: 'Error',
+          description: 'Failed to read image file',
+          variant: 'destructive'
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
   
   return (
     <Card>
@@ -207,7 +273,7 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Specialization</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select specialization" />
@@ -247,11 +313,14 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
             <FormField
               control={form.control}
               name="contactNumber"
+              rules={{
+                validate: validatePhoneNumber
+              }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Contact Number</FormLabel>
                   <FormControl>
-                    <Input placeholder="Phone number" {...field} />
+                    <Input placeholder="0762199100, 762199100, or +94762199100" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -261,6 +330,9 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
             <FormField
               control={form.control}
               name="email"
+              rules={{
+                validate: validateEmail
+              }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Email</FormLabel>
@@ -277,10 +349,28 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
               name="profilePicture"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Profile Picture URL</FormLabel>
-                  <FormControl>
-                    <Input placeholder="http://example.com/image.jpg (optional)" {...field} />
-                  </FormControl>
+                  <FormLabel>Profile Picture</FormLabel>
+                  <div className="flex gap-2">
+                    <FormControl>
+                      <Input placeholder="http://example.com/image.jpg or upload file" {...field} />
+                    </FormControl>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleProfilePictureUpload}
+                      className="flex items-center gap-2"
+                    >
+                      <Upload className="h-4 w-4" />
+                      Upload
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFileChange}
+                    />
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}

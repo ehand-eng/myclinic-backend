@@ -402,5 +402,92 @@ export const BookingService = {
       console.error('Error adjusting booking:', error);
       throw new Error('Failed to adjust booking');
     }
+  },
+
+  // Search bookings for check-in
+  searchBookingsForCheckIn: async (params: {
+    bookingReference?: string;
+    appointmentNumber?: string;
+    patientName?: string;
+    doctorId?: string;
+    sessionId?: string;
+    date?: string;
+    dispensaryId?: string;
+  }): Promise<Booking[]> => {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      if (params.bookingReference) queryParams.append('bookingReference', params.bookingReference);
+      if (params.appointmentNumber) queryParams.append('appointmentNumber', params.appointmentNumber);
+      if (params.patientName) queryParams.append('patientName', params.patientName);
+      if (params.doctorId) queryParams.append('doctorId', params.doctorId);
+      if (params.sessionId) queryParams.append('sessionId', params.sessionId);
+      if (params.date) queryParams.append('date', params.date);
+      if (params.dispensaryId) queryParams.append('dispensaryId', params.dispensaryId);
+
+      const response = await api.get(`/dispensary/bookings/search?${queryParams.toString()}`);
+      
+      return response.data.bookings.map((booking: any) => ({
+        ...booking,
+        id: booking._id,
+        bookingDate: new Date(booking.bookingDate),
+        checkedInTime: booking.checkedInTime ? new Date(booking.checkedInTime) : undefined,
+        createdAt: booking.createdAt ? new Date(booking.createdAt) : undefined,
+        updatedAt: booking.updatedAt ? new Date(booking.updatedAt) : undefined
+      }));
+    } catch (error) {
+      console.error('Error searching bookings for check-in:', error);
+      throw new Error('Failed to search bookings');
+    }
+  },
+
+  // Load bookings for a session (walk-in/bulk mode)
+  loadSessionBookings: async (params: {
+    dispensaryId: string;
+    doctorId: string;
+    date: string;
+    sessionId?: string;
+  }): Promise<Booking[]> => {
+    try {
+      const queryParams = new URLSearchParams();
+      queryParams.append('dispensaryId', params.dispensaryId);
+      queryParams.append('doctorId', params.doctorId);
+      queryParams.append('date', params.date);
+      if (params.sessionId) queryParams.append('sessionId', params.sessionId);
+
+      const response = await api.get(`/dispensary/bookings/session?${queryParams.toString()}`);
+      
+      return response.data.bookings.map((booking: any) => ({
+        ...booking,
+        id: booking._id,
+        bookingDate: new Date(booking.bookingDate),
+        checkedInTime: booking.checkedInTime ? new Date(booking.checkedInTime) : undefined,
+        createdAt: booking.createdAt ? new Date(booking.createdAt) : undefined,
+        updatedAt: booking.updatedAt ? new Date(booking.updatedAt) : undefined
+      }));
+    } catch (error) {
+      console.error('Error loading session bookings:', error);
+      throw new Error('Failed to load session bookings');
+    }
+  },
+
+  // Mark booking as checked-in
+  checkInBooking: async (bookingId: string): Promise<Booking> => {
+    try {
+      const response = await api.patch(`/dispensary/bookings/${bookingId}/check-in`);
+      
+      const booking = response.data.booking;
+      return {
+        ...booking,
+        id: booking._id,
+        bookingDate: new Date(booking.bookingDate),
+        checkedInTime: booking.checkedInTime ? new Date(booking.checkedInTime) : undefined,
+        createdAt: booking.createdAt ? new Date(booking.createdAt) : undefined,
+        updatedAt: booking.updatedAt ? new Date(booking.updatedAt) : undefined
+      };
+    } catch (error) {
+      console.error('Error checking in booking:', error);
+      throw new Error('Failed to check in booking');
+    }
   }
 };

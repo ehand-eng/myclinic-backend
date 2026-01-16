@@ -28,13 +28,13 @@ const ReportGenerator = () => {
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [endDate, setEndDate] = useState<Date>(addDays(new Date(), 7));
   const [reportData, setReportData] = useState<any>(null);
-  
+
   const handleReportTypeChange = (type: ReportType) => {
     setReportType(type);
     // Reset report data when changing report type
     setReportData(null);
   };
-  
+
   const handleGenerateReport = async () => {
     if (!reportType) {
       toast({
@@ -44,9 +44,9 @@ const ReportGenerator = () => {
       });
       return;
     }
-    
+
     setIsGenerating(true);
-    
+
     try {
       // Get current user from local storage
       const userJson = localStorage.getItem('current_user');
@@ -54,13 +54,13 @@ const ReportGenerator = () => {
         throw new Error("User not found");
       }
       const currentUser = JSON.parse(userJson);
-      
+
       // Generate report
       const report = await ReportService.generateReport(
         reportType,
         `${reportType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')}`,
-        { 
-          reportType, 
+        {
+          reportType,
           dateRange: {
             startDate: startDate.toISOString(),
             endDate: endDate.toISOString()
@@ -71,14 +71,14 @@ const ReportGenerator = () => {
         startDate,
         endDate
       );
-      
+
       toast({
         title: "Success",
         description: "Report generated successfully."
       });
-      
+
       setReportData(report.data);
-      
+
     } catch (error) {
       console.error("Error generating report:", error);
       toast({
@@ -90,7 +90,7 @@ const ReportGenerator = () => {
       setIsGenerating(false);
     }
   };
-  
+
   const reportTypes = [
     { value: ReportType.DAILY_BOOKINGS, label: 'Daily Bookings' },
     { value: ReportType.MONTHLY_SUMMARY, label: 'Monthly Summary' },
@@ -113,7 +113,7 @@ const ReportGenerator = () => {
   const renderReportContent = () => {
     if (!reportData) return null;
 
-    switch(reportType) {
+    switch (reportType) {
       case ReportType.DAILY_BOOKINGS:
         return (
           <div className="space-y-6">
@@ -399,10 +399,10 @@ const ReportGenerator = () => {
       <Tabs defaultValue="summary" className="w-full">
         <TabsList className="grid grid-cols-3">
           <TabsTrigger value="summary">Summary Reports</TabsTrigger>
-          <TabsTrigger value="session">Session Reports</TabsTrigger>
+          <TabsTrigger value="session">Booking Reports</TabsTrigger>
           <TabsTrigger value="history">Report History</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="summary" className="space-y-6 mt-4">
           <Card>
             <CardHeader>
@@ -425,7 +425,7 @@ const ReportGenerator = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+            
               <div className="space-y-2">
                 <Label>Date Range</Label>
                 <div className="flex flex-col sm:flex-row gap-4">
@@ -452,7 +452,7 @@ const ReportGenerator = () => {
                       </PopoverContent>
                     </Popover>
                   </div>
-                  
+
                   <div className="flex-1">
                     <Label htmlFor="endDate" className="text-xs mb-1 block">End Date</Label>
                     <Popover>
@@ -480,7 +480,7 @@ const ReportGenerator = () => {
               </div>
             </CardContent>
             <CardFooter>
-              <Button 
+              <Button
                 onClick={handleGenerateReport}
                 disabled={!reportType || isGenerating}
                 className="w-full"
@@ -500,7 +500,7 @@ const ReportGenerator = () => {
         <TabsContent value="session" className="mt-4">
           <ReportDetailGenerator />
         </TabsContent>
-        
+
         <TabsContent value="history" className="mt-4">
           <Card>
             <CardHeader>

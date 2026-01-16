@@ -25,6 +25,36 @@ import {
 } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 
+// Phone number validation: accepts 0762199100, 762199100, or +94762199100
+const validatePhoneNumber = (phone: string): boolean | string => {
+  if (!phone) return true; // Allow empty for optional fields
+  
+  // Remove spaces
+  const cleanPhone = phone.trim();
+  
+  // Check formats: 0762199100, 762199100, +94762199100
+  const phoneRegex = /^(\+94|0)?7\d{8}$/;
+  
+  if (!phoneRegex.test(cleanPhone)) {
+    return 'Phone number must be in format: 0762199100, 762199100, or +94762199100';
+  }
+  
+  return true;
+};
+
+// Email validation regex (optional field - must be valid if provided)
+const validateOptionalEmail = (email: string): boolean | string => {
+  if (!email || email.trim() === '') return true; // Allow empty
+  
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  
+  if (!emailRegex.test(email)) {
+    return 'Please enter a valid email address';
+  }
+  
+  return true;
+};
+
 interface DispensaryFormProps {
   dispensaryId?: string;
   isEdit?: boolean;
@@ -211,11 +241,14 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
             <FormField
               control={form.control}
               name="contactNumber"
+              rules={{
+                validate: validatePhoneNumber
+              }}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Contact Number</FormLabel>
                   <FormControl>
-                    <Input placeholder="Phone number" {...field} />
+                    <Input placeholder="0762199100, 762199100, or +94762199100" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -225,11 +258,14 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
             <FormField
               control={form.control}
               name="email"
+              rules={{
+                validate: validateOptionalEmail
+              }}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>Email (Optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="dispensary@example.com" type="email" {...field} />
+                    <Input placeholder="dispensary@example.com (optional)" type="email" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
