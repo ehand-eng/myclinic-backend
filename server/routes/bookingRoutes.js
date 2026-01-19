@@ -602,40 +602,66 @@ router.post('/', async (req, res) => {
     // Send SMS notification (non-blocking)
     // This runs asynchronously and won't block the response
     if (patientPhone) {
+      try {
+        console.log("📨 Sending booking confirmation SMS...");
+        smsService.sendBookingConfirmationSMS(booking).then(smsResult => {
+          if (smsResult && smsResult.success) {
+            console.log("✅ Booking confirmation SMS sent successfully");
+
+            booking.smsDelivery.status = 'sent';
+            booking.smsDelivery.sentAt = new Date();
+            booking.smsDelivery.lastUpdated = new Date();
+
+            if (smsResult.response && smsResult.response.transaction_id) {
+              booking.smsDelivery.details = `TransID: ${smsResult.response.transaction_id}`;
+            }
+
+            booking.save();
+          } else {
+            console.warn("⚠️ Failed to send booking confirmation SMS");
+            booking.smsDelivery.status = 'failed';
+            booking.save();
+          }
+        }).catch(err => {
+          console.error("❌ Error initiating SMS send:", err);
+        });
+      } catch (smsError) {
+        console.error("❌ Error in SMS flow:", smsError);
+      }
       // Get doctor and dispensary names for SMS
-      const Doctor = require('../models/Doctor');
-      const Dispensary = require('../models/Dispensary');
+      // const Doctor = require('../models/Doctor');
+      // const Dispensary = require('../models/Dispensary');
 
-      Promise.all([
-        Doctor.findById(doctorId),
-        Dispensary.findById(dispensaryId)
-      ]).then(([doctor, dispensary]) => {
-        const bookingDetails = {
-          patientPhone,
-          patientName,
-          transactionId,
-          doctorName: doctor?.name || 'Doctor',
-          dispensaryName: dispensary?.name || 'Dispensary',
-          bookingDate: parsedBookingDate.toLocaleDateString('en-US', {
-            weekday: 'short',
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-          }),
-          timeSlot,
-          appointmentNumber: nextAppointmentNumber
-        };
+      // Promise.all([
+      //   Doctor.findById(doctorId),
+      //   Dispensary.findById(dispensaryId)
+      // ]).then(([doctor, dispensary]) => {
+      //   const bookingDetails = {
+      //     patientPhone,
+      //     patientName,
+      //     transactionId,
+      //     doctorName: doctor?.name || 'Doctor',
+      //     dispensaryName: dispensary?.name || 'Dispensary',
+      //     bookingDate: parsedBookingDate.toLocaleDateString('en-US', {
+      //       weekday: 'short',
+      //       year: 'numeric',
+      //       month: 'short',
+      //       day: 'numeric'
+      //     }),
+      //     timeSlot,
+      //     appointmentNumber: nextAppointmentNumber
+      //   };
 
-        return smsService.sendBookingConfirmation(bookingDetails);
-      }).then(result => {
-        if (result.success) {
-          console.log('✅ SMS sent successfully to', patientPhone);
-        } else {
-          console.warn('⚠️ SMS sending failed:', result.reason || result.error);
-        }
-      }).catch(error => {
-        console.error('❌ Error in SMS sending process:', error.message);
-      });
+      //   return smsService.sendBookingConfirmation(bookingDetails);
+      // }).then(result => {
+      //   if (result.success) {
+      //     console.log('✅ SMS sent successfully to', patientPhone);
+      //   } else {
+      //     console.warn('⚠️ SMS sending failed:', result.reason || result.error);
+      //   }
+      // }).catch(error => {
+      //   console.error('❌ Error in SMS sending process:', error.message);
+      // });
     } else {
       console.warn('⚠️ No phone number provided, skipping SMS');
     }
