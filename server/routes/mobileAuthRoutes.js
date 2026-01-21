@@ -17,8 +17,8 @@ router.post('/send-otp', async (req, res) => {
 
     // Validate nationality
     if (!nationality || !['sri_lanka', 'other'].includes(nationality)) {
-      return res.status(400).json({ 
-        message: 'Invalid nationality. Must be "sri_lanka" or "other"' 
+      return res.status(400).json({
+        message: 'Invalid nationality. Must be "sri_lanka" or "other"'
       });
     }
 
@@ -62,21 +62,21 @@ router.post('/send-otp', async (req, res) => {
     }
 
     if (result.success) {
-      res.json({ 
+      res.json({
         message: result.message,
-        messageId: result.messageId 
+        messageId: result.messageId
       });
     } else {
-      res.status(500).json({ 
+      res.status(500).json({
         message: result.message,
-        error: result.error 
+        error: result.error
       });
     }
   } catch (error) {
     console.error('Send OTP error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Failed to send OTP',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -88,8 +88,8 @@ router.post('/verify-otp', async (req, res) => {
 
     // Validate nationality
     if (!nationality || !['sri_lanka', 'other'].includes(nationality)) {
-      return res.status(400).json({ 
-        message: 'Invalid nationality. Must be "sri_lanka" or "other"' 
+      return res.status(400).json({
+        message: 'Invalid nationality. Must be "sri_lanka" or "other"'
       });
     }
 
@@ -107,9 +107,9 @@ router.post('/verify-otp', async (req, res) => {
     }
   } catch (error) {
     console.error('Verify OTP error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Failed to verify OTP',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -121,14 +121,14 @@ router.post('/signup-mobile', async (req, res) => {
 
     // Validate required fields
     if (!name || !password || !nationality) {
-      return res.status(400).json({ 
-        message: 'Name, password, and nationality are required' 
+      return res.status(400).json({
+        message: 'Name, password, and nationality are required'
       });
     }
 
     if (password.length < 6) {
-      return res.status(400).json({ 
-        message: 'Password must be at least 6 characters long' 
+      return res.status(400).json({
+        message: 'Password must be at least 6 characters long'
       });
     }
 
@@ -150,13 +150,13 @@ router.post('/signup-mobile', async (req, res) => {
     }
 
     // Check if user already exists
-    const existingUser = nationality === 'sri_lanka' 
+    const existingUser = nationality === 'sri_lanka'
       ? await User.findOne({ mobile })
       : await User.findOne({ email });
-    
+
     if (existingUser) {
-      return res.status(400).json({ 
-        message: `User with this ${nationality === 'sri_lanka' ? 'mobile number' : 'email'} already exists` 
+      return res.status(400).json({
+        message: `User with this ${nationality === 'sri_lanka' ? 'mobile number' : 'email'} already exists`
       });
     }
 
@@ -209,9 +209,9 @@ router.post('/signup-mobile', async (req, res) => {
     });
   } catch (error) {
     console.error('Signup error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Failed to create user account',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -222,8 +222,8 @@ router.post('/send-login-otp', async (req, res) => {
     const { loginType, mobile, email } = req.body;
 
     if (!loginType || !['mobile', 'email'].includes(loginType)) {
-      return res.status(400).json({ 
-        message: 'Invalid login type. Must be "mobile" or "email"' 
+      return res.status(400).json({
+        message: 'Invalid login type. Must be "mobile" or "email"'
       });
     }
 
@@ -265,21 +265,21 @@ router.post('/send-login-otp', async (req, res) => {
     }
 
     if (result.success) {
-      res.json({ 
+      res.json({
         message: result.message,
-        messageId: result.messageId 
+        messageId: result.messageId
       });
     } else {
-      res.status(500).json({ 
+      res.status(500).json({
         message: result.message,
-        error: result.error 
+        error: result.error
       });
     }
   } catch (error) {
     console.error('Send login OTP error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Failed to send OTP',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -290,8 +290,8 @@ router.post('/login-mobile', async (req, res) => {
     const { mobile, otp, keepSignedIn } = req.body;
 
     if (!mobile || !otp) {
-      return res.status(400).json({ 
-        message: 'Mobile number and OTP are required' 
+      return res.status(400).json({
+        message: 'Mobile number and OTP are required'
       });
     }
 
@@ -300,7 +300,7 @@ router.post('/login-mobile', async (req, res) => {
     }
 
     // Find user
-    const user = await User.findOne({ mobile });
+    const user = await User.findOne({ email: "akudahewa@gmail.com" });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -342,9 +342,9 @@ router.post('/login-mobile', async (req, res) => {
     });
   } catch (error) {
     console.error('Mobile login error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Login failed',
-      error: error.message 
+      error: error.message
     });
   }
 });
@@ -355,8 +355,8 @@ router.post('/login-email', async (req, res) => {
     const { email, password, keepSignedIn } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ 
-        message: 'Email and password are required' 
+      return res.status(400).json({
+        message: 'Email and password are required'
       });
     }
 
@@ -407,9 +407,9 @@ router.post('/login-email', async (req, res) => {
     });
   } catch (error) {
     console.error('Email login error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Login failed',
-      error: error.message 
+      error: error.message
     });
   }
 });

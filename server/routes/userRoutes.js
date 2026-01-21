@@ -41,7 +41,7 @@ router.get('/:id', validateJwt, requireRole([ROLES.SUPER_ADMIN, ROLES.hospital_a
 
     // For hospital_admin, check if they have access to this user's dispensary
     if (req.user.role === ROLES.hospital_admin) {
-      const hasAccess = user.dispensaryIds.some(id => 
+      const hasAccess = user.dispensaryIds.some(id =>
         req.user.dispensaryIds.includes(id)
       );
       if (!hasAccess) {
@@ -55,6 +55,31 @@ router.get('/:id', validateJwt, requireRole([ROLES.SUPER_ADMIN, ROLES.hospital_a
     res.status(500).json({ message: 'Failed to fetch user' });
   }
 });
+
+// Get user by mobile number
+router.get('/mobile/:mobile', async (req, res) => {
+  try {
+    const { mobile } = req.params;
+
+    // Validate mobile number format
+    if (!mobile) {
+      return res.status(400).json({ message: 'Mobile number is required' });
+    }
+
+    // Find user by mobile number
+    const user = await User.findOne({ mobile }).select('-passwordHash');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found with this mobile number' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('Error fetching user by mobile:', error);
+    res.status(500).json({ message: 'Failed to fetch user' });
+  }
+});
+
 
 // Create new user (super_admin only)
 router.post('/', validateJwt, requireRole([ROLES.SUPER_ADMIN]), async (req, res) => {
@@ -87,9 +112,9 @@ router.post('/', validateJwt, requireRole([ROLES.SUPER_ADMIN]), async (req, res)
       });
     } catch (auth0Error) {
       console.error('Error creating Auth0 user:', auth0Error);
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'Failed to create user in Auth0',
-        error: auth0Error.message 
+        error: auth0Error.message
       });
     }
 
@@ -136,7 +161,7 @@ router.put('/:id', validateJwt, requireRole([ROLES.SUPER_ADMIN, ROLES.hospital_a
 
     // For hospital_admin, check if they have access to this user's dispensary
     if (req.user.role === ROLES.hospital_admin) {
-      const hasAccess = user.dispensaryIds.some(id => 
+      const hasAccess = user.dispensaryIds.some(id =>
         req.user.dispensaryIds.includes(id)
       );
       if (!hasAccess) {
@@ -155,9 +180,9 @@ router.put('/:id', validateJwt, requireRole([ROLES.SUPER_ADMIN, ROLES.hospital_a
       await auth0Management.users.update({ id: user.auth0Id }, updateData);
     } catch (auth0Error) {
       console.error('Error updating Auth0 user:', auth0Error);
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'Failed to update user in Auth0',
-        error: auth0Error.message 
+        error: auth0Error.message
       });
     }
 
@@ -200,9 +225,9 @@ router.delete('/:id', validateJwt, requireRole([ROLES.SUPER_ADMIN]), async (req,
       await auth0Management.users.delete({ id: user.auth0Id });
     } catch (auth0Error) {
       console.error('Error deleting Auth0 user:', auth0Error);
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'Failed to delete user from Auth0',
-        error: auth0Error.message 
+        error: auth0Error.message
       });
     }
 
