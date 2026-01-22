@@ -59,6 +59,7 @@ router.get('/:id', validateJwt, requireRole([ROLES.SUPER_ADMIN, ROLES.hospital_a
 // Get user by mobile number
 router.get('/mobile/:mobile', async (req, res) => {
   try {
+    console.log("111111. Mobile number:", req.params.mobile);
     const { mobile } = req.params;
 
     // Validate mobile number format
