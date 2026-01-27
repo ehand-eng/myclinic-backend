@@ -16,8 +16,17 @@ const ses = new AWS.SES({
 
 // In-memory OTP storage (in production, use Redis or database)
 const otpStorage = new Map();
+const attemptStorage = new Map();
 
 class OTPService {
+  constructor() {
+    // Configuration
+    this.OTP_EXPIRY_MINUTES = 5;
+    this.MAX_RESEND_ATTEMPTS = 3;
+    this.RESEND_COOLDOWN_SECONDS = 60; // 1 minute between resends
+    this.MAX_VERIFY_ATTEMPTS = 5;
+  }
+
   /**
    * Generate a random 6-digit OTP
    */
@@ -33,38 +42,140 @@ class OTPService {
     otpStorage.set(identifier, {
       otp,
       expiresAt,
-      attempts: 0
+      attempts: 0,
+      verifyAttempts: 0,
+      createdAt: Date.now()
+    });
+
+    // Auto-cleanup after expiry
+    setTimeout(() => {
+      otpStorage.delete(identifier);
+    }, 5 * 60 * 1000);
+  }
+
+  /**
+   * Check if resend is allowed
+   */
+  static canResendOTP(identifier) {
+    const attempts = attemptStorage.get(identifier) || {
+      count: 0,
+      lastSentAt: 0,
+      firstAttemptAt: Date.now()
+    };
+
+    const timeSinceLastSend = (Date.now() - attempts.lastSentAt) / 1000;
+    const timeSinceFirstAttempt = (Date.now() - attempts.firstAttemptAt) / 1000;
+
+    // Reset attempts after 1 hour
+    if (timeSinceFirstAttempt > 3600) {
+      attemptStorage.delete(identifier);
+      return {
+        allowed: true,
+        remainingAttempts: 3,
+        cooldownSeconds: 0
+      };
+    }
+
+    // Check if max attempts reached
+    if (attempts.count >= 3) {
+      const cooldownRemaining = Math.max(0, 3600 - timeSinceFirstAttempt);
+      return {
+        allowed: false,
+        remainingAttempts: 0,
+        cooldownSeconds: Math.ceil(cooldownRemaining),
+        message: 'Maximum resend attempts reached. Please try again in ' + Math.ceil(cooldownRemaining / 60) + ' minutes.'
+      };
+    }
+
+    // Check cooldown period
+    if (timeSinceLastSend < 60) {
+      const cooldownRemaining = Math.ceil(60 - timeSinceLastSend);
+      return {
+        allowed: false,
+        remainingAttempts: 3 - attempts.count,
+        cooldownSeconds: cooldownRemaining,
+        message: `Please wait ${cooldownRemaining} seconds before requesting another OTP.`
+      };
+    }
+
+    return {
+      allowed: true,
+      remainingAttempts: 3 - attempts.count - 1,
+      cooldownSeconds: 0
+    };
+  }
+
+  /**
+   * Record OTP send attempt
+   */
+  static recordSendAttempt(identifier) {
+    const attempts = attemptStorage.get(identifier) || {
+      count: 0,
+      firstAttemptAt: Date.now()
+    };
+
+    attemptStorage.set(identifier, {
+      count: attempts.count + 1,
+      lastSentAt: Date.now(),
+      firstAttemptAt: attempts.firstAttemptAt
     });
   }
+
 
   /**
    * Verify OTP
    */
   static verifyOTP(identifier, inputOTP) {
     const stored = otpStorage.get(identifier);
-    
+
     if (!stored) {
-      return { success: false, message: 'OTP not found or expired' };
+      return {
+        success: false,
+        valid: false,
+        message: 'OTP not found or expired. Please request a new one.'
+      };
     }
 
     if (Date.now() > stored.expiresAt) {
       otpStorage.delete(identifier);
-      return { success: false, message: 'OTP has expired' };
+      return {
+        success: false,
+        valid: false,
+        message: 'OTP has expired. Please request a new one.'
+      };
     }
 
-    if (stored.attempts >= 3) {
+    // Increment verify attempts
+    stored.verifyAttempts = (stored.verifyAttempts || 0) + 1;
+
+    if (stored.verifyAttempts > 5) {
       otpStorage.delete(identifier);
-      return { success: false, message: 'Too many failed attempts' };
+      return {
+        success: false,
+        valid: false,
+        message: 'Maximum verification attempts exceeded. Please request a new OTP.'
+      };
     }
 
     if (stored.otp !== inputOTP) {
-      stored.attempts++;
-      return { success: false, message: 'Invalid OTP' };
+      const remainingAttempts = 5 - stored.verifyAttempts;
+      return {
+        success: false,
+        valid: false,
+        message: `Invalid OTP. ${remainingAttempts} attempt${remainingAttempts !== 1 ? 's' : ''} remaining.`,
+        remainingAttempts
+      };
     }
 
-    // OTP verified successfully
+    // OTP verified successfully - cleanup
     otpStorage.delete(identifier);
-    return { success: true, message: 'OTP verified successfully' };
+    attemptStorage.delete(identifier);
+
+    return {
+      success: true,
+      valid: true,
+      message: 'OTP verified successfully.'
+    };
   }
 
   /**
@@ -73,7 +184,7 @@ class OTPService {
   static formatSriLankanNumber(phoneNumber) {
     // Remove all non-digit characters
     const cleaned = phoneNumber.replace(/\D/g, '');
-    
+
     // Handle different Sri Lankan number formats
     if (cleaned.startsWith('94')) {
       // Already in international format
@@ -97,9 +208,9 @@ class OTPService {
     try {
       const otp = this.generateOTP();
       const formattedNumber = this.formatSriLankanNumber(phoneNumber);
-      
+
       const message = `Your DocSpot Connect verification code is: ${otp}. This code will expire in 5 minutes.`;
-      
+
       const params = {
         PhoneNumber: formattedNumber,
         Message: message,
@@ -119,7 +230,7 @@ class OTPService {
       console.log("result", result);
       // Store OTP for verification
       this.storeOTP(phoneNumber, otp);
-      
+
       return {
         success: true,
         messageId: result.MessageId,
@@ -141,7 +252,7 @@ class OTPService {
   static async sendEmailOTP(email) {
     try {
       const otp = this.generateOTP();
-      
+
       const params = {
         Source: process.env.FROM_EMAIL || 'noreply@docspotconnect.com',
         Destination: {
@@ -166,10 +277,10 @@ class OTPService {
       };
 
       const result = await ses.sendEmail(params).promise();
-      
+
       // Store OTP for verification
       this.storeOTP(email, otp);
-      
+
       return {
         success: true,
         messageId: result.MessageId,
@@ -288,7 +399,7 @@ class OTPService {
    */
   static validateSriLankanMobile(mobile) {
     const cleaned = mobile.replace(/\D/g, '');
-    
+
     // Sri Lankan mobile numbers should be 9 digits after country code
     // Common formats: 07XXXXXXXX, +947XXXXXXXX, 947XXXXXXXX
     return /^(0|94|\+94)?7[0-9]{8}$/.test(cleaned);
@@ -300,6 +411,35 @@ class OTPService {
   static validateEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
+  }
+
+  /**
+   * Get OTP info (for debugging/admin purposes)
+   */
+  static getOTPInfo(identifier) {
+    const stored = otpStorage.get(identifier);
+    if (!stored) return null;
+
+    return {
+      expiresIn: Math.max(0, Math.ceil((stored.expiresAt - Date.now()) / 1000)),
+      verifyAttempts: stored.verifyAttempts || 0,
+      maxAttempts: 5,
+      createdAt: new Date(stored.createdAt).toISOString()
+    };
+  }
+
+  /**
+   * Clear OTP for identifier
+   */
+  static clearOTP(identifier) {
+    otpStorage.delete(identifier);
+  }
+
+  /**
+   * Clear all attempts for identifier
+   */
+  static clearAttempts(identifier) {
+    attemptStorage.delete(identifier);
   }
 
   /**

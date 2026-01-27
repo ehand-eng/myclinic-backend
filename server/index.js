@@ -24,6 +24,8 @@ const feeManagementRoutes = require('./routes/feeManagementRoutes');
 const channelPartnerRoutes = require('./routes/channelPartnerRoutes');
 const fcmRoutes = require('./routes/fcmRoutes');
 const dispensaryCheckInRoutes = require('./routes/dispensaryCheckInRoutes');
+const utilRoutes = require('./routes/utilRoutes');
+const locationRoutes = require('./routes/locationRoutes');
 // Create Express app
 const app = express();
 
@@ -59,6 +61,8 @@ app.use('/api/doctor-dispensaries', doctorDispensaryRoutes);
 app.use('/api/fees', feeManagementRoutes); // Fixed fee management routes with real DB
 app.use('/api/channel-partners', channelPartnerRoutes); // Channel partner routes
 app.use('/api/dispensary', dispensaryCheckInRoutes); // Dispensary check-in routes
+app.use('/api/util', utilRoutes); // Utility routes (OTP management)
+app.use('/api/location', locationRoutes); // Location-based search routes
 
 // Base route
 app.get('/api', (req, res) => {
@@ -67,6 +71,6 @@ app.get('/api', (req, res) => {
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT,"0.0.0.0", () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server is running on port ${PORT}`);
 });

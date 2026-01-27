@@ -70,10 +70,6 @@ router.get('/mobile/:mobile', async (req, res) => {
     // Find user by mobile number
     const user = await User.findOne({ mobile }).select('-passwordHash');
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found with this mobile number' });
-    }
-
     res.json(user);
   } catch (error) {
     console.error('Error fetching user by mobile:', error);
