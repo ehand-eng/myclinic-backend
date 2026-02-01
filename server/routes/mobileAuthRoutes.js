@@ -284,7 +284,9 @@ router.post('/send-login-otp', async (req, res) => {
   }
 });
 
-// Login with mobile OTP
+/** Login with mobile OTP
+ * POST /api/auth/login-mobile
+ */
 router.post('/login-mobile', async (req, res) => {
   try {
     const { mobile, otp, keepSignedIn } = req.body;

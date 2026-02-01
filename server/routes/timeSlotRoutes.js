@@ -3,18 +3,18 @@ const router = express.Router();
 const TimeSlotConfig = require('../models/TimeSlotConfig');
 const AbsentTimeSlot = require('../models/AbsentTimeSlot');
 const mongoose = require('mongoose');
-const { validateJwt, requireRole,ROLES } = require('../middleware/authMiddleware');
+const { validateJwt, requireRole, ROLES } = require('../middleware/authMiddleware');
 
 // Get time slots for a doctor at a specific dispensary
 router.get('/config/doctor/:doctorId/dispensary/:dispensaryId', async (req, res) => {
   try {
     const { doctorId, dispensaryId } = req.params;
-    
+
     const timeSlots = await TimeSlotConfig.find({
       doctorId: doctorId,
       dispensaryId: dispensaryId
     });
-    
+
     res.status(200).json(timeSlots);
   } catch (error) {
     console.error('Error getting time slots:', error);
@@ -28,7 +28,7 @@ router.get('/config/dispensary/:dispensaryId', async (req, res) => {
     const timeSlots = await TimeSlotConfig.find({
       dispensaryId: req.params.dispensaryId
     }).populate('doctorId', 'name');
-    
+
     res.status(200).json(timeSlots);
   } catch (error) {
     console.error('Error getting dispensary time slots:', error);
@@ -56,11 +56,11 @@ router.put('/config/:id', async (req, res) => {
       req.body,
       { new: true, runValidators: true }
     );
-    
+
     if (!timeSlotConfig) {
       return res.status(404).json({ message: 'Time slot configuration not found' });
     }
-    
+
     res.status(200).json(timeSlotConfig);
   } catch (error) {
     console.error('Error updating time slot config:', error);
@@ -72,11 +72,11 @@ router.put('/config/:id', async (req, res) => {
 router.delete('/config/:id', async (req, res) => {
   try {
     const timeSlotConfig = await TimeSlotConfig.findByIdAndDelete(req.params.id);
-    
+
     if (!timeSlotConfig) {
       return res.status(404).json({ message: 'Time slot configuration not found' });
     }
-    
+
     res.status(200).json({ message: 'Time slot configuration deleted successfully' });
   } catch (error) {
     console.error('Error deleting time slot config:', error);
@@ -89,7 +89,7 @@ router.delete('/config/:id', async (req, res) => {
 router.get('/sessions/:doctorId/:dispensaryId/:date', async (req, res) => {
   try {
     const { doctorId, dispensaryId, date } = req.params;
-    
+
     // Parse the date - ensure we use local timezone, not UTC
     // Date format: YYYY-MM-DD
     const [year, month, day] = date.split('-').map(Number);
@@ -111,13 +111,13 @@ router.get('/sessions/:doctorId/:dispensaryId/:date', async (req, res) => {
         message: 'No sessions configured for this day'
       });
     }
-    
+
     // Check for AbsentTimeSlot modifications for this specific date
     const startOfDay = new Date(bookingDate);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(bookingDate);
     endOfDay.setHours(23, 59, 59, 999);
-    
+
     const absentSlot = await AbsentTimeSlot.findOne({
       doctorId: doctorId,
       dispensaryId: dispensaryId,
@@ -126,7 +126,7 @@ router.get('/sessions/:doctorId/:dispensaryId/:date', async (req, res) => {
         $lte: endOfDay
       }
     });
-    
+
     // If doctor is completely absent, return empty
     if (absentSlot && !absentSlot.isModifiedSession) {
       return res.status(200).json({
@@ -134,10 +134,10 @@ router.get('/sessions/:doctorId/:dispensaryId/:date', async (req, res) => {
         message: 'Doctor is absent on this date'
       });
     }
-    
+
     // Build sessions list
     const sessions = [];
-    
+
     if (absentSlot && absentSlot.isModifiedSession) {
       // Use modified session instead of regular config
       // Still reference the original timeSlotConfigId if available (use first one as fallback)
@@ -161,13 +161,13 @@ router.get('/sessions/:doctorId/:dispensaryId/:date', async (req, res) => {
         });
       }
     }
-    
+
     res.status(200).json({
       sessions: sessions,
       date: date,
       dayOfWeek: dayOfWeek
     });
-    
+
   } catch (error) {
     console.error('Error getting sessions:', error);
     res.status(500).json({ message: 'Error fetching sessions', error: error.message });
@@ -179,11 +179,11 @@ router.get('/absent/doctor/:doctorId/dispensary/:dispensaryId', async (req, res)
   try {
     const { doctorId, dispensaryId } = req.params;
     const { startDate, endDate } = req.query;
-    
+
     if (!startDate || !endDate) {
       return res.status(400).json({ message: 'Start date and end date are required' });
     }
-    
+
     const absentSlots = await AbsentTimeSlot.find({
       doctorId: doctorId,
       dispensaryId: dispensaryId,
@@ -192,7 +192,7 @@ router.get('/absent/doctor/:doctorId/dispensary/:dispensaryId', async (req, res)
         $lte: new Date(endDate)
       }
     });
-    
+
     res.status(200).json(absentSlots);
   } catch (error) {
     console.error('Error getting absent time slots:', error);
@@ -216,11 +216,11 @@ router.post('/absent', async (req, res) => {
 router.delete('/absent/:id', async (req, res) => {
   try {
     const absentSlot = await AbsentTimeSlot.findByIdAndDelete(req.params.id);
-    
+
     if (!absentSlot) {
       return res.status(404).json({ message: 'Absent time slot not found' });
     }
-    
+
     res.status(200).json({ message: 'Absent time slot deleted successfully' });
   } catch (error) {
     console.error('Error deleting absent time slot:', error);
@@ -232,20 +232,20 @@ router.delete('/absent/:id', async (req, res) => {
 router.get('/available/:doctorId/:dispensaryId/:date', async (req, res) => {
   try {
     const { doctorId, dispensaryId, date } = req.params;
-    
+
     // Parse the date
     const bookingDate = new Date(date);
-    
+
     // Get day of week (0-6, where 0 is Sunday)
     const dayOfWeek = bookingDate.getDay();
-    
+
     // 1. Get the regular time slot configuration for this day
     const timeSlotConfig = await TimeSlotConfig.findOne({
       doctorId: doctorId,
       dispensaryId: dispensaryId,
       dayOfWeek: dayOfWeek
     });
-    
+
     if (!timeSlotConfig) {
       return res.status(200).json({
         available: false,
@@ -253,7 +253,7 @@ router.get('/available/:doctorId/:dispensaryId/:date', async (req, res) => {
         message: 'No regular schedule found for this day'
       });
     }
-    
+
     // 2. Check if there's a modified/absent session for this specific date
     const absentSlot = await AbsentTimeSlot.findOne({
       doctorId: doctorId,
@@ -263,11 +263,11 @@ router.get('/available/:doctorId/:dispensaryId/:date', async (req, res) => {
         $lte: new Date(bookingDate.setHours(23, 59, 59, 999))
       }
     });
-    
+
     // Variables to hold session details
     let startTime, endTime, minutesPerPatient, maxPatients;
     let isModified = false;
-    
+
     // If completely absent, return no slots with reason
     if (absentSlot && !absentSlot.isModifiedSession) {
       return res.status(200).json({
@@ -275,7 +275,7 @@ router.get('/available/:doctorId/:dispensaryId/:date', async (req, res) => {
         reason: 'absent',
         message: 'Doctor is not available on this date'
       });
-    } 
+    }
     // If modified session, use those parameters
     else if (absentSlot && absentSlot.isModifiedSession) {
       startTime = absentSlot.startTime;
@@ -284,7 +284,7 @@ router.get('/available/:doctorId/:dispensaryId/:date', async (req, res) => {
       // Use original minutes per patient if not specified in the adjustment
       minutesPerPatient = absentSlot.minutesPerPatient || timeSlotConfig.minutesPerPatient;
       isModified = true;
-    } 
+    }
     // Otherwise use the regular config
     else {
       startTime = timeSlotConfig.startTime;
@@ -292,7 +292,7 @@ router.get('/available/:doctorId/:dispensaryId/:date', async (req, res) => {
       maxPatients = timeSlotConfig.maxPatients;
       minutesPerPatient = timeSlotConfig.minutesPerPatient;
     }
-    
+
     // 3. Get already booked appointments for this day
     const BookingModel = mongoose.models.Booking || mongoose.model('Booking', new mongoose.Schema({}));
     const existingBookings = await BookingModel.find({
@@ -304,53 +304,53 @@ router.get('/available/:doctorId/:dispensaryId/:date', async (req, res) => {
       },
       status: { $ne: 'cancelled' }
     }).sort({ appointmentNumber: 1 });
-    
+
     // 4. Calculate available time slots
     const [startHour, startMinute] = startTime.split(':').map(Number);
     const [endHour, endMinute] = endTime.split(':').map(Number);
-    
+
     const sessionStartTime = new Date(bookingDate);
     sessionStartTime.setHours(startHour, startMinute, 0, 0);
-    
+
     const sessionEndTime = new Date(bookingDate);
     sessionEndTime.setHours(endHour, endMinute, 0, 0);
-    
+
     // Calculate total session duration in minutes
-    const totalSessionMinutes = 
+    const totalSessionMinutes =
       (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
-    
+
     // Calculate max possible appointments based on time and minutes per patient
     const maxPossibleAppointments = Math.min(
       maxPatients,
       Math.floor(totalSessionMinutes / minutesPerPatient)
     );
-    
+
     // Generate time slots
     const availableSlots = [];
-    
+
     for (let i = 1; i <= maxPossibleAppointments; i++) {
       // Check if this appointment number is already booked
       const isBooked = existingBookings.some(booking => booking.appointmentNumber === i);
-      
+
       if (!isBooked) {
         // Calculate the estimated time for this appointment
         const appointmentOffset = (i - 1) * minutesPerPatient; // Minutes from start time
         const appointmentTime = new Date(sessionStartTime);
         appointmentTime.setMinutes(appointmentTime.getMinutes() + appointmentOffset);
-        
+
         const hours = appointmentTime.getHours().toString().padStart(2, '0');
         const minutes = appointmentTime.getMinutes().toString().padStart(2, '0');
         const estimatedTime = `${hours}:${minutes}`;
-        
+
         // Calculate the time slot range (e.g., "18:00-18:20")
         const endOfAppointment = new Date(appointmentTime);
         endOfAppointment.setMinutes(endOfAppointment.getMinutes() + minutesPerPatient);
-        
+
         const endHours = endOfAppointment.getHours().toString().padStart(2, '0');
         const endMinutes = endOfAppointment.getMinutes().toString().padStart(2, '0');
-        
+
         const timeSlot = `${hours}:${minutes}-${endHours}:${endMinutes}`;
-        
+
         availableSlots.push({
           appointmentNumber: i,
           timeSlot,
@@ -359,7 +359,7 @@ router.get('/available/:doctorId/:dispensaryId/:date', async (req, res) => {
         });
       }
     }
-    
+
     // Return availability status, session info, and slots
     res.status(200).json({
       available: true,
@@ -386,7 +386,7 @@ router.get('/next-available/:doctorId/:dispensaryId', async (req, res) => {
   try {
     const { doctorId, dispensaryId } = req.params;
     const logger = require('../utils/logger');
-    
+
     logger.info('Fetching next 5 available days', {
       requestId: req.requestId,
       doctorId,
@@ -418,15 +418,15 @@ router.get('/next-available/:doctorId/:dispensaryId', async (req, res) => {
 
     // Start from today
     let currentDate = new Date();
-    console.log("--------- first current date ----------- "+currentDate);
+    console.log("--------- first current date ----------- " + currentDate);
     currentDate.setHours(0, 0, 0, 0);
     const now = new Date();
     while (availableDays.length < 5 && daysChecked < maxDaysToCheck) {
       const dayOfWeek = currentDate.getDay();
-      
+
       // Find configuration for this day of week
       const timeSlotConfig = timeSlotConfigs.find(config => config.dayOfWeek === dayOfWeek);
-      
+
       if (timeSlotConfig) {
         // Check if there's an absent/modified session for this specific date
         const absentSlot = await AbsentTimeSlot.findOne({
@@ -444,7 +444,7 @@ router.get('/next-available/:doctorId/:dispensaryId', async (req, res) => {
           daysChecked++;
           continue;
         }
-        console.log("11111 current date 11111 "+currentDate);
+        console.log("11111 current date 11111 " + currentDate);
         // Determine session parameters
         let startTime, endTime, minutesPerPatient, maxPatients, bookingCutoverTime;
         let isModified = false;
@@ -463,26 +463,26 @@ router.get('/next-available/:doctorId/:dispensaryId', async (req, res) => {
           minutesPerPatient = timeSlotConfig.minutesPerPatient;
           bookingCutoverTime = timeSlotConfig.bookingCutoverTime || 60;
         }
-        console.log("startTime :"+startTime +" endTime :"+endTime);
+        console.log("startTime :" + startTime + " endTime :" + endTime);
         // Calculate session start Date object
         const [startHour, startMinute] = startTime.split(':').map(Number);
         const sessionStart = new Date(currentDate);
         sessionStart.setHours(startHour, startMinute, 0, 0);
         // Booking cutover time
         const cutover = new Date(sessionStart.getTime() - bookingCutoverTime * 60000);
-        console.log("+++++++++++ cutover time ++++++ "+cutover);
-        console.log("?????? "+currentDate);
+        console.log("+++++++++++ cutover time ++++++ " + cutover);
+        console.log("?????? " + currentDate);
         let isToday = currentDate.toDateString() === now.toDateString();
         // If today and now > cutover, skip this day
-        console.log("mmmmmmm istoday mmmmmmmmm "+isToday + " cccc "+currentDate);
-        console.log(" FFFFF : "+currentDate);
+        console.log("mmmmmmm istoday mmmmmmmmm " + isToday + " cccc " + currentDate);
+        console.log(" FFFFF : " + currentDate);
         if (isToday && now > cutover) {
           currentDate.setDate(currentDate.getDate() + 1);
-          console.log("!!!!!!!!! now > cutover !!!! "+currentDate);
+          console.log("!!!!!!!!! now > cutover !!!! " + currentDate);
           daysChecked++;
           continue;
         }
-        console.log('ddddd '+currentDate);
+        console.log('ddddd ' + currentDate);
         // Get existing bookings for this date
         const existingBookings = await BookingModel.find({
           doctorId: doctorId,
@@ -503,13 +503,13 @@ router.get('/next-available/:doctorId/:dispensaryId', async (req, res) => {
         const totalSessionMinutes = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
         // Only add this day if there are available slots
         if (hasAvailableSlots && nextAppointmentNumber <= maxPatients) {
-          console.log("before &&&&&&&&&&&&&& "+currentDate);
+          console.log("before &&&&&&&&&&&&&& " + currentDate);
           const year = currentDate.getFullYear();
           const month = String(currentDate.getMonth() + 1).padStart(2, '0');
           const day = String(currentDate.getDate()).padStart(2, '0');
           const dateString = `${year}-${month}-${day}`;
           // const dateString = currentDate.toISOString().split('T')[0];
-          console.log("zzzzzzzzzzzzzzz dateString zzzzzzz "+dateString);
+          console.log("zzzzzzzzzzzzzzz dateString zzzzzzz " + dateString);
           const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek];
           availableDays.push({
             date: dateString,
@@ -562,7 +562,7 @@ router.get('/next-available/:doctorId/:dispensaryId', async (req, res) => {
       error: error.message,
       stack: error.stack
     });
-    
+
     res.status(500).json({
       message: 'Error fetching next available days',
       error: error.message
@@ -575,7 +575,7 @@ router.get('/fees/:timeSlotId', async (req, res) => {
   try {
     const { timeSlotId } = req.params;
     const timeSlot = await TimeSlotConfig.findById(timeSlotId);
-    
+
     if (!timeSlot) {
       return res.status(404).json({ message: 'Time slot not found' });
     }
@@ -627,7 +627,7 @@ router.delete('/fees/:timeSlotId', requireRole([ROLES.SUPER_ADMIN, ROLES.hospita
   try {
     const { timeSlotId } = req.params;
     const timeSlot = await TimeSlotConfig.findById(timeSlotId);
-    
+
     if (!timeSlot) {
       return res.status(404).json({ message: 'Time slot not found' });
     }

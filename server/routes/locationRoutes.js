@@ -38,6 +38,7 @@ function toRadians(degrees) {
  * Query params: latitude, longitude, limit (optional, default 10), maxDistance (optional, default 50km)
  */
 router.get('/doctors-nearby', async (req, res) => {
+    console.log('Received request for doctors-nearby');
     try {
         const { latitude, longitude, limit = 10, maxDistance = 50 } = req.query;
 

@@ -6,6 +6,7 @@ const Dispensary = require('../models/Dispensary');
 const logger = require('../utils/logger');
 
 /**Get all doctors
+ * GET /api/doctors
  */
 router.get('/', async (req, res) => {
   const startTime = Date.now();
@@ -27,6 +28,7 @@ router.get('/', async (req, res) => {
 });
 
 /**Get doctor by ID
+ * GET /api/doctors/:id
  */
 router.get('/:id', async (req, res) => {
   const { id } = req.params;
@@ -184,6 +186,7 @@ router.post('/', async (req, res) => {
 });
 
 /**Update doctor
+ * PUT /api/doctors/:id
  */
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
