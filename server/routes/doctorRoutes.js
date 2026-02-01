@@ -6,12 +6,13 @@ const Dispensary = require('../models/Dispensary');
 const logger = require('../utils/logger');
 
 /**Get all doctors
+ * GET /api/doctors
  */
 router.get('/', async (req, res) => {
   const startTime = Date.now();
-  
+
   try {
-    logger.info('Fetching all doctors', { 
+    logger.info('Fetching all doctors', {
       requestId: req.requestId
     });
     const doctors = await Doctor.find().populate('dispensaries', 'name');
@@ -27,17 +28,18 @@ router.get('/', async (req, res) => {
 });
 
 /**Get doctor by ID
+ * GET /api/doctors/:id
  */
 router.get('/:id', async (req, res) => {
   const { id } = req.params;
-  
+
   try {
     logger.info('Fetching doctor by ID', {
       doctorId: id
     });
 
     const doctor = await Doctor.findById(id).populate('dispensaries', 'name');
-    
+
     if (!doctor) {
       logger.warn('Doctor not found', {
         doctorId: id
@@ -59,7 +61,7 @@ router.get('/:id', async (req, res) => {
  */
 router.get('/dispensary/:dispensaryId', async (req, res) => {
   const { dispensaryId } = req.params;
-  
+
   try {
     logger.info('Fetching doctors by dispensary ID', {
       dispensaryId
@@ -72,7 +74,7 @@ router.get('/dispensary/:dispensaryId', async (req, res) => {
       });
       return res.status(404).json({ message: 'Dispensary not found' });
     }
-    
+
     const doctors = await Doctor.find({ dispensaries: dispensaryId });
     if (!doctors) {
       logger.warn('Doctors not found for dispensary', {
@@ -80,7 +82,7 @@ router.get('/dispensary/:dispensaryId', async (req, res) => {
       });
       return res.status(404).json({ message: 'Doctors not found' });
     }
-    
+
     res.status(200).json(doctors);
   } catch (error) {
     logger.error('Error fetching doctors by dispensary ID', {
@@ -95,7 +97,7 @@ router.get('/dispensary/:dispensaryId', async (req, res) => {
 // POST /api/doctors/by-dispensaries
 router.post('/by-dispensaries', async (req, res) => {
   const { dispensaryIds } = req.body;
-  
+
   try {
     logger.info('Fetching doctors by multiple dispensary IDs', {
       requestId: req.requestId,
@@ -112,17 +114,17 @@ router.post('/by-dispensaries', async (req, res) => {
       });
       return res.status(400).json({ message: 'No dispensary IDs provided' });
     }
-    
+
     // Find doctors who are associated with any of the given dispensary IDs
     const doctors = await Doctor.find({ dispensaries: { $in: dispensaryIds } });
-    
+
     // const duration = Date.now() - startTime;
     logger.info('Successfully fetched doctors by dispensary IDs', {
       requestId: req.requestId,
       dispensaryIds,
       doctorCount: doctors.length
     });
-    
+
     res.json(doctors);
   } catch (error) {
     logger.error('Error fetching doctors by dispensary IDs', {
@@ -139,7 +141,7 @@ router.post('/by-dispensaries', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   const doctorData = req.body;
-  
+
   try {
     logger.info('Creating new doctor', {
       doctorName: doctorData.name,
@@ -147,10 +149,10 @@ router.post('/', async (req, res) => {
     });
 
     const doctor = new Doctor(doctorData);
-    
+
     // Handle adding doctor to dispensaries
     if (doctorData.dispensaries && doctorData.dispensaries.length > 0) {
-     
+
       for (const dispensaryId of doctorData.dispensaries) {
         const dispensary = await Dispensary.findById(dispensaryId);
         if (dispensary) {
@@ -169,9 +171,9 @@ router.post('/', async (req, res) => {
         }
       }
     }
-    
+
     await doctor.save();
-    
+
     res.status(201).json(doctor);
   } catch (error) {
     logger.error('Error creating doctor', {
@@ -184,11 +186,12 @@ router.post('/', async (req, res) => {
 });
 
 /**Update doctor
+ * PUT /api/doctors/:id
  */
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
   const updateData = req.body;
-  
+
   try {
     logger.info('Updating doctor', {
       doctorId: id,
@@ -202,7 +205,7 @@ router.put('/:id', async (req, res) => {
       });
       return res.status(404).json({ message: 'Doctor not found' });
     }
-    
+
     // Handle dispensary associations if they've changed
     if (updateData.dispensaries && JSON.stringify(doctor.dispensaries) !== JSON.stringify(updateData.dispensaries)) {
       logger.info('Dispensary associations changed for doctor', {
@@ -210,7 +213,7 @@ router.put('/:id', async (req, res) => {
         oldDispensaries: doctor.dispensaries,
         newDispensaries: updateData.dispensaries
       });
-      
+
       // Remove doctor from old dispensaries that are not in the new list
       for (const oldDispId of doctor.dispensaries) {
         if (!updateData.dispensaries.includes(oldDispId.toString())) {
@@ -226,7 +229,7 @@ router.put('/:id', async (req, res) => {
           }
         }
       }
-      
+
       // Add doctor to new dispensaries
       for (const newDispId of updateData.dispensaries) {
         if (!doctor.dispensaries.map(id => id.toString()).includes(newDispId)) {
@@ -243,14 +246,14 @@ router.put('/:id', async (req, res) => {
         }
       }
     }
-    
+
     // Update doctor fields
     Object.keys(updateData).forEach(key => {
       doctor[key] = updateData[key];
     });
-    
+
     await doctor.save();
-    
+
     res.status(200).json(doctor);
   } catch (error) {
     const duration = Date.now() - startTime;
@@ -268,7 +271,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   const startTime = Date.now();
   const { id } = req.params;
-  
+
   try {
     const doctor = await Doctor.findById(id);
     if (!doctor) {
@@ -278,13 +281,13 @@ router.delete('/:id', async (req, res) => {
       });
       return res.status(404).json({ message: 'Doctor not found' });
     }
-    
+
     // Remove doctor from dispensaries
     logger.info('Removing doctor from dispensaries', {
       doctorId: id,
       dispensaryCount: doctor.dispensaries.length
     });
-    
+
     for (const dispensaryId of doctor.dispensaries) {
       const dispensary = await Dispensary.findById(dispensaryId);
       if (dispensary) {
@@ -298,9 +301,9 @@ router.delete('/:id', async (req, res) => {
         });
       }
     }
-    
+
     await Doctor.findByIdAndDelete(id);
-    
+
     res.status(200).json({ message: 'Doctor deleted successfully' });
   } catch (error) {
     logger.error('Error deleting doctor', {
