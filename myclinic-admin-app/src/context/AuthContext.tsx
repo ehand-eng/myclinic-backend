@@ -31,15 +31,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const checkAuth = async () => {
         try {
             const token = await AsyncStorage.getItem('authToken');
-            const userData = await AsyncStorage.getItem('userData');
 
-            if (token && userData) {
-                const parsedUser = JSON.parse(userData) as User;
-                setUser(parsedUser);
+            if (token) {
+                // Verify token and get fresh user data from server
+                // This performs the initial verification with the backend
+                const user = await authService.getMe();
+                setUser(user);
+
+                // Update stored user data
+                await AsyncStorage.setItem('userData', JSON.stringify(user));
+                if (user.role) {
+                    await AsyncStorage.setItem('userRole', user.role);
+                }
 
                 // Load dispensaries
-                if (parsedUser.dispensaryIds && parsedUser.dispensaryIds.length > 0) {
-                    const dispensaryList = await dispensaryService.getByIds(parsedUser.dispensaryIds);
+                if (user.dispensaryIds && user.dispensaryIds.length > 0) {
+                    const dispensaryList = await dispensaryService.getByIds(user.dispensaryIds);
                     setDispensaries(dispensaryList);
 
                     // Auto-select if only one dispensary
@@ -56,6 +63,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         }
                     }
                 }
+            } else {
+                await logout();
             }
         } catch (error) {
             console.error('Auth check error:', error);
