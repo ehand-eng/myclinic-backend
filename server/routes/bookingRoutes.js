@@ -896,10 +896,14 @@ router.get('/summary/:transactionId', async (req, res) => {
         email: booking.patientEmail
       },
       doctor: {
+        _id: booking.doctorId._id,
+        doctorId: booking.doctorId._id,
         name: booking.doctorId.name,
         specialization: booking.doctorId.specialization
       },
       dispensary: {
+        _id: booking.dispensaryId._id,
+        dispensaryId: booking.dispensaryId._id,
         name: booking.dispensaryId.name,
         address: booking.dispensaryId.address
       },

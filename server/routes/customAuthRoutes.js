@@ -47,6 +47,7 @@ router.post('/register', async (req, res) => {
 
     // Create user
     const user = new User({
+      //TODO: add user name later
       name,
       email,
       passwordHash,
