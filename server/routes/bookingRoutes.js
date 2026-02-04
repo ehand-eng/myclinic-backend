@@ -288,7 +288,9 @@ router.post('/', async (req, res) => {
       patientPhone,
       patientEmail,
       symptoms,
-      fees
+      fees,
+      paymentMethod,
+      paymentStatus
     } = req.body;
 
     console.log("Received booking request:", req.body);
@@ -567,6 +569,10 @@ router.post('/', async (req, res) => {
       fees: processedFees,
       bookedUser,
       bookedBy,
+      // Payment fields
+      paymentMethod: paymentMethod || 'cash',
+      paymentStatus: paymentStatus || (paymentMethod === 'online' ? 'pending' : 'not_required'),
+      paymentGateway: paymentMethod === 'online' ? 'dialog_genie' : null,
       smsDelivery: {
         status: 'pending',
         lastUpdated: new Date()
@@ -581,18 +587,18 @@ router.post('/', async (req, res) => {
     if (fcmTokenFromEnv) {
       const smsMessage = `Hi ${patientName}, your booking is confirmed for ${parsedBookingDate.toDateString()} at ${estimatedTime}. Doctor ID: ${doctorId}. Thank you for using MyClinic!`;
 
-      await fcmServerClient.sendNotification(
-        fcmTokenFromEnv,
-        'Booking Created',
-        'New booking created — ready to send SMS',
-        {
-          phone: patientPhone,
-          message: smsMessage,
-          bookingId: booking._id.toString(),
-          date: parsedBookingDate.toISOString(),
-          doctorId: doctorId.toString(),
-        }
-      );
+      // await fcmServerClient.sendNotification(
+      //   fcmTokenFromEnv,
+      //   'Booking Created',
+      //   'New booking created — ready to send SMS',
+      //   {
+      //     phone: patientPhone,
+      //     message: smsMessage,
+      //     bookingId: booking._id.toString(),
+      //     date: parsedBookingDate.toISOString(),
+      //     doctorId: doctorId.toString(),
+      //   }
+      // );
 
       console.log("✅ FCM notification with booking details sent");
     } else {
@@ -600,10 +606,13 @@ router.post('/', async (req, res) => {
     }
 
     // Send SMS notification (non-blocking)
-    // This runs asynchronously and won't block the response
-    if (patientPhone) {
+    // Only send SMS immediately for cash payments
+    // For online payments, SMS will be sent after successful payment via paymentRoutes.js
+    const shouldSendSmsNow = !paymentMethod || paymentMethod === 'cash';
+
+    if (patientPhone && shouldSendSmsNow) {
       try {
-        console.log("📨 Sending booking confirmation SMS...");
+        console.log("📨 Sending booking confirmation SMS (cash payment)...");
         smsService.sendBookingConfirmationSMS(booking).then(smsResult => {
           if (smsResult && smsResult.success) {
             console.log("✅ Booking confirmation SMS sent successfully");
@@ -628,44 +637,11 @@ router.post('/', async (req, res) => {
       } catch (smsError) {
         console.error("❌ Error in SMS flow:", smsError);
       }
-      // Get doctor and dispensary names for SMS
-      // const Doctor = require('../models/Doctor');
-      // const Dispensary = require('../models/Dispensary');
-
-      // Promise.all([
-      //   Doctor.findById(doctorId),
-      //   Dispensary.findById(dispensaryId)
-      // ]).then(([doctor, dispensary]) => {
-      //   const bookingDetails = {
-      //     patientPhone,
-      //     patientName,
-      //     transactionId,
-      //     doctorName: doctor?.name || 'Doctor',
-      //     dispensaryName: dispensary?.name || 'Dispensary',
-      //     bookingDate: parsedBookingDate.toLocaleDateString('en-US', {
-      //       weekday: 'short',
-      //       year: 'numeric',
-      //       month: 'short',
-      //       day: 'numeric'
-      //     }),
-      //     timeSlot,
-      //     appointmentNumber: nextAppointmentNumber
-      //   };
-
-      //   return smsService.sendBookingConfirmation(bookingDetails);
-      // }).then(result => {
-      //   if (result.success) {
-      //     console.log('✅ SMS sent successfully to', patientPhone);
-      //   } else {
-      //     console.warn('⚠️ SMS sending failed:', result.reason || result.error);
-      //   }
-      // }).catch(error => {
-      //   console.error('❌ Error in SMS sending process:', error.message);
-      // });
-    } else {
-      console.warn('⚠️ No phone number provided, skipping SMS');
+    } else if (paymentMethod === 'online') {
+      console.log("📱 Online payment selected - SMS will be sent after payment success");
     }
 
+    // Return successful booking response
     res.status(201).json(booking);
 
   } catch (error) {

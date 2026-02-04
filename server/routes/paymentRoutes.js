@@ -1,208 +1,248 @@
 const express = require('express');
 const router = express.Router();
-const paymentService = require('../services/paymentService');
+const dialogGenieService = require('../services/dialogGenieService');
+const smsService = require('../services/smsService');
 const Booking = require('../models/Booking');
 
-/**
- * Create payment intent
- * POST /api/payments/create-intent
- */
-router.post('/create-intent', async (req, res) => {
-    try {
-        const { bookingId, amount, currency } = req.body;
+// =============================================================================
+// DIALOG GENIE PAYMENT GATEWAY ROUTES
+// =============================================================================
 
-        // Validate booking exists
-        const booking = await Booking.findById(bookingId);
+/**
+ * Create Dialog Genie payment intent
+ * POST /api/payments/dialog-genie/create-intent/:bookingId
+ */
+router.post('/dialog-genie/create-intent/:bookingId', async (req, res) => {
+    try {
+        const { bookingId } = req.params;
+        const { customer } = req.body;
+
+        console.log('Creating Dialog Genie payment intent for booking:', bookingId);
+
+        // Find booking with populated fields
+        const booking = await Booking.findById(bookingId)
+            .populate('doctorId', 'name')
+            .populate('dispensaryId', 'name address');
+
         if (!booking) {
             return res.status(404).json({ message: 'Booking not found' });
         }
 
-        // Validate amount matches booking
-        if (amount !== booking.fees.totalFee) {
-            return res.status(400).json({ message: 'Amount mismatch' });
-        }
-
-        // Create payment intent
-        const result = await paymentService.createPaymentIntent(
-            bookingId,
-            amount,
-            currency || 'LKR'
-        );
-
-        if (result.success) {
-            res.json({
-                clientSecret: result.clientSecret,
-                paymentIntentId: result.paymentIntentId,
-            });
-        } else {
-            res.status(500).json({
-                message: 'Failed to create payment intent',
-                error: result.error,
+        // Validate booking has fees
+        if (!booking.fees || !booking.fees.totalFee) {
+            return res.status(400).json({
+                message: 'Booking does not have fee information',
+                details: 'totalFee is required for payment'
             });
         }
+
+        // Validate booking is pending payment
+        if (booking.paymentStatus === 'paid') {
+            return res.status(400).json({ message: 'Booking is already paid' });
+        }
+
+        // Create payment intent with Dialog Genie
+        const result = await dialogGenieService.createPaymentIntent(booking, customer);
+
+        // Update booking with payment intent ID
+        booking.paymentIntentId = result.paymentIntentId;
+        booking.paymentStatus = 'processing';
+        booking.paymentGateway = 'dialog_genie';
+        await booking.save();
+
+        res.json({
+            success: true,
+            paymentIntentId: result.paymentIntentId,
+            paymentUrl: result.paymentUrl,
+            amount: result.amount,
+        });
     } catch (error) {
-        console.error('Payment intent error:', error);
+        console.error('Dialog Genie create intent error:', error);
         res.status(500).json({
-            message: 'Server error',
+            message: 'Failed to create payment intent',
             error: error.message,
         });
     }
 });
 
 /**
- * Stripe webhook handler
- * POST /api/payments/webhook/stripe
+ * Dialog Genie redirect handler
+ * GET /api/payments/dialog-genie/redirect
+ * Called by Dialog Genie after payment completion/failure
  */
-router.post(
-    '/webhook/stripe',
-    express.raw({ type: 'application/json' }),
-    async (req, res) => {
-        const signature = req.headers['stripe-signature'];
+router.get('/dialog-genie/redirect', async (req, res) => {
+    try {
+        console.log('Dialog Genie redirect received:', req.query);
 
-        // Verify webhook signature
-        const verification = paymentService.verifyWebhookSignature(
-            req.body,
-            signature
-        );
+        // Parse redirect parameters
+        const { paymentId, status, bookingId: localId } = dialogGenieService.parseRedirectParams(req.query);
 
-        if (!verification.success) {
-            console.error('Webhook verification failed:', verification.error);
-            return res.status(400).send(`Webhook Error: ${verification.error}`);
+        // Find booking by localId or payment intent ID with populated fields for SMS
+        let booking = null;
+        if (localId) {
+            booking = await Booking.findById(localId)
+                .populate('doctorId', 'name')
+                .populate('dispensaryId', 'name address');
+        }
+        if (!booking && paymentId) {
+            booking = await Booking.findOne({ paymentIntentId: paymentId })
+                .populate('doctorId', 'name')
+                .populate('dispensaryId', 'name address');
         }
 
-        const event = verification.event;
+        const redirectUrls = dialogGenieService.getRedirectUrls(booking?._id || 'unknown');
 
-        try {
-            // Handle different event types
-            switch (event.type) {
-                case 'payment_intent.succeeded':
-                    await handlePaymentSuccess(event.data.object);
-                    break;
+        if (!booking) {
+            console.error('Booking not found for redirect:', { paymentId, localId });
+            return res.redirect(`${redirectUrls.failedUrl}?error=booking_not_found`);
+        }
 
-                case 'payment_intent.payment_failed':
-                    await handlePaymentFailure(event.data.object);
-                    break;
+        // Process payment result
+        if (status === 'SUCCESS') {
+            booking.paymentStatus = 'paid';
+            booking.isPaid = true;
+            booking.paidAt = new Date();
+            if (paymentId) {
+                booking.paymentIntentId = paymentId;
+            }
+            await booking.save();
 
-                case 'charge.refunded':
-                    await handleRefund(event.data.object);
-                    break;
+            console.log(`Payment successful for booking ${booking._id}`);
 
-                default:
-                    console.log(`Unhandled event type: ${event.type}`);
+            // Send SMS confirmation after successful payment
+            try {
+                smsService.sendBookingConfirmationSMS(booking).then(smsResult => {
+                    console.log('SMS sent after payment success:', smsResult);
+                }).catch(smsError => {
+                    console.error('Failed to send SMS after payment:', smsError);
+                });
+            } catch (smsError) {
+                console.error('Error initiating SMS after payment:', smsError);
+                // Don't block the redirect if SMS fails
             }
 
-            res.json({ received: true });
-        } catch (error) {
-            console.error('Webhook processing error:', error);
-            res.status(500).json({ error: 'Webhook processing failed' });
+            return res.redirect(redirectUrls.successUrl);
+        } else {
+            booking.paymentStatus = 'failed';
+            await booking.save();
+
+            console.log(`Payment failed for booking ${booking._id}`);
+            return res.redirect(`${redirectUrls.failedUrl}?error=payment_failed`);
         }
+    } catch (error) {
+        console.error('Dialog Genie redirect error:', error);
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+        return res.redirect(`${frontendUrl}/booking/payment-failed/error?error=${encodeURIComponent(error.message)}`);
     }
-);
+});
 
 /**
- * Handle successful payment
+ * Dialog Genie callback (webhook)
+ * POST /api/payments/dialog-genie/callback
+ * Called by Dialog Genie for payment status updates
  */
-async function handlePaymentSuccess(paymentIntent) {
-    const bookingId = paymentIntent.metadata.bookingId;
-
-    console.log(`Payment succeeded for booking ${bookingId}`);
-
-    // Update booking
-    await Booking.findByIdAndUpdate(bookingId, {
-        isPaid: true,
-        'payment.status': 'completed',
-        'payment.method': 'card',
-        'payment.transactionId': paymentIntent.id,
-        'payment.paidAt': new Date(),
-        'payment.gateway': 'stripe',
-    });
-
-    // TODO: Send payment confirmation SMS/email
-    console.log(`Booking ${bookingId} marked as paid`);
-}
-
-/**
- * Handle failed payment
- */
-async function handlePaymentFailure(paymentIntent) {
-    const bookingId = paymentIntent.metadata.bookingId;
-
-    console.log(`Payment failed for booking ${bookingId}`);
-
-    // Update booking
-    await Booking.findByIdAndUpdate(bookingId, {
-        'payment.status': 'failed',
-    });
-
-    // TODO: Send payment failure notification
-}
-
-/**
- * Handle refund
- */
-async function handleRefund(charge) {
-    const paymentIntentId = charge.payment_intent;
-
-    console.log(`Refund processed for payment intent ${paymentIntentId}`);
-
-    // Find booking by payment transaction ID
-    const booking = await Booking.findOne({
-        'payment.transactionId': paymentIntentId,
-    });
-
-    if (booking) {
-        await Booking.findByIdAndUpdate(booking._id, {
-            isPaid: false,
-            'payment.status': 'refunded',
-            'payment.refundedAt': new Date(),
-        });
-
-        console.log(`Booking ${booking._id} marked as refunded`);
-    }
-}
-
-/**
- * Create refund
- * POST /api/payments/refund
- */
-router.post('/refund', async (req, res) => {
+router.post('/dialog-genie/callback', async (req, res) => {
     try {
-        const { bookingId, amount } = req.body;
+        console.log('Dialog Genie callback received:', req.body);
 
-        // Get booking
+        const { paymentId, status, localId } = req.body;
+
+        // Find booking with populated fields for SMS
+        let booking = null;
+        if (localId) {
+            booking = await Booking.findById(localId)
+                .populate('doctorId', 'name')
+                .populate('dispensaryId', 'name address');
+        }
+        if (!booking && paymentId) {
+            booking = await Booking.findOne({ paymentIntentId: paymentId })
+                .populate('doctorId', 'name')
+                .populate('dispensaryId', 'name address');
+        }
+
+        if (!booking) {
+            console.error('Booking not found for callback:', { paymentId, localId });
+            return res.status(404).json({ message: 'Booking not found' });
+        }
+
+        // Idempotency check - don't reprocess completed payments
+        if (booking.paymentStatus === 'paid') {
+            return res.json({ success: true, message: 'Already processed' });
+        }
+
+        // Process payment result
+        if (status === 'SUCCESS') {
+            booking.paymentStatus = 'paid';
+            booking.isPaid = true;
+            booking.paidAt = new Date();
+            await booking.save();
+
+            console.log(`Callback: Payment successful for booking ${booking._id}`);
+
+            // Send SMS confirmation (non-blocking)
+            try {
+                smsService.sendBookingConfirmationSMS(booking).then(smsResult => {
+                    console.log('SMS sent after callback payment success:', smsResult);
+                }).catch(smsError => {
+                    console.error('Failed to send SMS after callback:', smsError);
+                });
+            } catch (smsError) {
+                console.error('Error initiating SMS after callback:', smsError);
+            }
+        } else {
+            booking.paymentStatus = 'failed';
+            await booking.save();
+
+            console.log(`Callback: Payment failed for booking ${booking._id}`);
+        }
+
+        res.json({ success: true, bookingId: booking._id });
+    } catch (error) {
+        console.error('Dialog Genie callback error:', error);
+        res.status(500).json({ message: 'Callback processing failed', error: error.message });
+    }
+});
+
+/**
+ * Check payment status
+ * GET /api/payments/dialog-genie/check-status/:bookingId
+ */
+router.get('/dialog-genie/check-status/:bookingId', async (req, res) => {
+    try {
+        const { bookingId } = req.params;
+
         const booking = await Booking.findById(bookingId);
         if (!booking) {
             return res.status(404).json({ message: 'Booking not found' });
         }
 
-        if (!booking.payment?.transactionId) {
-            return res.status(400).json({ message: 'No payment found for this booking' });
+        // If there's a payment intent, verify with Dialog Genie
+        if (booking.paymentIntentId && booking.paymentStatus === 'processing') {
+            try {
+                const statusResult = await dialogGenieService.checkTransactionStatus(booking.paymentIntentId);
+
+                if (statusResult.isSuccess && booking.paymentStatus !== 'paid') {
+                    booking.paymentStatus = 'paid';
+                    booking.isPaid = true;
+                    booking.paidAt = new Date();
+                    await booking.save();
+                }
+            } catch (checkError) {
+                console.error('Error checking transaction status:', checkError.message);
+                // Continue with current booking status
+            }
         }
 
-        // Create refund
-        const result = await paymentService.createRefund(
-            booking.payment.transactionId,
-            amount
-        );
-
-        if (result.success) {
-            res.json({
-                message: 'Refund created successfully',
-                refundId: result.refundId,
-                status: result.status,
-            });
-        } else {
-            res.status(500).json({
-                message: 'Failed to create refund',
-                error: result.error,
-            });
-        }
-    } catch (error) {
-        console.error('Refund error:', error);
-        res.status(500).json({
-            message: 'Server error',
-            error: error.message,
+        res.json({
+            bookingId: booking._id,
+            paymentStatus: booking.paymentStatus,
+            paymentMethod: booking.paymentMethod,
+            isPaid: booking.isPaid,
+            paidAt: booking.paidAt,
         });
+    } catch (error) {
+        console.error('Check payment status error:', error);
+        res.status(500).json({ message: 'Error checking payment status', error: error.message });
     }
 });
 

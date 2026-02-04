@@ -3,6 +3,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const path = require('path');
 const { requestLogger } = require('./utils/logger');
 require('dotenv').config();
 
@@ -26,6 +27,7 @@ const fcmRoutes = require('./routes/fcmRoutes');
 const dispensaryCheckInRoutes = require('./routes/dispensaryCheckInRoutes');
 const utilRoutes = require('./routes/utilRoutes');
 const locationRoutes = require('./routes/locationRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 // Create Express app
 const app = express();
 
@@ -39,7 +41,15 @@ app.use(requestLogger);
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/doctor-reservation')
-  .then(() => console.log('Connected to MongoDB'))
+  .then(() => {
+    console.log('Connected to MongoDB');
+    // Log Dialog Genie configuration status
+    console.log('Dialog Genie Config:', {
+      API_URL: process.env.DIALOG_GENIE_API_URL ? '✅ Set' : '❌ Missing',
+      API_KEY: process.env.DIALOG_GENIE_API_KEY && process.env.DIALOG_GENIE_API_KEY !== 'your_jwt_api_key_here' ? '✅ Set' : '❌ Missing or placeholder',
+      PAYMENT_URL: process.env.DIALOG_GENIE_PAYMENT_URL ? '✅ Set' : '❌ Missing',
+    });
+  })
   .catch(err => console.error('Could not connect to MongoDB', err));
 
 // Routes
@@ -63,6 +73,7 @@ app.use('/api/channel-partners', channelPartnerRoutes); // Channel partner route
 app.use('/api/dispensary', dispensaryCheckInRoutes); // Dispensary check-in routes
 app.use('/api/util', utilRoutes); // Utility routes (OTP management)
 app.use('/api/location', locationRoutes); // Location-based search routes
+app.use('/api/payments', paymentRoutes); // Payment gateway routes (Dialog Genie, Stripe)
 
 // Base route
 app.get('/api', (req, res) => {
@@ -70,7 +81,8 @@ app.get('/api', (req, res) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 5000;
+console.log('Server is starting on port', process.env.PORT);
+const PORT = process.env.PORT || 5001;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server is running on port ${PORT}`);
 });

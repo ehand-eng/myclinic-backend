@@ -51,6 +51,27 @@ const bookingSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'processing', 'paid', 'failed', 'refunded', 'not_required'],
+    default: 'not_required'
+  },
+  paymentMethod: {
+    type: String,
+    enum: ['cash', 'online'],
+    default: 'cash'
+  },
+  paymentGateway: {
+    type: String,
+    enum: ['dialog_genie', 'stripe', null],
+    default: null
+  },
+  paymentIntentId: {
+    type: String
+  },
+  paidAt: {
+    type: Date
+  },
   isPatientVisited: {
     type: Boolean,
     default: false
@@ -125,7 +146,7 @@ const bookingSchema = new mongoose.Schema({
 });
 
 // Generate unique transaction ID before saving
-bookingSchema.pre('save', async function(next) {
+bookingSchema.pre('save', async function (next) {
   if (!this.transactionId) {
     const timestamp = Date.now().toString();
     const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');

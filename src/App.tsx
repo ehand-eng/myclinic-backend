@@ -15,7 +15,7 @@ const ScrollToTop = () => {
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
-      
+
       // Force scroll on any scrollable containers
       const scrollableElements = document.querySelectorAll('[style*="overflow"], .overflow-auto, .overflow-y-auto');
       scrollableElements.forEach(el => {
@@ -25,7 +25,7 @@ const ScrollToTop = () => {
 
     // Immediate scroll
     scrollToTop();
-    
+
     // Multiple fallbacks with different timing
     setTimeout(scrollToTop, 0);
     setTimeout(scrollToTop, 10);
@@ -68,6 +68,8 @@ import Appointments from './pages/Appointments';
 import DispensaryCheckIn from './pages/DispensaryCheckIn';
 import { Dashboard } from '@mui/icons-material';
 import { Toaster } from '@/components/ui/toaster';
+import PaymentSuccess from './pages/PaymentSuccess';
+import PaymentFailed from './pages/PaymentFailed';
 
 const App = () => {
   useEffect(() => {
@@ -75,7 +77,7 @@ const App = () => {
     if (window.history.scrollRestoration) {
       window.history.scrollRestoration = 'manual';
     }
-    
+
     // Also listen for popstate events (back/forward button)
     const handlePopState = () => {
       setTimeout(() => {
@@ -84,9 +86,9 @@ const App = () => {
         document.body.scrollTop = 0;
       }, 0);
     };
-    
+
     window.addEventListener('popstate', handlePopState);
-    
+
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
@@ -106,7 +108,7 @@ const App = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/callback" element={<Callback />} />
-        
+
         {/* Admin Routes */}
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/doctors" element={<AdminDoctors />} />
@@ -122,23 +124,27 @@ const App = () => {
         <Route path="/admin/dispensaries/view/:id" element={<ViewDispensary />} />
         <Route path="/admin/user-dispensary" element={<CustomRoleManagement />} />
         <Route path="/admin/roles" element={<CustomRoleManagement />} />
-        <Route path='/admin/fees' element={<AdminFeeManage/>}/>
-        
+        <Route path='/admin/fees' element={<AdminFeeManage />} />
+
         {/* Dispensary Routes */}
         <Route path="/dispensary/check-in" element={<DispensaryCheckIn />} />
-        
+
         {/* Specific Routes */}
         <Route path="/doctor/:doctorId/dispensary/:dispensaryId/time-slots" element={<TimeSlotManagement />} />
-        
+
         {/* Booking Summary Route */}
         <Route path="/booking-summary/:transactionId" element={<BookingSummary />} />
-        
+
+        {/* Payment Result Routes */}
+        <Route path="/booking/payment-success/:bookingId" element={<PaymentSuccess />} />
+        <Route path="/booking/payment-failed/:bookingId" element={<PaymentFailed />} />
+
         {/* Reports Routes */}
         <Route path="/reports/daily-bookings" element={<DailyBookings />} />
         <Route path="/reports/monthly-summary" element={<MonthlySummary />} />
         <Route path="/reports/doctor-performance" element={<DoctorPerformance />} />
         <Route path="/reports/channel-partner" element={<ChannelPartnerReports />} />
-        
+
         {/* Catch All - 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>
