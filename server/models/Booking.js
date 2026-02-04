@@ -41,6 +41,9 @@ const bookingSchema = new mongoose.Schema({
     enum: ['scheduled', 'checked_in', 'completed', 'cancelled', 'no_show'],
     default: 'scheduled'
   },
+  paymentId: {
+    type: String
+  },
   notes: {
     type: String
   },
@@ -125,7 +128,7 @@ const bookingSchema = new mongoose.Schema({
 });
 
 // Generate unique transaction ID before saving
-bookingSchema.pre('save', async function(next) {
+bookingSchema.pre('save', async function (next) {
   if (!this.transactionId) {
     const timestamp = Date.now().toString();
     const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');

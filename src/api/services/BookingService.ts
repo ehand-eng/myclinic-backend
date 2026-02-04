@@ -69,11 +69,11 @@ export const BookingService = {
   ): Promise<Booking[]> => {
     try {
       const formattedDate = date.toISOString().split('T')[0];
-      
+
       const response = await api.get(
         `/bookings/doctor/${doctorId}/dispensary/${dispensaryId}/date/${formattedDate}`
       );
-      
+
       return response.data.map((booking: any) => ({
         ...booking,
         id: booking._id,
@@ -99,7 +99,7 @@ export const BookingService = {
       const response = await api.get(
         `/bookings/doctor/${doctorId}/dispensary/${dispensaryId}/date/${formattedDate}`
       );
-      
+
       return response.data.map((booking: any) => ({
         ...booking,
         id: booking._id,
@@ -121,9 +121,9 @@ export const BookingService = {
       const response = await api.get(
         `/bookings/${id}`
       );
-      
+
       if (!response.data) return null;
-      
+
       return {
         ...response.data,
         id: response.data._id,
@@ -145,7 +145,7 @@ export const BookingService = {
       const response = await api.get(
         `/bookings/patient/${patientId}`
       );
-      
+
       return response.data.map((booking: any) => ({
         ...booking,
         id: booking._id,
@@ -170,7 +170,7 @@ export const BookingService = {
     try {
       // Get all available slots for this date
       const availability = await TimeSlotService.getAvailableTimeSlots(doctorId, dispensaryId, date);
-      
+
       // Return the availability data, which includes availability status, session info, and slots
       return availability;
     } catch (error) {
@@ -186,17 +186,17 @@ export const BookingService = {
   createBooking: async (booking: BookingCreateParams): Promise<{ booking: Booking; transactionId: string }> => {
     try {
       const token = localStorage.getItem('auth_token');
-      
+
       // Format booking date to YYYY-MM-DD format
       const year = booking.bookingDate.getFullYear();
       const month = String(booking.bookingDate.getMonth() + 1).padStart(2, '0');
       const day = String(booking.bookingDate.getDate()).padStart(2, '0');
       const formattedDate = `${year}-${month}-${day}`;
-      
+
       // Determine bookedUser and bookedBy
       let bookedUser = 'online';
       let bookedBy = 'ONLINE';
-      
+
       // Check if user is logged in
       if (token) {
         try {
@@ -204,7 +204,7 @@ export const BookingService = {
           if (userStr) {
             const user = JSON.parse(userStr);
             bookedUser = user.id || user._id || 'online';
-            
+
             // Normalize role names for bookedBy field
             const userRole = user.role?.toLowerCase().replace(/[-_]/g, '-') || '';
             if (userRole === 'channel-partner') {
@@ -223,19 +223,19 @@ export const BookingService = {
           console.warn('Error parsing user data, using default values:', error);
         }
       }
-      
+
       const bookingToSend = {
         ...booking,
         bookingDate: formattedDate,
         bookedUser,
         bookedBy,
       };
-      
+
       const response = await api.post(
-        `/bookings`, 
+        `/bookings`,
         bookingToSend
       );
-      
+
       return {
         booking: {
           ...response.data,
@@ -254,13 +254,26 @@ export const BookingService = {
     }
   },
 
+
+
+  // Initiate payment for a booking
+  initiatePayment: async (bookingId: string): Promise<string> => {
+    try {
+      const response = await api.post('/payment/initiate', { bookingId });
+      return response.data.redirectUrl;
+    } catch (error) {
+      console.error('Error initiating payment:', error);
+      throw new Error('Failed to initiate payment');
+    }
+  },
+
   // Get booking summary
   getBookingSummary: async (transactionId: string): Promise<BookingSummary> => {
     try {
       const response = await api.get(
         `/bookings/summary/${transactionId}`
       );
-      
+
       return {
         ...response.data,
         bookingDate: new Date(response.data.bookingDate),
@@ -274,11 +287,11 @@ export const BookingService = {
 
   // Update booking status
   updateBookingStatus: async (
-    id: string, 
+    id: string,
     status: BookingStatus,
-    additionalInfo?: { 
-      checkedInTime?: Date; 
-      completedTime?: Date; 
+    additionalInfo?: {
+      checkedInTime?: Date;
+      completedTime?: Date;
       notes?: string;
       isPaid?: boolean;
       isPatientVisited?: boolean;
@@ -289,21 +302,21 @@ export const BookingService = {
       const updateData = {
         status,
         ...additionalInfo,
-        checkedInTime: additionalInfo?.checkedInTime instanceof Date 
-          ? additionalInfo.checkedInTime.toISOString() 
+        checkedInTime: additionalInfo?.checkedInTime instanceof Date
+          ? additionalInfo.checkedInTime.toISOString()
           : additionalInfo?.checkedInTime,
         completedTime: additionalInfo?.completedTime instanceof Date
           ? additionalInfo.completedTime.toISOString()
           : additionalInfo?.completedTime
       };
-      
+
       const response = await api.patch(
-        `/bookings/${id}/status`, 
+        `/bookings/${id}/status`,
         updateData
       );
-      
+
       if (!response.data) return null;
-      
+
       return {
         ...response.data,
         id: response.data._id,
@@ -323,12 +336,12 @@ export const BookingService = {
   cancelBooking: async (id: string, reason?: string): Promise<Booking | null> => {
     try {
       const response = await api.patch(
-        `/bookings/${id}/cancel`, 
+        `/bookings/${id}/cancel`,
         { reason }
       );
-      
+
       if (!response.data) return null;
-      
+
       return {
         ...response.data,
         id: response.data._id,
@@ -372,11 +385,11 @@ export const BookingService = {
       if (searchType) {
         params.append('searchType', searchType);
       }
-      
+
       const response = await api.get(
         `/bookings/search?${params}`
       );
-      
+
       return response.data.results.map((booking: any) => ({
         ...booking,
         bookingDate: new Date(booking.bookingDate),
@@ -396,7 +409,7 @@ export const BookingService = {
         doctorId,
         dispensaryId
       });
-      
+
       return response.data.booking;
     } catch (error) {
       console.error('Error adjusting booking:', error);
@@ -416,7 +429,7 @@ export const BookingService = {
   }): Promise<Booking[]> => {
     try {
       const queryParams = new URLSearchParams();
-      
+
       if (params.bookingReference) queryParams.append('bookingReference', params.bookingReference);
       if (params.appointmentNumber) queryParams.append('appointmentNumber', params.appointmentNumber);
       if (params.patientName) queryParams.append('patientName', params.patientName);
@@ -426,7 +439,7 @@ export const BookingService = {
       if (params.dispensaryId) queryParams.append('dispensaryId', params.dispensaryId);
 
       const response = await api.get(`/dispensary/bookings/search?${queryParams.toString()}`);
-      
+
       return response.data.bookings.map((booking: any) => ({
         ...booking,
         id: booking._id,
@@ -456,7 +469,7 @@ export const BookingService = {
       if (params.sessionId) queryParams.append('sessionId', params.sessionId);
 
       const response = await api.get(`/dispensary/bookings/session?${queryParams.toString()}`);
-      
+
       return response.data.bookings.map((booking: any) => ({
         ...booking,
         id: booking._id,
@@ -475,7 +488,7 @@ export const BookingService = {
   checkInBooking: async (bookingId: string): Promise<Booking> => {
     try {
       const response = await api.patch(`/dispensary/bookings/${bookingId}/check-in`);
-      
+
       const booking = response.data.booking;
       return {
         ...booking,

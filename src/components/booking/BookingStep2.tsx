@@ -119,17 +119,17 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
     const safeName = name || '';
     const safePhone = phone || '';
     const safeEmail = email || '';
-    
+
     const nameError = validateName(safeName);
     const phoneError = validatePhone(safePhone);
     const emailError = validateEmail(safeEmail);
-    
+
     setValidationErrors({
       name: nameError,
       phone: phoneError,
       email: emailError
     });
-    
+
     return !nameError && !phoneError && !emailError;
   };
 
@@ -166,7 +166,7 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
                 </div>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="flex items-center space-x-3">
                 <div className="bg-green-100 p-2 rounded-lg">
@@ -177,7 +177,7 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
                   <p className="font-bold text-lg text-green-700">{format(selectedDate, 'PPP')}</p>
                 </div>
               </div>
-              
+
               <div className="flex items-center space-x-3">
                 <div className="bg-orange-100 p-2 rounded-lg">
                   <User className="h-5 w-5 text-orange-600" />
@@ -187,7 +187,7 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
                   <p className="font-bold text-lg text-orange-700">#{nextAppointment.appointmentNumber}</p>
                 </div>
               </div>
-              
+
               <div className="flex items-center space-x-3">
                 <div className="bg-purple-100 p-2 rounded-lg">
                   <Clock className="h-5 w-5 text-purple-600" />
@@ -198,7 +198,7 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
                 </div>
               </div>
             </div>
-            
+
             <div className="mt-6 pt-4 border-t border-blue-200">
               <div className="flex items-center justify-center space-x-2 text-blue-700">
                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
@@ -232,7 +232,7 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
               <span className="ml-3 text-emerald-600 font-medium">Loading fees...</span>
             </div>
           )}
-          
+
           {feesError && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <div className="flex items-center space-x-2">
@@ -243,7 +243,7 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
               </div>
             </div>
           )}
-          
+
           {fees && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -258,7 +258,7 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-white p-4 rounded-lg border border-green-200 shadow-sm">
                   <div className="flex items-center space-x-3">
                     <div className="bg-orange-100 p-2 rounded-lg">
@@ -270,7 +270,7 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-white p-4 rounded-lg border border-green-200 shadow-sm">
                   <div className="flex items-center space-x-3">
                     <div className="bg-purple-100 p-2 rounded-lg">
@@ -283,7 +283,7 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
                   </div>
                 </div>
               </div>
-              
+
               <div className="bg-gradient-to-r from-emerald-100 to-green-100 p-6 rounded-lg border-2 border-emerald-300">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
@@ -323,7 +323,7 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
           )}
           <p className="text-gray-500 text-xs mt-1">{(name?.length || 0)}/25 characters</p>
         </div>
-        
+
         <div>
           <Label htmlFor="phone">Phone Number</Label>
           <Input
@@ -338,11 +338,11 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
             <p className="text-red-500 text-sm mt-1">{validationErrors.phone}</p>
           )}
           <p className="text-gray-500 text-xs mt-1">
-            Enter a valid phone number because we are using this number to send you the SMS with OTP/booking details/etc... 
+            Enter a valid phone number because we are using this number to send you the SMS with OTP/booking details/etc...
             (Ex: +94 777 123 456 or 0777123456)
           </p>
         </div>
-        
+
         <div>
           <Label htmlFor="email">Email (Optional)</Label>
           <Input
@@ -357,21 +357,55 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
             <p className="text-red-500 text-sm mt-1">{validationErrors.email}</p>
           )}
         </div>
-        
+
         <div className="pt-4 flex justify-between">
           <Button variant="outline" onClick={onBack}>
             Back
           </Button>
           <Button
-            onClick={() => {
+            onClick={async () => {
               if (isFormValid()) {
-                onConfirm(fees);
+                if (!nextAppointment) return;
+
+                try {
+                  // Keep loading state until redirect
+                  // Note: parent component controls isLoading, but we can't easily change it here without prop
+                  // For now we assume onConfirm does what we want, but we are hijacking it for payment flow
+
+                  // 1. Create Booking Object
+                  const bookingData = {
+                    doctorId,
+                    dispensaryId,
+                    bookingDate: selectedDate!,
+                    patientName: name,
+                    patientPhone: phone,
+                    patientEmail: email,
+                    fees: fees,
+                    timeSlot: nextAppointment.timeSlot,
+                    appointmentNumber: nextAppointment.appointmentNumber,
+                    estimatedTime: nextAppointment.estimatedTime,
+                    minutesPerPatient: nextAppointment.minutesPerPatient
+                  };
+
+                  // 2. Create Booking via Service (frontend direct call)
+                  const { booking } = await BookingService.createBooking(bookingData);
+
+                  // 3. Initiate Payment
+                  const redirectUrl = await BookingService.initiatePayment(booking.id);
+
+                  // 4. Redirect
+                  window.location.href = redirectUrl;
+
+                } catch (error) {
+                  console.error("Payment initiation failed", error);
+                  alert("Failed to initiate payment. Please try again.");
+                }
               }
             }}
             disabled={isLoading || !name || !phone || !fees || !!validationErrors.name || !!validationErrors.phone || !!validationErrors.email}
             className="bg-medical-600 hover:bg-medical-700"
           >
-            {isLoading ? 'Processing...' : 'Confirm Booking'}
+            {isLoading ? 'Processing...' : 'Pay Online'}
           </Button>
         </div>
       </div>

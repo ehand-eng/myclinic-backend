@@ -133,6 +133,7 @@ export interface DoctorDispensaryFee {
 export interface DailyBookingsReport {
     total: number;
     completed: number;
+    checkedIn: number;
     cancelled: number;
     noShow: number;
     totalAmount: number;

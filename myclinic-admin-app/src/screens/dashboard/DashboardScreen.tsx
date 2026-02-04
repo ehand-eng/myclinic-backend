@@ -25,6 +25,8 @@ const DashboardScreen: React.FC = () => {
     const [doctors, setDoctors] = useState<Doctor[]>([]);
     const [todayReport, setTodayReport] = useState<DailyBookingsReport | null>(null);
 
+    const [ongoingCount, setOngoingCount] = useState(0);
+
     const loadDashboardData = useCallback(async () => {
         if (!selectedDispensary) return;
 
@@ -41,6 +43,9 @@ const DashboardScreen: React.FC = () => {
 
             setDoctors(doctorList);
             setTodayReport(report);
+            if (report) {
+                setOngoingCount(report.checkedIn || 0);
+            }
         } catch (error) {
             console.error('Error loading dashboard:', error);
         } finally {
@@ -141,6 +146,35 @@ const DashboardScreen: React.FC = () => {
                 {/* Today's Summary */}
                 {todayReport && (
                     <Card title="Today's Summary" subtitle={format(new Date(), 'EEEE, MMM d, yyyy')}>
+                        {/* Highlighted Ongoing Number with Controls */}
+                        <View style={[styles.highlightBox, { backgroundColor: colors.primary }]}>
+                            <Text style={styles.highlightLabel}>Ongoing Number</Text>
+                            <View style={styles.highlightControls}>
+                                <TouchableOpacity
+                                    style={styles.controlBtn}
+                                    onPress={() => setOngoingCount(prev => Math.max(0, prev - 1))}
+                                >
+                                    <Ionicons name="remove-circle-outline" size={40} color="rgba(255,255,255,0.8)" />
+                                </TouchableOpacity>
+
+                                <Text style={styles.highlightNumber}>
+                                    {ongoingCount || 0}
+                                </Text>
+
+                                <TouchableOpacity
+                                    style={styles.controlBtn}
+                                    onPress={() => setOngoingCount(prev => (prev || 0) + 1)}
+                                >
+                                    <Ionicons name="add-circle-outline" size={40} color="white" />
+                                </TouchableOpacity>
+                            </View>
+                            <View style={styles.resetContainer}>
+                                <TouchableOpacity onPress={() => setOngoingCount(0)}>
+                                    <Text style={styles.resetText}>Reset Counter</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
                         <View style={styles.statsGrid}>
                             <View style={[styles.statBox, { backgroundColor: colors.info + '20' }]}>
                                 <Text style={[styles.statNumber, { color: colors.info }]}>
@@ -220,6 +254,52 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         marginHorizontal: -spacing.xs,
+    },
+    highlightBox: {
+        width: '100%',
+        padding: spacing.lg,
+        borderRadius: borderRadius.md,
+        marginBottom: spacing.md,
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...shadows.sm,
+    },
+    highlightNumber: {
+        fontSize: 48,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        marginHorizontal: spacing.lg,
+    },
+    highlightLabel: {
+        fontSize: fontSizes.lg,
+        fontWeight: '600',
+        color: '#FFFFFF',
+        marginBottom: spacing.sm,
+        opacity: 0.9,
+    },
+    highlightControls: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    controlBtn: {
+        padding: spacing.xs,
+    },
+    subLabel: {
+        fontSize: fontSizes.sm,
+        color: '#FFFFFF',
+        opacity: 0.8,
+        marginTop: spacing.sm,
+    },
+    resetContainer: {
+        marginTop: spacing.sm,
+        padding: spacing.xs,
+    },
+    resetText: {
+        fontSize: fontSizes.sm,
+        color: '#FFFFFF',
+        opacity: 0.7,
+        textDecorationLine: 'underline',
     },
     statBox: {
         width: '48%',

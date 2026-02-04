@@ -6,6 +6,7 @@ const TimeSlotConfig = require('../models/TimeSlotConfig');
 const AbsentTimeSlot = require('../models/AbsentTimeSlot');
 const { validateCustomJwt } = require('../middleware/customAuthMiddleware');
 const roleMiddleware = require('../middleware/roleMiddleware');
+const QueueStatus = require('../models/QueueStatus');
 const mongoose = require('mongoose');
 
 // Helper function to get user's dispensary IDs
@@ -20,14 +21,14 @@ const getUserDispensaryIds = (user) => {
 const requireDispensaryAccess = (req, res, next) => {
   const userRole = req.user?.role?.toLowerCase() || '';
   const allowedRoles = ['dispensary-admin', 'dispensary-staff'];
-  
+
   if (!allowedRoles.includes(userRole)) {
     return res.status(403).json({
       message: 'Access denied',
       error: 'Only dispensary-admin and dispensary-staff can access this feature'
     });
   }
-  
+
   next();
 };
 
@@ -38,22 +39,22 @@ const validateBookingDispensary = async (req, res, next) => {
     if (!bookingId) {
       return next(); // Let route handle missing ID
     }
-    
+
     const booking = await Booking.findById(bookingId);
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }
-    
+
     const userDispensaryIds = getUserDispensaryIds(req.user);
     const bookingDispensaryId = booking.dispensaryId.toString();
-    
+
     if (!userDispensaryIds.includes(bookingDispensaryId)) {
       return res.status(403).json({
         message: 'Access denied',
         error: 'Booking does not belong to your dispensary'
       });
     }
-    
+
     req.booking = booking;
     next();
   } catch (error) {
@@ -70,6 +71,7 @@ router.get('/bookings/search', validateCustomJwt, requireDispensaryAccess, async
       bookingReference,
       appointmentNumber,
       patientName,
+      patientPhone,
       doctorId,
       sessionId,
       date,
@@ -111,17 +113,21 @@ router.get('/bookings/search', validateCustomJwt, requireDispensaryAccess, async
 
     // Add search criteria (at least one required)
     const searchConditions = [];
-    
+
     if (bookingReference) {
       searchConditions.push({ transactionId: { $regex: bookingReference, $options: 'i' } });
     }
-    
+
     if (appointmentNumber) {
       searchConditions.push({ appointmentNumber: parseInt(appointmentNumber) });
     }
-    
+
     if (patientName) {
       searchConditions.push({ patientName: { $regex: patientName, $options: 'i' } });
+    }
+
+    if (patientPhone) {
+      searchConditions.push({ patientPhone: { $regex: patientPhone, $options: 'i' } });
     }
 
     if (searchConditions.length > 0) {
@@ -130,11 +136,11 @@ router.get('/bookings/search', validateCustomJwt, requireDispensaryAccess, async
       // If no search criteria provided, return empty result
       return res.status(400).json({
         message: 'At least one search parameter is required',
-        required: ['bookingReference', 'appointmentNumber', 'patientName'],
+        required: ['bookingReference', 'appointmentNumber', 'patientName', 'patientPhone'],
         optional: ['doctorId', 'date', 'dispensaryId']
       });
     }
-console.log("++++++++++++++ searchCriteria ++++++++++++++", searchCriteria);
+    console.log("++++++++++++++ searchCriteria ++++++++++++++", searchCriteria);
     // Add session filter if provided
     // sessionId can be timeSlotConfigId (ObjectId) or timeSlot (string) for backward compatibility
     if (sessionId && sessionId !== "all") {
@@ -146,7 +152,7 @@ console.log("++++++++++++++ searchCriteria ++++++++++++++", searchCriteria);
         searchCriteria.timeSlot = sessionId;
       }
     }
-console.log("++++++++++++++ searchCriteria ++++++++++++++", searchCriteria);
+    console.log("++++++++++++++ searchCriteria ++++++++++++++", searchCriteria);
     const bookings = await Booking.find(searchCriteria)
       .populate('doctorId', 'name specialization')
       .populate('dispensaryId', 'name address')
@@ -207,9 +213,9 @@ router.get('/bookings/session', validateCustomJwt, requireDispensaryAccess, asyn
         optional: ['sessionId']
       });
     }
-console.log("++++++++++++++ dispensaryId ++++++++++++++", dispensaryId);
+    console.log("++++++++++++++ dispensaryId ++++++++++++++", dispensaryId);
     const userDispensaryIds = getUserDispensaryIds(req.user);
-    
+
     // Validate dispensary belongs to user
     if (!userDispensaryIds.includes(dispensaryId)) {
       return res.status(403).json({
@@ -223,7 +229,7 @@ console.log("++++++++++++++ dispensaryId ++++++++++++++", dispensaryId);
     const [year, month, day] = date.split('-').map(Number);
     const startDate = new Date(year, month - 1, day, 0, 0, 0, 0); // month is 0-indexed
     const endDate = new Date(year, month - 1, day, 23, 59, 59, 999);
-console.log("++++++++++++++ startDate ++++++++++++++", startDate);
+    console.log("++++++++++++++ startDate ++++++++++++++", startDate);
     // Build search criteria
     const searchCriteria = {
       dispensaryId: new mongoose.Types.ObjectId(dispensaryId),
@@ -242,13 +248,13 @@ console.log("++++++++++++++ startDate ++++++++++++++", startDate);
         searchCriteria.timeSlot = sessionId;
       }
     }
-console.log("+++1111111+++++++++++ searchCriteria ++++++++++++++", searchCriteria);
+    console.log("+++1111111+++++++++++ searchCriteria ++++++++++++++", searchCriteria);
     const bookings = await Booking.find(searchCriteria)
       .populate('doctorId', 'name specialization')
       .populate('dispensaryId', 'name address')
       .sort({ appointmentNumber: 1 })
       .lean();
-console.log("----------------- bookings ++++++++++++++", bookings);
+    console.log("----------------- bookings ++++++++++++++", bookings);
     const formattedBookings = bookings.map(booking => ({
       _id: booking._id,
       transactionId: booking.transactionId,
@@ -311,6 +317,44 @@ router.patch('/bookings/:bookingId/check-in', validateCustomJwt, requireDispensa
 
     await booking.save();
 
+    // Update Queue Status (Ongoing Number)
+    try {
+      const todayDate = new Date().toISOString().split('T')[0];
+      const dispensaryIdStr = booking.dispensaryId.toString();
+      const doctorIdStr = booking.doctorId.toString();
+
+      await QueueStatus.findOneAndUpdate(
+        {
+          dispensaryId: booking.dispensaryId,
+          doctorId: booking.doctorId,
+          date: todayDate
+        },
+        {
+          currentNumber: booking.appointmentNumber,
+          lastUpdated: new Date()
+        },
+        { upsert: true, new: true }
+      );
+
+      // Emit WebSocket event using ws
+      const wss = req.app.get('wss');
+      if (wss && wss.broadcastToRoom) {
+        const updateEvent = {
+          type: 'ONGOING_NUMBER_UPDATE',
+          payload: {
+            dispensaryId: dispensaryIdStr,
+            doctorId: doctorIdStr,
+            ongoingNumber: booking.appointmentNumber,
+            timestamp: new Date()
+          }
+        };
+        wss.broadcastToRoom(dispensaryIdStr, doctorIdStr, updateEvent);
+      }
+    } catch (queueError) {
+      console.error('Error updating queue status:', queueError);
+      // Don't fail the request if queue update fails, just log it
+    }
+
     // Return updated booking
     const updatedBooking = await Booking.findById(bookingId)
       .populate('doctorId', 'name specialization')
@@ -353,6 +397,97 @@ router.patch('/bookings/:bookingId/check-in', validateCustomJwt, requireDispensa
   } catch (error) {
     console.error('Error checking in booking:', error);
     res.status(500).json({ message: 'Error checking in booking', error: error.message });
+  }
+});
+
+// Get current queue status (ongoing number)
+// GET /api/dispensary/queue-status
+router.get('/queue-status', validateCustomJwt, async (req, res) => {
+  try {
+    const { dispensaryId, doctorId, date } = req.query;
+
+    if (!dispensaryId || !doctorId) {
+      return res.status(400).json({ message: 'DispensaryId and DoctorId are required' });
+    }
+
+    const queryDate = date || new Date().toISOString().split('T')[0];
+
+    // Find current status
+    const status = await QueueStatus.findOne({
+      dispensaryId: new mongoose.Types.ObjectId(dispensaryId),
+      doctorId: new mongoose.Types.ObjectId(doctorId),
+      date: queryDate
+    });
+
+    res.json({
+      ongoingNumber: status ? status.currentNumber : 0,
+      lastUpdated: status ? status.lastUpdated : null
+    });
+  } catch (error) {
+    console.error('Error fetching queue status:', error);
+    res.status(500).json({ message: 'Error fetching queue status' });
+  }
+});
+
+// Manually update queue status
+// POST /api/dispensary/queue-status/update
+router.post('/queue-status/update', validateCustomJwt, requireDispensaryAccess, async (req, res) => {
+  try {
+    const { dispensaryId, doctorId, ongoingNumber, date } = req.body;
+
+    if (!dispensaryId || !doctorId || ongoingNumber === undefined) {
+      return res.status(400).json({ message: 'Missing required parameters' });
+    }
+
+    // Verify access
+    const userDispensaryIds = getUserDispensaryIds(req.user);
+    if (!userDispensaryIds.includes(dispensaryId)) {
+      return res.status(403).json({ message: 'Access denied to this dispensary' });
+    }
+
+    const updateDate = date || new Date().toISOString().split('T')[0];
+
+    // Update DB
+    const status = await QueueStatus.findOneAndUpdate(
+      {
+        dispensaryId: new mongoose.Types.ObjectId(dispensaryId),
+        doctorId: new mongoose.Types.ObjectId(doctorId),
+        date: updateDate
+      },
+      {
+        currentNumber: ongoingNumber,
+        lastUpdated: new Date()
+      },
+      { upsert: true, new: true }
+    );
+
+    // Emit WebSocket Event using ws
+    const wss = req.app.get('wss');
+    if (wss && wss.broadcastToRoom) {
+      const dispensaryIdStr = dispensaryId.toString();
+      const doctorIdStr = doctorId.toString();
+
+      const updateEvent = {
+        type: 'ONGOING_NUMBER_UPDATE',
+        payload: {
+          dispensaryId: dispensaryIdStr,
+          doctorId: doctorIdStr,
+          ongoingNumber: Number(ongoingNumber),
+          timestamp: new Date()
+        }
+      };
+
+      wss.broadcastToRoom(dispensaryIdStr, doctorIdStr, updateEvent);
+    }
+
+    res.json({
+      message: 'Queue updated successfully',
+      ongoingNumber: status.currentNumber
+    });
+
+  } catch (error) {
+    console.error('Error updating queue status:', error);
+    res.status(500).json({ message: 'Error updating queue status' });
   }
 });
 

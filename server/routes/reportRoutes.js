@@ -108,6 +108,7 @@ router.post('/generate/daily-bookings', async (req, res) => {
     // Process booking data for the report
     const totalBookings = bookings.length;
     const completedBookings = bookings.filter(b => b.status === 'completed').length;
+    const checkedInBookings = bookings.filter(b => b.status === 'checked_in').length;
     const cancelledBookings = bookings.filter(b => b.status === 'cancelled').length;
     const noShowBookings = bookings.filter(b => b.status === 'no_show').length;
 
@@ -132,6 +133,7 @@ router.post('/generate/daily-bookings', async (req, res) => {
     const reportData = {
       totalBookings,
       completedBookings,
+      checkedInBookings,
       cancelledBookings,
       noShowBookings,
       bookingsByDoctor
@@ -517,6 +519,7 @@ router.get('/daily-bookings', validateJwt, roleMiddleware.requireRole(['super-ad
     const summary = {
       total: bookings.length,
       completed: bookings.filter(b => b.status === 'completed').length,
+      checkedIn: bookings.filter(b => b.status === 'checked_in').length,
       cancelled: bookings.filter(b => b.status === 'cancelled').length,
       noShow: bookings.filter(b => b.status === 'no_show').length,
       totalAmount,

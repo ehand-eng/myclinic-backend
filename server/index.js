@@ -26,6 +26,7 @@ const fcmRoutes = require('./routes/fcmRoutes');
 const dispensaryCheckInRoutes = require('./routes/dispensaryCheckInRoutes');
 const utilRoutes = require('./routes/utilRoutes');
 const locationRoutes = require('./routes/locationRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 // Create Express app
 const app = express();
 
@@ -63,6 +64,7 @@ app.use('/api/channel-partners', channelPartnerRoutes); // Channel partner route
 app.use('/api/dispensary', dispensaryCheckInRoutes); // Dispensary check-in routes
 app.use('/api/util', utilRoutes); // Utility routes (OTP management)
 app.use('/api/location', locationRoutes); // Location-based search routes
+app.use('/api/payment', paymentRoutes); // Payment Gateway Routes
 
 // Base route
 app.get('/api', (req, res) => {
@@ -70,7 +72,80 @@ app.get('/api', (req, res) => {
 });
 
 // Start server
+// Create HTTP server and integrate Socket.io
+// Create HTTP server and integrate WebSocket (ws)
+const http = require('http');
+const WebSocket = require('ws');
+const url = require('url');
+
+const httpServer = http.createServer(app);
+
+// Create WebSocket Server attached to the HTTP server
+// We handle the 'upgrade' event manually to support the /ws path strictly if needed,
+// or just pass { server: httpServer, path: '/ws' }
+const wss = new WebSocket.Server({ server: httpServer, path: '/ws' });
+
+// Store clients and their subscriptions
+// structure: Map<WebSocket, { dispensaryId: string, doctorId: string }>
+const clients = new Map();
+
+wss.on('connection', (ws, req) => {
+  console.log('New WebSocket connection');
+
+  ws.on('message', (message) => {
+    try {
+      const data = JSON.parse(message);
+
+      if (data.type === 'SUBSCRIBE_APPOINTMENT') {
+        const { dispensaryId, doctorId } = data.payload || {};
+
+        if (dispensaryId) {
+          // Save subscription details for this client
+          clients.set(ws, { dispensaryId, doctorId });
+          console.log(`Client subscribed to dispensary: ${dispensaryId}, doctor: ${doctorId || 'all'}`);
+
+          // Optional: Send immediate confirmation or current status if you had it easily accessible
+          ws.send(JSON.stringify({
+            type: 'SUBSCRIPTION_SUCCESS',
+            payload: { dispensaryId, doctorId }
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error processing WebSocket message:', error);
+    }
+  });
+
+  ws.on('close', () => {
+    console.log('WebSocket disconnected');
+    clients.delete(ws);
+  });
+
+  ws.on('error', (error) => {
+    console.error('WebSocket error:', error);
+  });
+});
+
+// Helper function to broadcast updates
+wss.broadcastToRoom = (dispensaryId, doctorId, data) => {
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      const subscription = clients.get(client);
+      if (subscription && subscription.dispensaryId === dispensaryId.toString()) {
+        // If the update is for a specific doctor, only send to those subscribed to that doctor OR all doctors
+        if (!subscription.doctorId || subscription.doctorId === doctorId.toString()) {
+          client.send(JSON.stringify(data));
+        }
+      }
+    }
+  });
+};
+
+// Make wss accessible in routes
+app.set('wss', wss);
+
+// Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, "0.0.0.0", () => {
+httpServer.listen(PORT, "0.0.0.0", () => {
   console.log(`Server is running on port ${PORT}`);
 });
