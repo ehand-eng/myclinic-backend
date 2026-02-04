@@ -216,6 +216,7 @@ export const bookingService = {
         bookingReference?: string;
         appointmentNumber?: string;
         patientName?: string;
+        patientPhone?: string;
         doctorId?: string;
         date?: string;
         dispensaryId?: string;

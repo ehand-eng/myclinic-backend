@@ -41,6 +41,9 @@ const bookingSchema = new mongoose.Schema({
     enum: ['scheduled', 'checked_in', 'completed', 'cancelled', 'no_show'],
     default: 'scheduled'
   },
+  paymentId: {
+    type: String
+  },
   notes: {
     type: String
   },

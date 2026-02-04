@@ -258,6 +258,19 @@ export const BookingService = {
     }
   },
 
+
+
+  // Initiate payment for a booking
+  initiatePayment: async (bookingId: string): Promise<string> => {
+    try {
+      const response = await api.post('/payment/initiate', { bookingId });
+      return response.data.redirectUrl;
+    } catch (error) {
+      console.error('Error initiating payment:', error);
+      throw new Error('Failed to initiate payment');
+    }
+  },
+
   // Get booking summary
   getBookingSummary: async (transactionId: string): Promise<BookingSummary> => {
     try {

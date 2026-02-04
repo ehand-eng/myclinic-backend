@@ -32,6 +32,12 @@ const CheckInSessionScreen: React.FC = () => {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
+    // Global Search State
+    const [globalSearchQuery, setGlobalSearchQuery] = useState('');
+    const [globalSearchResults, setGlobalSearchResults] = useState<FormattedBooking[]>([]);
+    const [isGlobalSearching, setIsGlobalSearching] = useState(false);
+    const [showGlobalResults, setShowGlobalResults] = useState(false);
+
     // Load doctors
     const loadDoctors = useCallback(async () => {
         if (!selectedDispensary) return;
@@ -148,6 +154,66 @@ const CheckInSessionScreen: React.FC = () => {
         loadBookings();
     };
 
+    const performGlobalSearch = async () => {
+        if (!globalSearchQuery.trim() || !selectedDispensary) return;
+
+        setIsGlobalSearching(true);
+        setShowGlobalResults(true);
+
+        try {
+            const searchParams: any = {
+                dispensaryId: selectedDispensary._id,
+                patientName: globalSearchQuery,
+                patientPhone: globalSearchQuery,
+                bookingReference: globalSearchQuery
+            };
+
+            // If query is numeric, it could be appointment number
+            if (!isNaN(Number(globalSearchQuery))) {
+                searchParams.appointmentNumber = globalSearchQuery;
+            }
+
+            const response = await bookingService.search(searchParams);
+            setGlobalSearchResults(response.bookings || []);
+        } catch (error) {
+            console.error('Global search error:', error);
+            Alert.alert('Error', 'Failed to search bookings');
+        } finally {
+            setIsGlobalSearching(false);
+        }
+    };
+
+    const handleGlobalCheckIn = async (booking: FormattedBooking) => {
+        if (booking.status !== 'scheduled') {
+            Alert.alert('Cannot Check In', 'This booking cannot be checked in.');
+            return;
+        }
+
+        Alert.alert('Check In', `Check in ${booking.patientName}?`, [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Check In',
+                onPress: async () => {
+                    try {
+                        await bookingService.checkIn(booking._id);
+                        Alert.alert('Success', `${booking.patientName} checked in successfully!`);
+                        // Refresh search results
+                        performGlobalSearch();
+                    } catch (error: any) {
+                        const message = error.response?.data?.message || 'Failed to check in';
+                        Alert.alert('Error', message);
+                    }
+                },
+            },
+        ]);
+    };
+
+    const clearGlobalSearch = () => {
+        setGlobalSearchQuery('');
+        setGlobalSearchResults([]);
+        setShowGlobalResults(false);
+    };
+
     // Step 1: Doctor Selection
     if (!selectedDoctor) {
         if (isLoading) {
@@ -158,37 +224,127 @@ const CheckInSessionScreen: React.FC = () => {
             <View style={commonStyles.container}>
                 <View style={styles.header}>
                     <Text style={styles.headerTitle}>Check-In</Text>
-                    <Text style={styles.headerSubtitle}>Select a doctor to view today's bookings</Text>
+                    <Text style={styles.headerSubtitle}>Select a doctor to view today's bookings or search globally</Text>
                 </View>
 
-                <FlatList
-                    data={doctors}
-                    renderItem={({ item }) => (
-                        <TouchableOpacity onPress={() => setSelectedDoctor(item)}>
-                            <Card>
-                                <View style={styles.doctorRow}>
-                                    <View style={styles.doctorIcon}>
-                                        <Ionicons name="person" size={24} color={colors.primary} />
-                                    </View>
-                                    <View style={styles.doctorInfo}>
-                                        <Text style={styles.doctorName}>{item.name}</Text>
-                                        <Text style={styles.doctorSpec}>{item.specialization}</Text>
-                                    </View>
-                                    <Ionicons name="chevron-forward" size={24} color={colors.textLight} />
-                                </View>
-                            </Card>
+                {/* Global Search Bar */}
+                <View style={styles.searchContainer}>
+                    <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Search by phone, name, or ID"
+                        value={globalSearchQuery}
+                        onChangeText={setGlobalSearchQuery}
+                        placeholderTextColor={colors.textLight}
+                        onSubmitEditing={performGlobalSearch}
+                        returnKeyType="search"
+                    />
+                    {globalSearchQuery.length > 0 && (
+                        <TouchableOpacity onPress={clearGlobalSearch}>
+                            <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
                         </TouchableOpacity>
                     )}
-                    keyExtractor={(item) => item._id}
-                    contentContainerStyle={styles.list}
-                    ListEmptyComponent={
-                        <EmptyState
-                            icon="people-outline"
-                            title="No Doctors"
-                            message="No doctors found for this dispensary"
-                        />
-                    }
-                />
+                    <TouchableOpacity
+                        style={styles.searchButton}
+                        onPress={performGlobalSearch}
+                    >
+                        <Text style={styles.searchButtonText}>Search</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {showGlobalResults ? (
+                    <View style={{ flex: 1 }}>
+                        <View style={styles.resultsHeader}>
+                            <Text style={styles.resultsTitle}>Found {globalSearchResults.length} bookings</Text>
+                            <TouchableOpacity onPress={clearGlobalSearch}>
+                                <Text style={styles.clearSearchText}>Clear Results</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {isGlobalSearching ? (
+                            <LoadingSpinner message="Searching..." />
+                        ) : (
+                            <FlatList
+                                data={globalSearchResults}
+                                renderItem={({ item }) => (
+                                    <Card>
+                                        <View style={styles.bookingHeader}>
+                                            <View style={styles.appointmentBadge}>
+                                                <Text style={styles.appointmentNumber}>#{item.appointmentNumber}</Text>
+                                            </View>
+                                            <StatusBadge status={item.status} />
+                                        </View>
+
+                                        <View style={styles.bookingContent}>
+                                            <Text style={styles.patientName}>{item.patientName}</Text>
+                                            <Text style={styles.patientPhone}>{item.patientPhone}</Text>
+                                            <Text style={styles.timeText}>
+                                                Date: {format(new Date(item.bookingDate), 'MMM d')} • {item.doctor.name}
+                                            </Text>
+                                        </View>
+
+                                        {item.status === 'scheduled' && (
+                                            <Button
+                                                title="Check In"
+                                                onPress={() => handleGlobalCheckIn(item)}
+                                                variant="success"
+                                                size="small"
+                                            />
+                                        )}
+
+                                        {item.status === 'checked_in' && (
+                                            <View style={styles.checkedInBadge}>
+                                                <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+                                                <Text style={styles.checkedInText}>
+                                                    Checked in at {item.checkedInTime ? format(new Date(item.checkedInTime), 'h:mm a') : ''}
+                                                </Text>
+                                            </View>
+                                        )}
+                                    </Card>
+                                )}
+                                keyExtractor={(item) => item._id}
+                                contentContainerStyle={styles.list}
+                                ListEmptyComponent={
+                                    <EmptyState
+                                        icon="search"
+                                        title="No bookings found"
+                                        message={`No bookings found matching "${globalSearchQuery}"`}
+                                    />
+                                }
+                            />
+                        )}
+                    </View>
+                ) : (
+
+                    <FlatList
+                        data={doctors}
+                        renderItem={({ item }) => (
+                            <TouchableOpacity onPress={() => setSelectedDoctor(item)}>
+                                <Card>
+                                    <View style={styles.doctorRow}>
+                                        <View style={styles.doctorIcon}>
+                                            <Ionicons name="person" size={24} color={colors.primary} />
+                                        </View>
+                                        <View style={styles.doctorInfo}>
+                                            <Text style={styles.doctorName}>{item.name}</Text>
+                                            <Text style={styles.doctorSpec}>{item.specialization}</Text>
+                                        </View>
+                                        <Ionicons name="chevron-forward" size={24} color={colors.textLight} />
+                                    </View>
+                                </Card>
+                            </TouchableOpacity>
+                        )}
+                        keyExtractor={(item) => item._id}
+                        contentContainerStyle={styles.list}
+                        ListEmptyComponent={
+                            <EmptyState
+                                icon="people-outline"
+                                title="No Doctors"
+                                message="No doctors found for this dispensary"
+                            />
+                        }
+                    />
+                )}
             </View>
         );
     }
@@ -520,6 +676,35 @@ const styles = StyleSheet.create({
         color: colors.success,
         fontWeight: '500',
         marginLeft: spacing.sm,
+    },
+    searchButton: {
+        backgroundColor: colors.primary,
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm,
+        borderRadius: borderRadius.sm,
+        marginLeft: spacing.sm,
+    },
+    searchButtonText: {
+        color: '#FFFFFF',
+        fontWeight: '600',
+        fontSize: fontSizes.sm,
+    },
+    resultsHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: spacing.lg,
+        marginBottom: spacing.sm,
+    },
+    resultsTitle: {
+        fontSize: fontSizes.md,
+        fontWeight: '600',
+        color: colors.text,
+    },
+    clearSearchText: {
+        color: colors.primary,
+        fontSize: fontSizes.sm,
+        fontWeight: '600',
     },
 });
 
