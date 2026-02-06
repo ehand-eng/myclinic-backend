@@ -338,7 +338,9 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCa
       });
 
       const paymentData = paymentResponse.data;
-
+      console.log("++++++++++++++++++++++++++++++++++++++++++++");
+      console.log("Payment Data:", paymentData);
+      console.log("++++++++++++++++++++++++++++++++++++++++++++");
       if (paymentData.paymentUrl) {
         // Redirect to Dialog Genie payment page
         window.location.href = paymentData.paymentUrl;

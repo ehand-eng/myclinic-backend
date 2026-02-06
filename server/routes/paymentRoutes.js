@@ -41,20 +41,17 @@ router.post('/dialog-genie/create-intent/:bookingId', async (req, res) => {
             return res.status(400).json({ message: 'Booking is already paid' });
         }
 
-        // Create payment intent with Dialog Genie
-        const result = await dialogGenieService.createPaymentIntent(booking, customer);
+        // Create payment intent with Dialog Genie - returns paymentUrl string directly
+        const paymentUrl = await dialogGenieService.createPaymentIntent(bookingId);
+        console.log("++++++++++++++++++++rrrrrr++++++++++++++++++++++++");
+        console.log("Payment URL:", paymentUrl);
+        console.log("+++++++++++++++++++rrrr+++++++++++++++++++++++++");
 
-        // Update booking with payment intent ID
-        booking.paymentIntentId = result.paymentIntentId;
-        booking.paymentStatus = 'processing';
-        booking.paymentGateway = 'dialog_genie';
-        await booking.save();
+        // Booking is already updated inside dialogGenieService
 
         res.json({
             success: true,
-            paymentIntentId: result.paymentIntentId,
-            paymentUrl: result.paymentUrl,
-            amount: result.amount,
+            paymentUrl: paymentUrl,
         });
     } catch (error) {
         console.error('Dialog Genie create intent error:', error);
