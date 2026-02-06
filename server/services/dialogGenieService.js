@@ -52,8 +52,7 @@ class DialogGenieService {
                 amount: amountInCents,
                 localId: reservationId, // CRITICAL: This is returned in callback
                 currency: 'LKR',
-                redirectUrl: "https://prechloric-verdell-faster.ngrok-free.dev/api/payments/redirect",
-                // redirectUrl: `${this.backendUrl}/api/payment/redirect`,
+                redirectUrl: `${this.backendUrl}/api/payment/redirect`,
                 customer: {
                     name: booking.patientName,
                     email: booking.patientEmail || 'customer@booking.local',
@@ -62,8 +61,8 @@ class DialogGenieService {
                     billingAddress1: 'Not provided',
                     billingCity: 'Colombo',
                     billingCountry: 'Sri Lanka',
-                    billingPostCode: '00000'
-                    // phoneNumber: booking.patientPhone // Including phone if supported/needed
+                    billingPostCode: '00000',
+                    phoneNumber: booking.patientPhone // Including phone if supported/needed
                 }
             };
 
@@ -72,10 +71,10 @@ class DialogGenieService {
             const headers = {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                'Authorization': `${this.apiKey.trim()}`
+                'Authorization': `Bearer ${this.apiKey.trim()}`
             };
 
-            console.log('Sending request to Dialog Genie:', { url: this.apiUrl, payload, headers });
+            console.log('Sending request to Dialog Genie:', { url: this.apiUrl, payload });
 
             const response = await axios.post(this.apiUrl, payload, { headers, timeout: 30000 });
             const responseData = response.data || {};
@@ -94,8 +93,7 @@ class DialogGenieService {
             booking.paymentId = dialogGenieTransactionId;
             booking.notes = (booking.notes || '') + ' | Payment Initiated: ' + dialogGenieTransactionId;
             await booking.save();
-            console.log("++++++++++++++++++++++++++++++++++++++++++++");
-            console.log('Payment URL:', paymentUrl);
+
             return paymentUrl;
 
         } catch (error) {
