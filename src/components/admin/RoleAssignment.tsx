@@ -46,7 +46,8 @@ const RoleAssignment = () => {
           id: user._id,
           name: user.name,
           email: user.email,
-          role: user.role || 'patient'
+          role: user.role || 'patient',
+          dispensary: user.dispensaries[0]?.name || 'No Dispensary'
         }));
         setUsers(mappedUsers);
       } catch (error: any) {
@@ -104,7 +105,7 @@ const RoleAssignment = () => {
   const handleRoleChange = async (userId: string, newRole: string) => {
     try {
       setIsUpdating(true);
-      
+
       const token = AuthService.getToken();
       console.log("++++handleRoleChange++++++++++ token ++++++++++++++", token);
       if (!token) {
@@ -126,8 +127,8 @@ const RoleAssignment = () => {
       }
 
       // Update local state
-      setUsers(prevUsers => 
-        prevUsers.map(user => 
+      setUsers(prevUsers =>
+        prevUsers.map(user =>
           user.id === userId ? { ...user, role: newRole } : user
         )
       );
@@ -231,6 +232,7 @@ const RoleAssignment = () => {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Dispensary</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -240,6 +242,7 @@ const RoleAssignment = () => {
                   <TableRow key={user.id}>
                     <TableCell>{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
+                    <TableCell>{user.dispensary}</TableCell>
                     <TableCell>
                       <Badge className={getRoleBadgeColor(user.role)}>
                         {user.role}
