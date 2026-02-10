@@ -1,6 +1,6 @@
 // API Configuration
 // Change this to your backend server URL
-export const API_BASE_URL = 'http://192.168.1.10:5001'; // Update with your server IP
+export const API_BASE_URL = 'http://192.168.8.193:5001'; // Update with your server IP
 
 // For iOS simulator use: 'http://localhost:5000'
 // For Android emulator use: 'http://10.0.2.2:5000'
@@ -40,4 +40,9 @@ export const API_ENDPOINTS = {
     REPORTS_ADVANCE: '/api/reports/advance-bookings',
     REPORTS_SESSION: '/api/reports/session',
     REPORTS_DOCTOR_PERFORMANCE: '/api/reports/doctor-performance',
+
+    // Notifications
+    FCM_TOKEN: '/api/fcm',
+    FCM_SUBSCRIBE: '/api/fcm/subscribe',
+    FCM_UNSUBSCRIBE: '/api/fcm/unsubscribe',
 };

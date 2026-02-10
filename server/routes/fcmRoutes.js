@@ -1,42 +1,66 @@
 const express = require('express');
 const router = express.Router();
 const FcmToken = require('../models/FcmToken');
+const admin = require('../config/firebase');
 
 /**
  * @route POST /api/save-fcm-token
  * @desc Save or update user's FCM token
- * @access Public (you can secure later)
  */
 router.post('/', async (req, res) => {
   try {
     const { token, userId, platform } = req.body;
-    console.log("token", token);
-    console.log("userId", userId);
-    console.log("platform", platform);
 
     if (!token) {
       return res.status(400).json({ message: 'FCM token is required' });
     }
 
-    // If token exists, just update timestamp or user info
-    let existing = await FcmToken.findOne({ token });
-    console.log("existing token found :", existing);
-    if (existing) {
-      existing.userId = userId || existing.userId;
-      existing.platform = platform || existing.platform;
-      await existing.save();
-      return res.status(200).json({ message: 'Token updated successfully' });
-    }
+    // Upsert token
+    await FcmToken.findOneAndUpdate(
+      { token },
+      { userId, platform, lastActive: new Date() },
+      { upsert: true, new: true }
+    );
 
-    // Otherwise, create a new one
-    const newToken = new FcmToken({ token, userId, platform });
-    console.log("newToken generated :", newToken);
-    await newToken.save();
-    console.log("newToken saved successfully");
-    res.status(201).json({ message: 'Token saved successfully' });
+    res.status(200).json({ message: 'Token saved successfully' });
   } catch (error) {
     console.error('Error saving FCM token:', error);
     res.status(500).json({ message: 'Server error saving FCM token' });
+  }
+});
+
+/**
+ * @route POST /api/fcm/subscribe
+ * @desc Subscribe a token to a specific topic (e.g., 'queue_dispensaryId_doctorId')
+ */
+router.post('/subscribe', async (req, res) => {
+  try {
+    const { token, topic } = req.body;
+    if (!token || !topic) return res.status(400).json({ message: 'Token and Topic required' });
+
+    await admin.messaging().subscribeToTopic(token, topic);
+    console.log(`Subscribed ${token} to ${topic}`);
+    res.status(200).json({ message: `Subscribed to ${topic}` });
+  } catch (error) {
+    console.error('Error subscribing to topic:', error);
+    res.status(500).json({ message: 'Failed to subscribe' });
+  }
+});
+
+/**
+ * @route POST /api/fcm/unsubscribe
+ * @desc Unsubscribe a token from a topic
+ */
+router.post('/unsubscribe', async (req, res) => {
+  try {
+    const { token, topic } = req.body;
+    if (!token || !topic) return res.status(400).json({ message: 'Token and Topic required' });
+
+    await admin.messaging().unsubscribeFromTopic(token, topic);
+    res.status(200).json({ message: `Unsubscribed from ${topic}` });
+  } catch (error) {
+    console.error('Error unsubscribing from topic:', error);
+    res.status(500).json({ message: 'Failed to unsubscribe' });
   }
 });
 

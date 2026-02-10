@@ -8,6 +8,7 @@ const { validateCustomJwt } = require('../middleware/customAuthMiddleware');
 const roleMiddleware = require('../middleware/roleMiddleware');
 const QueueStatus = require('../models/QueueStatus');
 const mongoose = require('mongoose');
+const admin = require('../config/firebase');
 
 // Helper function to get user's dispensary IDs
 const getUserDispensaryIds = (user) => {
@@ -350,6 +351,36 @@ router.patch('/bookings/:bookingId/check-in', validateCustomJwt, requireDispensa
         };
         wss.broadcastToRoom(dispensaryIdStr, doctorIdStr, updateEvent);
       }
+
+      // Send FCM Notification
+      try {
+        const topic = `queue_${dispensaryIdStr}_${doctorIdStr}`;
+        const message = {
+          topic: topic,
+          notification: {
+            title: 'Queue Update',
+            body: `Current Token: ${booking.appointmentNumber}`
+          },
+          data: {
+            type: 'ONGOING_NUMBER_UPDATE',
+            dispensaryId: dispensaryIdStr,
+            doctorId: doctorIdStr,
+            ongoingNumber: String(booking.appointmentNumber),
+            timestamp: new Date().toISOString()
+          },
+          android: {
+            priority: 'high',
+            notification: {
+              channelId: 'queue_updates', // Create this channel in React Native
+            }
+          }
+        };
+
+        await admin.messaging().send(message);
+        console.log(`FCM sent to topic: ${topic}`);
+      } catch (fcmError) {
+        console.error('Error sending FCM:', fcmError.message);
+      }
     } catch (queueError) {
       console.error('Error updating queue status:', queueError);
       // Don't fail the request if queue update fails, just log it
@@ -478,6 +509,36 @@ router.post('/queue-status/update', validateCustomJwt, requireDispensaryAccess, 
       };
 
       wss.broadcastToRoom(dispensaryIdStr, doctorIdStr, updateEvent);
+    }
+
+    // Send FCM Notification
+    try {
+      const topic = `queue_${dispensaryIdStr}_${doctorIdStr}`;
+      const message = {
+        topic: topic,
+        notification: {
+          title: 'Queue Update',
+          body: `Current Token: ${ongoingNumber}`
+        },
+        data: {
+          type: 'ONGOING_NUMBER_UPDATE',
+          dispensaryId: dispensaryIdStr,
+          doctorId: doctorIdStr,
+          ongoingNumber: String(ongoingNumber),
+          timestamp: new Date().toISOString()
+        },
+        android: {
+          priority: 'high',
+          notification: {
+            channelId: 'queue_updates',
+          }
+        }
+      };
+
+      await admin.messaging().send(message);
+      console.log(`FCM sent to topic: ${topic}`);
+    } catch (fcmError) {
+      console.error('Error sending FCM:', fcmError.message);
     }
 
     res.json({

@@ -16,6 +16,7 @@ import { doctorService, bookingService, reportService } from '../../api/services
 import { Doctor, DailyBookingsReport } from '../../types';
 import { colors, spacing, fontSizes, borderRadius, shadows, commonStyles } from '../../styles/theme';
 import { format } from 'date-fns';
+import { usePushNotifications } from '../../hooks/usePushNotifications';
 
 const DashboardScreen: React.FC = () => {
     const navigation = useNavigation<any>();
@@ -26,6 +27,8 @@ const DashboardScreen: React.FC = () => {
     const [todayReport, setTodayReport] = useState<DailyBookingsReport | null>(null);
 
     const [ongoingCount, setOngoingCount] = useState(0);
+
+    const { notification, subscribeToTopic } = usePushNotifications();
 
     const loadDashboardData = useCallback(async () => {
         if (!selectedDispensary) return;
@@ -57,6 +60,25 @@ const DashboardScreen: React.FC = () => {
     useEffect(() => {
         loadDashboardData();
     }, [loadDashboardData]);
+
+    // Subscribe to queue topics when doctors load
+    useEffect(() => {
+        if (selectedDispensary && doctors.length > 0) {
+            doctors.forEach(doc => {
+                subscribeToTopic(`queue_${selectedDispensary._id}_${doc._id}`);
+            });
+        }
+    }, [selectedDispensary, doctors]);
+
+    // Listen for FCM updates
+    useEffect(() => {
+        if (notification && notification.request.content.data.type === 'ONGOING_NUMBER_UPDATE') {
+            const data = notification.request.content.data;
+            if (data.dispensaryId === selectedDispensary?._id) {
+                setOngoingCount(Number(data.ongoingNumber));
+            }
+        }
+    }, [notification, selectedDispensary]);
 
     const handleRefresh = () => {
         setIsRefreshing(true);

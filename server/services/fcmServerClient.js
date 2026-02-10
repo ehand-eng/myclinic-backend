@@ -16,7 +16,7 @@ function initializeFCM() {
     const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH
       ? path.resolve(process.env.FIREBASE_SERVICE_ACCOUNT_PATH)
       : path.resolve(__dirname, "myclinic-smsgateway-firebase-adminsdk-fbsvc-7d769f9adb.json");
-    
+
     console.log("serviceAccountPath", serviceAccountPath);
 
     // Check if file exists
@@ -80,7 +80,7 @@ function stringifyData(data) {
 }
 
 async function sendNotification(fcmToken, title, body, data = {}) {
-  
+
   // Re-initialize if needed
   if (!appInitialized) {
     initializeFCM();
@@ -132,7 +132,7 @@ async function sendNotification(fcmToken, title, body, data = {}) {
     return { success: true, messageId: response };
   } catch (error) {
     console.error("❌ Error sending FCM message:", error);
-    
+
     // Handle specific error cases
     if (error.code === 'app/invalid-credential') {
       console.error("[FCM] ====== INVALID CREDENTIALS ERROR ======");
@@ -154,15 +154,15 @@ async function sendNotification(fcmToken, title, body, data = {}) {
       console.error("[FCM] =======================================");
       fcmEnabled = false; // Disable FCM to prevent repeated failures
       appInitialized = true; // Mark as initialized to prevent retries
-    } else if (error.code === 'messaging/invalid-registration-token' || 
-               error.code === 'messaging/registration-token-not-registered') {
+    } else if (error.code === 'messaging/invalid-registration-token' ||
+      error.code === 'messaging/registration-token-not-registered') {
       console.error("[FCM] Invalid or unregistered FCM token. The token may be expired or invalid.");
     } else if (error.code === 'messaging/invalid-argument') {
       console.error("[FCM] Invalid message payload. Check the message structure.");
     } else {
       console.error("[FCM] Unexpected error code:", error.code);
     }
-    
+
     return { success: false, error: error.message, code: error.code };
   }
 }
