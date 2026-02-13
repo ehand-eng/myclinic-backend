@@ -52,7 +52,7 @@ class DialogGenieService {
                 amount: amountInCents,
                 localId: reservationId, // CRITICAL: This is returned in callback
                 currency: 'LKR',
-                redirectUrl: `https://prechloric-verdell-faster.ngrok-free.dev/api/payment/redirect`,
+                redirectUrl: `${this.backendUrl}/api/payment/redirect`,
                 customer: {
                     name: booking.patientName,
                     email: booking.patientEmail || 'customer@booking.local',
@@ -61,7 +61,8 @@ class DialogGenieService {
                     billingAddress1: 'Not provided',
                     billingCity: 'Colombo',
                     billingCountry: 'Sri Lanka',
-                    billingPostCode: '00000'
+                    billingPostCode: '00000',
+                    phoneNumber: booking.patientPhone // Including phone if supported/needed
                 }
             };
 
@@ -70,7 +71,7 @@ class DialogGenieService {
             const headers = {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                'Authorization': `${this.apiKey.trim()}`
+                'Authorization': `Bearer ${this.apiKey.trim()}`
             };
 
             console.log('Sending request to Dialog Genie:', { url: this.apiUrl, payload });
