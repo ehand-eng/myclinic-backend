@@ -1,0 +1,50 @@
+services:
+  # Backend API Server
+  - type: web
+    name: myclinic-backend
+    env: node
+    buildCommand: cd server && npm install
+    startCommand: cd server && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        sync: false  # Set this in Render dashboard
+      - key: JWT_SECRET
+        sync: false  # Set this in Render dashboard
+      - key: AUTH0_DOMAIN
+        sync: false  # Set this in Render dashboard
+      - key: AUTH0_CLIENT_ID
+        sync: false  # Set this in Render dashboard
+      - key: AUTH0_CLIENT_SECRET
+        sync: false  # Set this in Render dashboard
+      - key: AUTH0_AUDIENCE
+        sync: false  # Set this in Render dashboard
+      - key: AUTH0_CALLBACK_URL
+        sync: false  # Set this in Render dashboard
+      - key: DIALOG_GENIE_API_URL
+        sync: false  # Optional - Set this in Render dashboard
+      - key: DIALOG_GENIE_API_KEY
+        sync: false  # Optional - Set this in Render dashboard
+      - key: DIALOG_GENIE_PAYMENT_URL
+        sync: false  # Optional - Set this in Render dashboard
+      - key: FIREBASE_SERVICE_ACCOUNT_PATH
+        sync: false  # Optional - Set this in Render dashboard if using Firebase
+
+  # Frontend Web Application
+  - type: web
+    name: myclinic-frontend
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: node frontend-server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: VITE_API_URL
+        sync: false  # Will be set to backend service URL
+      - key: VITE_API_BASE_URL
+        sync: false  # Will be set to backend service URL (without /api)
