@@ -9,16 +9,16 @@ const Footer = () => {
         <div className="text-center space-y-8">
           {/* Main Title */}
           <h2 className="font-bold text-3xl md:text-4xl text-white">
-            DocSpot Connect
+            MyClinic
           </h2>
-          
+
           {/* Descriptive Paragraph */}
           <p className="text-medicalGray-300 text-lg md:text-xl leading-relaxed max-w-4xl mx-auto">
-            Book your doctor appointments easily through WhatsApp, phone, or email. 
-            Our platform connects you with qualified healthcare professionals for convenient 
+            Book your doctor appointments easily through WhatsApp, phone, or email.
+            Our platform connects you with qualified healthcare professionals for convenient
             and reliable medical consultations.
           </p>
-          
+
           {/* Contact Information */}
           <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-12">
             {/* WhatsApp */}
@@ -33,7 +33,7 @@ const Footer = () => {
                 </a>
               </div>
             </div>
-            
+
             {/* Phone */}
             <div className="flex items-center space-x-4 group">
               <div className="w-12 h-12 bg-medicalTeal-600/20 rounded-full flex items-center justify-center hover:bg-medicalTeal-600/30 transition-colors">
@@ -46,7 +46,7 @@ const Footer = () => {
                 </a>
               </div>
             </div>
-            
+
             {/* Email */}
             <div className="flex items-center space-x-4 group">
               <div className="w-12 h-12 bg-medicalBlue-600/20 rounded-full flex items-center justify-center hover:bg-medicalBlue-600/30 transition-colors">
@@ -61,7 +61,7 @@ const Footer = () => {
             </div>
           </div>
         </div>
-        
+
         {/* Divider Line */}
         <div className="border-t border-medicalGray-500 mt-16 pt-8">
           {/* Copyright Section */}

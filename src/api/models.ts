@@ -16,6 +16,7 @@ export interface Doctor extends BaseModel {
   email: string;
   profilePicture?: string;
   dispensaries: string[]; // IDs of associated dispensaries
+  bookingVisibleDays?: number;
 }
 
 // Dispensary model
@@ -30,6 +31,7 @@ export interface Dispensary extends BaseModel {
     latitude: number;
     longitude: number;
   };
+  bookingVisibleDays?: number;
 }
 
 // Time slot configuration for doctor at a specific dispensary
@@ -122,7 +124,7 @@ export interface User extends BaseModel {
 // Report types enum
 export enum ReportType {
   DAILY_BOOKINGS = 'daily_bookings',
-  MONTHLY_SUMMARY = 'monthly_summary', 
+  MONTHLY_SUMMARY = 'monthly_summary',
   DOCTOR_PERFORMANCE = 'doctor_performance',
   DISPENSARY_REVENUE = 'dispensary_revenue'
 }

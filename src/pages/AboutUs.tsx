@@ -14,7 +14,7 @@ const AboutUs = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      
+
       <main className="flex-grow">
         {/* Hero Section */}
         <div className="bg-gradient-to-br from-medicalBlue-600 via-medicalBlue-700 to-medicalTeal-700 text-white py-20">
@@ -23,11 +23,11 @@ const AboutUs = () => {
               <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
                 About
                 <span className="block text-transparent bg-gradient-to-r from-white to-medicalTeal-200 bg-clip-text">
-                  DocSpot Connect
+                  MyClinic
                 </span>
               </h1>
               <p className="text-xl md:text-2xl mb-8 text-blue-100 max-w-3xl mx-auto leading-relaxed">
-                Empowering healthcare accessibility through innovative technology solutions 
+                Empowering healthcare accessibility through innovative technology solutions
                 designed for modern medical practices.
               </p>
             </div>
@@ -42,8 +42,8 @@ const AboutUs = () => {
                 Our Mission
               </h2>
               <p className="text-lg text-medicalGray-600 leading-relaxed mb-8">
-                To revolutionize healthcare accessibility by providing small dispensaries with 
-                cutting-edge appointment booking technology. We believe that quality healthcare 
+                To revolutionize healthcare accessibility by providing small dispensaries with
+                cutting-edge appointment booking technology. We believe that quality healthcare
                 should be accessible to everyone, regardless of location or practice size.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
@@ -58,7 +58,7 @@ const AboutUs = () => {
                     </p>
                   </CardContent>
                 </Card>
-                
+
                 <Card className="text-center p-6 hover:shadow-lg transition-shadow">
                   <CardContent className="pt-6">
                     <div className="medical-icon-bg mx-auto mb-4">
@@ -70,7 +70,7 @@ const AboutUs = () => {
                     </p>
                   </CardContent>
                 </Card>
-                
+
                 <Card className="text-center p-6 hover:shadow-lg transition-shadow">
                   <CardContent className="pt-6">
                     <div className="medical-icon-bg mx-auto mb-4">
@@ -97,13 +97,13 @@ const AboutUs = () => {
                     Our Story
                   </h2>
                   <p className="text-lg text-medicalGray-600 leading-relaxed mb-6">
-                    Founded in 2023, DocSpot Connect emerged from a simple observation: 
-                    small medical dispensaries were struggling with outdated appointment systems 
+                    Founded in 2023, DocSpot Connect emerged from a simple observation:
+                    small medical dispensaries were struggling with outdated appointment systems
                     that created barriers between patients and healthcare providers.
                   </p>
                   <p className="text-lg text-medicalGray-600 leading-relaxed mb-8">
-                    Our team of healthcare technology experts set out to create a solution that 
-                    would level the playing field, giving small practices access to the same 
+                    Our team of healthcare technology experts set out to create a solution that
+                    would level the playing field, giving small practices access to the same
                     modern booking technology used by large medical centers.
                   </p>
                   <Button asChild className="medical-button text-lg px-8 py-4">
@@ -155,7 +155,7 @@ const AboutUs = () => {
                   The principles that guide everything we do at DocSpot Connect
                 </p>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <Card className="text-center p-6 hover:scale-105 transition-transform">
                   <CardContent className="pt-6">
@@ -168,7 +168,7 @@ const AboutUs = () => {
                     </p>
                   </CardContent>
                 </Card>
-                
+
                 <Card className="text-center p-6 hover:scale-105 transition-transform">
                   <CardContent className="pt-6">
                     <div className="medical-icon-bg mx-auto mb-4">
@@ -180,7 +180,7 @@ const AboutUs = () => {
                     </p>
                   </CardContent>
                 </Card>
-                
+
                 <Card className="text-center p-6 hover:scale-105 transition-transform">
                   <CardContent className="pt-6">
                     <div className="medical-icon-bg mx-auto mb-4">
@@ -192,7 +192,7 @@ const AboutUs = () => {
                     </p>
                   </CardContent>
                 </Card>
-                
+
                 <Card className="text-center p-6 hover:scale-105 transition-transform">
                   <CardContent className="pt-6">
                     <div className="medical-icon-bg mx-auto mb-4">
@@ -217,7 +217,7 @@ const AboutUs = () => {
                 Ready to Transform Your Practice?
               </h2>
               <p className="text-xl mb-8 text-blue-100">
-                Join the growing community of dispensaries using DocSpot Connect 
+                Join the growing community of dispensaries using DocSpot Connect
                 to provide better patient experiences.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -236,7 +236,7 @@ const AboutUs = () => {
           </div>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );

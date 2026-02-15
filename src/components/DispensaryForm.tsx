@@ -28,30 +28,30 @@ import { Checkbox } from '@/components/ui/checkbox';
 // Phone number validation: accepts 0762199100, 762199100, or +94762199100
 const validatePhoneNumber = (phone: string): boolean | string => {
   if (!phone) return true; // Allow empty for optional fields
-  
+
   // Remove spaces
   const cleanPhone = phone.trim();
-  
+
   // Check formats: 0762199100, 762199100, +94762199100
   const phoneRegex = /^(\+94|0)?7\d{8}$/;
-  
+
   if (!phoneRegex.test(cleanPhone)) {
     return 'Phone number must be in format: 0762199100, 762199100, or +94762199100';
   }
-  
+
   return true;
 };
 
 // Email validation regex (optional field - must be valid if provided)
 const validateOptionalEmail = (email: string): boolean | string => {
   if (!email || email.trim() === '') return true; // Allow empty
-  
+
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  
+
   if (!emailRegex.test(email)) {
     return 'Please enter a valid email address';
   }
-  
+
   return true;
 };
 
@@ -69,6 +69,7 @@ interface DispensaryFormValues {
   doctors: string[];
   latitude?: number;
   longitude?: number;
+  bookingVisibleDays: number;
 }
 
 const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) => {
@@ -77,7 +78,7 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
   const [isLoading, setIsLoading] = useState(false);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [selectedDoctors, setSelectedDoctors] = useState<string[]>([]);
-  
+
   const form = useForm<DispensaryFormValues>({
     defaultValues: {
       name: '',
@@ -87,10 +88,11 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
       description: '',
       doctors: [],
       latitude: undefined,
-      longitude: undefined
+      longitude: undefined,
+      bookingVisibleDays: 30
     }
   });
-  
+
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
@@ -98,7 +100,7 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
         // Load doctors for selection
         const doctorsData = await DoctorService.getAllDoctors();
         setDoctors(doctorsData);
-        
+
         // If editing, load dispensary data
         if (isEdit && dispensaryId) {
           const dispensaryData = await DispensaryService.getDispensaryById(dispensaryId);
@@ -113,7 +115,8 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
               description: dispensaryData.description || '',
               doctors: doctorIds,
               latitude: dispensaryData.location?.latitude,
-              longitude: dispensaryData.location?.longitude
+              longitude: dispensaryData.location?.longitude,
+              bookingVisibleDays: dispensaryData.bookingVisibleDays ?? 30
             });
           }
         }
@@ -128,23 +131,24 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
         setIsLoading(false);
       }
     };
-    
+
     loadData();
   }, [dispensaryId, isEdit, form, toast]);
-  
+
   const onSubmit = async (data: DispensaryFormValues) => {
     try {
       setIsLoading(true);
-      
+
       const dispensaryData: Partial<Dispensary> = {
         name: data.name,
         address: data.address,
         contactNumber: data.contactNumber,
         email: data.email,
         description: data.description,
-        doctors: selectedDoctors
+        doctors: selectedDoctors,
+        bookingVisibleDays: selectedDoctors.length > 0 ? data.bookingVisibleDays : undefined
       };
-      
+
       // Add location if both latitude and longitude are provided
       if (data.latitude && data.longitude) {
         dispensaryData.location = {
@@ -152,7 +156,7 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
           longitude: data.longitude
         };
       }
-      
+
       if (isEdit && dispensaryId) {
         await DispensaryService.updateDispensary(dispensaryId, dispensaryData);
         toast({
@@ -166,7 +170,7 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
           description: 'Dispensary created successfully',
         });
       }
-      
+
       navigate('/admin/dispensaries');
     } catch (error) {
       console.error('Error saving dispensary:', error);
@@ -179,7 +183,7 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
       setIsLoading(false);
     }
   };
-  
+
   const handleSelectedDoctorsChange = (doctorId: string) => {
     // Update local state
     setSelectedDoctors(prev => {
@@ -189,16 +193,16 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
         return [...prev, doctorId];
       }
     });
-    
+
     // Also update the form values
     const currentSelected = form.getValues('doctors');
     const updatedSelected = currentSelected.includes(doctorId)
       ? currentSelected.filter(id => id !== doctorId)
       : [...currentSelected, doctorId];
-      
+
     form.setValue('doctors', updatedSelected);
   };
-  
+
   return (
     <Card>
       <CardHeader>
@@ -223,7 +227,7 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="address"
@@ -237,7 +241,7 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="contactNumber"
@@ -254,7 +258,7 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="email"
@@ -271,7 +275,7 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="description"
@@ -285,7 +289,7 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
                 </FormItem>
               )}
             />
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -294,9 +298,9 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
                   <FormItem>
                     <FormLabel>Latitude</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="e.g. 37.7749" 
-                        type="number" 
+                      <Input
+                        placeholder="e.g. 37.7749"
+                        type="number"
                         step="any"
                         {...field}
                         value={field.value || ''}
@@ -307,7 +311,7 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="longitude"
@@ -315,9 +319,9 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
                   <FormItem>
                     <FormLabel>Longitude</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="e.g. -122.4194" 
-                        type="number" 
+                      <Input
+                        placeholder="e.g. -122.4194"
+                        type="number"
                         step="any"
                         {...field}
                         value={field.value || ''}
@@ -329,7 +333,7 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
                 )}
               />
             </div>
-            
+
             <div>
               <FormLabel className="block mb-2">Associated Doctors</FormLabel>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 border rounded-md p-4">
@@ -354,6 +358,36 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
                 )}
               </div>
             </div>
+
+            {selectedDoctors.length > 0 && (
+              <FormField
+                control={form.control}
+                name="bookingVisibleDays"
+                rules={{
+                  required: 'Online Booking Visible Days is required',
+                  min: { value: 1, message: 'Must be at least 1 day' },
+                  max: { value: 365, message: 'Must be at most 365 days' }
+                }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Online Booking Visible Days</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={365}
+                        placeholder="30"
+                        {...field}
+                        value={field.value ?? 30}
+                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value, 10) : 30)}
+                      />
+                    </FormControl>
+                    <p className="text-xs text-gray-500">Number of future days patients can book online at this dispensary</p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
           </CardContent>
           <CardFooter className="flex justify-between">
             <Button
@@ -364,8 +398,8 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={isLoading}
               className="bg-medical-600 hover:bg-medical-700"
             >

@@ -17,98 +17,94 @@ const HeroBookingForm = () => {
   const [dispensaries, setDispensaries] = useState<Dispensary[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<string>('');
   const [selectedDispensary, setSelectedDispensary] = useState<string>('');
+  const [selectedDoctorData, setSelectedDoctorData] = useState<Doctor | null>(null);
+  const [selectedDispensaryData, setSelectedDispensaryData] = useState<Dispensary | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingDispensaries, setIsLoadingDispensaries] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
-  // Load initial data
+  // Load only doctors on initial page load — dispensaries are NOT loaded here
   useEffect(() => {
-    const fetchInitialData = async () => {
+    const fetchDoctors = async () => {
       try {
         setIsLoading(true);
         const userStr = localStorage.getItem('current_user');
         const user = userStr ? JSON.parse(userStr) : null;
-        
+
+        let doctorsData: Doctor[];
         if (user?.dispensaryIds && user.dispensaryIds.length > 0) {
-          const [doctorsData, dispensariesData] = await Promise.all([
-            DoctorService.getDoctorsByDispensaryIds(user.dispensaryIds),
-            DispensaryService.getDispensariesByIds(user.dispensaryIds)
-          ]);
-          setDoctors(doctorsData);
-          setDispensaries(dispensariesData);
+          doctorsData = await DoctorService.getDoctorsByDispensaryIds(user.dispensaryIds);
         } else {
-          const [doctorsData, dispensariesData] = await Promise.all([
-            DoctorService.getAllDoctors(),
-            DispensaryService.getAllDispensaries()
-          ]);
-          setDoctors(doctorsData);
-          setDispensaries(dispensariesData);
+          doctorsData = await DoctorService.getAllDoctors();
         }
+        setDoctors(doctorsData);
       } catch (error) {
-        console.error('Error loading initial data:', error);
+        console.error('Error loading doctors:', error);
       } finally {
         setIsLoading(false);
       }
     };
-    
-    fetchInitialData();
+
+    fetchDoctors();
   }, []);
 
-  // Filter dispensaries when doctor changes
-  useEffect(() => {
-    const fetchDoctorDispensaries = async () => {
-      if (!selectedDoctor || selectedDispensary) return;
-      
-      try {
-        setIsLoading(true);
-        const doctorDispensaries = await DispensaryService.getDispensariesByDoctorId(selectedDoctor);
-        setDispensaries(doctorDispensaries);
-        
-        // If the currently selected dispensary is not in the list, reset it
-        if (selectedDispensary && !doctorDispensaries.some(d => d.id === selectedDispensary)) {
-          setSelectedDispensary('');
-        }
-      } catch (error) {
-        console.error('Error loading doctor dispensaries:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchDoctorDispensaries();
-  }, [selectedDoctor, selectedDispensary]);
+  // Handle doctor selection — fetch dispensaries for the chosen doctor
+  const handleDoctorChange = async (doctorId: string) => {
+    setSelectedDoctor(doctorId);
+    setSelectedDispensary('');
+    setSelectedDispensaryData(null);
+    setSelectedDate(undefined); // clear date since allowed range may change
+    setDispensaries([]);
 
-  // Filter doctors when dispensary changes
-  useEffect(() => {
-    const fetchDispensaryDoctors = async () => {
-      if (!selectedDispensary || selectedDoctor) return;
-      
-      try {
-        setIsLoading(true);
-        const dispensaryDoctors = await DoctorService.getDoctorsByDispensaryId(selectedDispensary);
-        setDoctors(dispensaryDoctors);
-        
-        // If the currently selected doctor is not in the list, reset it
-        if (selectedDoctor && !dispensaryDoctors.some(d => d.id === selectedDoctor)) {
-          setSelectedDoctor('');
-        }
-      } catch (error) {
-        console.error('Error loading dispensary doctors:', error);
-      } finally {
-        setIsLoading(false);
+    // Store the full doctor object for bookingVisibleDays
+    const doctorObj = doctors.find(d => d.id === doctorId) || null;
+    setSelectedDoctorData(doctorObj);
+
+    if (!doctorId) return;
+
+    try {
+      setIsLoadingDispensaries(true);
+      const doctorDispensaries = await DispensaryService.getDispensariesByDoctorId(doctorId);
+      setDispensaries(doctorDispensaries);
+
+      // Auto-select if the doctor has exactly one dispensary
+      if (doctorDispensaries.length === 1) {
+        setSelectedDispensary(doctorDispensaries[0].id);
+        setSelectedDispensaryData(doctorDispensaries[0]);
       }
-    };
-    
-    fetchDispensaryDoctors();
-  }, [selectedDispensary, selectedDoctor]);
+    } catch (error) {
+      console.error('Error loading doctor dispensaries:', error);
+    } finally {
+      setIsLoadingDispensaries(false);
+    }
+  };
+
+  // Handle dispensary selection
+  const handleDispensaryChange = (dispensaryId: string) => {
+    setSelectedDispensary(dispensaryId);
+    setSelectedDate(undefined); // clear date since allowed range may change
+    const dispObj = dispensaries.find(d => d.id === dispensaryId) || null;
+    setSelectedDispensaryData(dispObj);
+  };
+
+  // Compute dynamic max booking days from doctor and dispensary settings
+  const maxBookingDays = (() => {
+    const doctorDays = selectedDoctorData?.bookingVisibleDays;
+    const dispensaryDays = selectedDispensaryData?.bookingVisibleDays;
+
+    if (doctorDays && dispensaryDays) return Math.min(doctorDays, dispensaryDays);
+    if (doctorDays) return doctorDays;
+    if (dispensaryDays) return dispensaryDays;
+    return 30; // default
+  })();
 
   const handleSubmit = () => {
-    // Navigate to booking page with selected values
     const params = new URLSearchParams();
     if (selectedDoctor) params.set('doctorId', selectedDoctor);
     if (selectedDispensary) params.set('dispensaryId', selectedDispensary);
     if (selectedDate) params.set('date', format(selectedDate, 'yyyy-MM-dd'));
-    
+
     navigate(`/booking?${params.toString()}`);
   };
 
@@ -118,18 +114,18 @@ const HeroBookingForm = () => {
     <div className="w-full max-w-4xl mx-auto">
       <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6 md:p-8 border border-white/20 hover:shadow-3xl transition-all duration-300">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-          {/* Doctor Selection */}
+          {/* Doctor Selection — always visible */}
           <div className="space-y-2">
             <Label htmlFor="hero-doctor" className="text-gray-900 text-sm font-semibold">
               Choose a Doctor
             </Label>
             <Select
               value={selectedDoctor}
-              onValueChange={setSelectedDoctor}
+              onValueChange={handleDoctorChange}
               disabled={isLoading}
             >
-              <SelectTrigger 
-                id="hero-doctor" 
+              <SelectTrigger
+                id="hero-doctor"
                 className="w-full h-12 bg-white/90 border-white/30 text-gray-900 placeholder:text-gray-500 hover:bg-white focus:bg-white shadow-lg"
               >
                 <SelectValue placeholder="Select Doctor" />
@@ -144,21 +140,29 @@ const HeroBookingForm = () => {
             </Select>
           </div>
 
-          {/* Dispensary Selection */}
+          {/* Dispensary Selection — enabled only after doctor is selected */}
           <div className="space-y-2">
             <Label htmlFor="hero-dispensary" className="text-gray-900 text-sm font-semibold">
               Choose a Dispensary
             </Label>
             <Select
               value={selectedDispensary}
-              onValueChange={setSelectedDispensary}
-              disabled={isLoading}
+              onValueChange={handleDispensaryChange}
+              disabled={!selectedDoctor || isLoadingDispensaries}
             >
-              <SelectTrigger 
-                id="hero-dispensary" 
+              <SelectTrigger
+                id="hero-dispensary"
                 className="w-full h-12 bg-white/90 border-white/30 text-gray-900 placeholder:text-gray-500 hover:bg-white focus:bg-white shadow-lg"
               >
-                <SelectValue placeholder="Select Dispensary" />
+                <SelectValue
+                  placeholder={
+                    !selectedDoctor
+                      ? 'Select a doctor'
+                      : isLoadingDispensaries
+                        ? 'Loading dispensaries...'
+                        : 'Select Dispensary'
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {dispensaries.map((dispensary) => (
@@ -198,10 +202,9 @@ const HeroBookingForm = () => {
                     setDatePickerOpen(false);
                   }}
                   disabled={(date) => {
-                    // Disable past dates and dates more than 30 days in the future
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
-                    return date < today || date > addDays(today, 30);
+                    return date < today || date > addDays(today, maxBookingDays);
                   }}
                   initialFocus
                   className="rounded-xl border border-medicalGreen-200 shadow-lg"

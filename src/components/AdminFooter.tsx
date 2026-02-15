@@ -4,7 +4,7 @@ const AdminFooter = () => {
       <div className="container mx-auto px-4">
         <div className="text-center">
           <p className="text-medicalGray-300 text-sm">
-            &copy; {new Date().getFullYear()} DocSpot Connect Admin Panel. All rights reserved.
+            &copy; {new Date().getFullYear()} MyClinic Admin Panel. All rights reserved.
           </p>
           <p className="text-medicalGray-400 text-xs mt-2">
             Empowering healthcare management through technology

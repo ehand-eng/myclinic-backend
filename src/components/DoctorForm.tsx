@@ -46,35 +46,36 @@ interface DoctorFormValues {
   email: string;
   profilePicture?: string;
   dispensaries: string[];
+  bookingVisibleDays: number;
 }
 
 // Phone number validation: accepts 0762199100, 762199100, or +94762199100
 const validatePhoneNumber = (phone: string): boolean | string => {
   if (!phone) return true; // Allow empty for optional fields
-  
+
   // Remove spaces
   const cleanPhone = phone.trim();
-  
+
   // Check formats: 0762199100, 762199100, +94762199100
   const phoneRegex = /^(\+94|0)?7\d{8}$/;
-  
+
   if (!phoneRegex.test(cleanPhone)) {
     return 'Phone number must be in format: 0762199100, 762199100, or +94762199100';
   }
-  
+
   return true;
 };
 
 // Email validation regex
 const validateEmail = (email: string): boolean | string => {
   if (!email) return 'Email is required';
-  
+
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  
+
   if (!emailRegex.test(email)) {
     return 'Please enter a valid email address';
   }
-  
+
   return true;
 };
 
@@ -85,7 +86,7 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
   const [dispensaries, setDispensaries] = useState<Dispensary[]>([]);
   const [selectedDispensaries, setSelectedDispensaries] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const form = useForm<DoctorFormValues>({
     defaultValues: {
       name: '',
@@ -94,10 +95,11 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
       contactNumber: '',
       email: '',
       profilePicture: '',
-      dispensaries: []
+      dispensaries: [],
+      bookingVisibleDays: 30
     }
   });
-  
+
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
@@ -105,13 +107,13 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
         // Load dispensaries for selection
         const dispensariesData = await DispensaryService.getAllDispensaries();
         setDispensaries(dispensariesData);
-        
+
         // If editing, load doctor data
         if (isEdit && doctorId) {
           const doctorData = await DoctorService.getDoctorById(doctorId);
           if (doctorData) {
             const dispensaryIds = doctorData.dispensaries || [];
-            console.log("selected dis "+JSON.stringify(dispensaryIds));
+            console.log("selected dis " + JSON.stringify(dispensaryIds));
             setSelectedDispensaries(dispensaryIds);
             form.reset({
               name: doctorData.name,
@@ -120,7 +122,8 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
               contactNumber: doctorData.contactNumber,
               email: doctorData.email,
               profilePicture: doctorData.profilePicture || '',
-              dispensaries: dispensaryIds
+              dispensaries: dispensaryIds,
+              bookingVisibleDays: doctorData.bookingVisibleDays ?? 30
             });
           }
         }
@@ -135,33 +138,34 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
         setIsLoading(false);
       }
     };
-    
+
     loadData();
   }, [doctorId, isEdit, form, toast]);
-  
+
   const onSubmit = async (data: DoctorFormValues) => {
     try {
       setIsLoading(true);
-      
+
       // Convert comma-separated qualifications to array
       const qualificationsArray = data.qualifications
         .split(',')
         .map(q => q.trim())
         .filter(Boolean);
-      
+
       const doctorData: Partial<Doctor> = {
         name: data.name,
         specialization: data.specialization,
         qualifications: qualificationsArray,
         contactNumber: data.contactNumber,
         email: data.email,
-        dispensaries: selectedDispensaries
+        dispensaries: selectedDispensaries,
+        bookingVisibleDays: selectedDispensaries.length > 0 ? data.bookingVisibleDays : undefined
       };
-      
+
       if (data.profilePicture) {
         doctorData.profilePicture = data.profilePicture;
       }
-      
+
       if (isEdit && doctorId) {
         await DoctorService.updateDoctor(doctorId, doctorData);
         toast({
@@ -175,7 +179,7 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
           description: 'Doctor created successfully',
         });
       }
-      
+
       navigate('/admin/doctors');
     } catch (error) {
       console.error('Error saving doctor:', error);
@@ -188,7 +192,7 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
       setIsLoading(false);
     }
   };
-  
+
   const handleSelectedDispensariesChange = (dispensaryId: string) => {
     // Update local state
     setSelectedDispensaries(prev => {
@@ -198,13 +202,13 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
         return [...prev, dispensaryId];
       }
     });
-    
+
     // Also update form values
     const currentSelected = form.getValues('dispensaries');
     const updatedSelected = currentSelected.includes(dispensaryId)
       ? currentSelected.filter(id => id !== dispensaryId)
       : [...currentSelected, dispensaryId];
-      
+
     form.setValue('dispensaries', updatedSelected);
   };
 
@@ -241,7 +245,7 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
       reader.readAsDataURL(file);
     }
   };
-  
+
   return (
     <Card>
       <CardHeader>
@@ -266,7 +270,7 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="specialization"
@@ -295,7 +299,7 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="qualifications"
@@ -309,7 +313,7 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="contactNumber"
@@ -326,7 +330,7 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="email"
@@ -343,7 +347,7 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="profilePicture"
@@ -375,7 +379,7 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
                 </FormItem>
               )}
             />
-            
+
             <div>
               <FormLabel className="block mb-2">Associated Dispensaries</FormLabel>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 border rounded-md p-4">
@@ -400,6 +404,36 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
                 )}
               </div>
             </div>
+
+            {selectedDispensaries.length > 0 && (
+              <FormField
+                control={form.control}
+                name="bookingVisibleDays"
+                rules={{
+                  required: 'Online Booking Visible Days is required',
+                  min: { value: 1, message: 'Must be at least 1 day' },
+                  max: { value: 365, message: 'Must be at most 365 days' }
+                }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Online Booking Visible Days</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={365}
+                        placeholder="30"
+                        {...field}
+                        value={field.value ?? 30}
+                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value, 10) : 30)}
+                      />
+                    </FormControl>
+                    <p className="text-xs text-gray-500">Number of future days patients can book online for this doctor</p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
           </CardContent>
           <CardFooter className="flex justify-between">
             <Button
@@ -410,7 +444,7 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               type="submit"
               disabled={isLoading}
               className="bg-medical-600 hover:bg-medical-700"
