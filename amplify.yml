@@ -6,14 +6,13 @@ frontend:
         - nvm install 20
         - nvm use 20
         - node -v
-        - npm install
+        - npm ci
     build:
       commands:
         - npm run build
   artifacts:
-    baseDirectory: dist   # change if needed
+    baseDirectory: dist
     files:
       - '**/*'
   cache:
-    paths:
-      - node_modules/**/*
+    paths: []
