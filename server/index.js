@@ -28,6 +28,7 @@ const dispensaryCheckInRoutes = require('./routes/dispensaryCheckInRoutes');
 const utilRoutes = require('./routes/utilRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const whatsappRoutes = require('./routes/whatsappRoutes');
 // Create Express app
 const app = express();
 
@@ -74,6 +75,7 @@ app.use('/api/dispensary', dispensaryCheckInRoutes); // Dispensary check-in rout
 app.use('/api/util', utilRoutes); // Utility routes (OTP management)
 app.use('/api/location', locationRoutes); // Location-based search routes
 app.use('/api/payments', paymentRoutes); // Payment gateway routes (Dialog Genie, Stripe)
+app.use('/api/whatsapp', whatsappRoutes); // WhatsApp booking chatbot webhook
 
 // Base route
 app.get('/api', (req, res) => {

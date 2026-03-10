@@ -114,7 +114,7 @@ const bookingSchema = new mongoose.Schema({
   },
   bookedBy: {
     type: String,
-    enum: ['ONLINE', 'DISPENSARY-ADMIN', 'DISPENSARY-STAFF', 'SUPER-ADMIN', 'CHANNEL-PARTNER'],
+    enum: ['ONLINE', 'DISPENSARY-ADMIN', 'DISPENSARY-STAFF', 'SUPER-ADMIN', 'CHANNEL-PARTNER', 'WHATSAPP'],
     default: 'ONLINE'
   },
   smsDelivery: {
