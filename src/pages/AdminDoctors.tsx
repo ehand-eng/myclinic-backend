@@ -9,8 +9,9 @@ import { Doctor } from '@/api/models';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, Edit, Trash2, Plus, Search } from 'lucide-react';
+import { Eye, Edit, Trash2, Plus, Search, UserX, UserCheck } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { canManageDoctors } from '@/lib/roleUtils';
 
 const AdminDoctors = () => {
   const navigate = useNavigate();
@@ -19,6 +20,10 @@ const AdminDoctors = () => {
   const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+
+  const userStr = typeof window !== 'undefined' ? localStorage.getItem('current_user') : null;
+  const currentUser = userStr ? JSON.parse(userStr) : null;
+  const canManage = canManageDoctors(currentUser?.role);
 
   useEffect(() => {
     fetchDoctors();
@@ -86,6 +91,24 @@ const AdminDoctors = () => {
       setFilteredDoctors(doctors);
     }
   }, [searchTerm, doctors]);
+
+  const handleToggleDisabled = async (doctorId: string, currentlyDisabled: boolean) => {
+    try {
+      await DoctorService.setDoctorDisabled(doctorId, !currentlyDisabled);
+      toast({
+        title: 'Success',
+        description: currentlyDisabled ? 'Doctor has been enabled' : 'Doctor has been disabled'
+      });
+      fetchDoctors();
+    } catch (error) {
+      console.error('Error toggling doctor:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update doctor status',
+        variant: 'destructive'
+      });
+    }
+  };
 
   const handleDeleteDoctor = async (doctorId: string) => {
     if (!window.confirm('Are you sure you want to delete this doctor?')) return;
@@ -162,16 +185,24 @@ const AdminDoctors = () => {
                       <TableHead>Specialization</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Contact</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredDoctors.map((doctor) => (
-                      <TableRow key={doctor.id}>
+                      <TableRow key={doctor.id} className={doctor.disabled ? 'opacity-60 bg-gray-50' : ''}>
                         <TableCell className="font-medium">{doctor.name}</TableCell>
                         <TableCell>{doctor.specialization}</TableCell>
                         <TableCell>{doctor.email}</TableCell>
                         <TableCell>{doctor.contactNumber}</TableCell>
+                        <TableCell>
+                          {doctor.disabled ? (
+                            <span className="text-amber-600 font-medium">Disabled</span>
+                          ) : (
+                            <span className="text-green-600 font-medium">Active</span>
+                          )}
+                        </TableCell>
                         <TableCell className="space-x-2">
                           <Button
                             variant="ghost"
@@ -180,20 +211,36 @@ const AdminDoctors = () => {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/admin/doctors/edit/${doctor.id}`)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteDoctor(doctor.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
+                          {canManage && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleToggleDisabled(doctor.id, !!doctor.disabled)}
+                                title={doctor.disabled ? 'Enable doctor' : 'Disable doctor'}
+                              >
+                                {doctor.disabled ? (
+                                  <UserCheck className="h-4 w-4 text-green-600" />
+                                ) : (
+                                  <UserX className="h-4 w-4 text-amber-600" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => navigate(`/admin/doctors/edit/${doctor.id}`)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteDoctor(doctor.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}

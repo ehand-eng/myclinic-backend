@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Edit, Trash2, MapPin, CalendarDays } from 'lucide-react';
+import { canManageDispensaries } from '@/lib/roleUtils';
 
 const ViewDispensary = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +25,10 @@ const ViewDispensary = () => {
   const [dispensary, setDispensary] = useState<Dispensary | null>(null);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const userStr = typeof window !== 'undefined' ? localStorage.getItem('current_user') : null;
+  const currentUser = userStr ? JSON.parse(userStr) : null;
+  const canManage = canManageDispensaries(currentUser?.role);
 
   useEffect(() => {
     const fetchDispensaryData = async () => {
@@ -80,7 +85,7 @@ const ViewDispensary = () => {
       <div className="flex flex-col min-h-screen">
         <AdminHeader />
         <main className="flex-grow bg-gradient-to-br from-medicalBlue-50 via-white to-medicalTeal-50">
-          <div className="container mx-auto px-4 py-8">
+          <div className="w-full max-w-full mx-auto px-4 py-8">
             <div className="flex justify-center items-center h-full">
               <p className="text-medicalGray-600">Loading dispensary information...</p>
             </div>
@@ -95,7 +100,7 @@ const ViewDispensary = () => {
     return (
       <div className="flex flex-col min-h-screen">
         <AdminHeader />
-        <main className="container mx-auto px-4 py-8 flex-grow">
+        <main className="w-full max-w-full mx-auto px-4 py-8 flex-grow">
           <Card>
             <CardHeader>
               <CardTitle>Dispensary Not Found</CardTitle>
@@ -119,28 +124,30 @@ const ViewDispensary = () => {
     <div className="flex flex-col min-h-screen">
       <AdminHeader />
       <main className="flex-grow bg-gradient-to-br from-medicalBlue-50 via-white to-medicalTeal-50">
-        <div className="container mx-auto px-4 py-8">
+          <div className="w-full max-w-full mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold medical-text-gradient">Dispensary Details</h1>
-            <div className="space-x-2">
-              <Button
-                variant="outline"
-                onClick={() => navigate(`/admin/dispensaries/edit/${id}`)}
-              >
-                <Edit className="mr-2 h-4 w-4" /> Edit
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleDelete}
-                className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50"
-              >
-                <Trash2 className="mr-2 h-4 w-4" /> Delete
-              </Button>
-            </div>
+            {canManage && (
+              <div className="space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(`/admin/dispensaries/edit/${id}`)}
+                >
+                  <Edit className="mr-2 h-4 w-4" /> Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleDelete}
+                  className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                </Button>
+              </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div>
+          <div className="grid grid-cols-1 gap-6">
+            <div className="w-full">
               <Card>
                 <CardHeader>
                   <CardTitle>{dispensary.name}</CardTitle>
@@ -196,7 +203,7 @@ const ViewDispensary = () => {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => navigate(`/admin/timeslots/${doctor.id}/${dispensary.id}`)}
+                                  onClick={() => navigate(`/doctor/${doctor.id}/dispensary/${dispensary.id}/time-slots`)}
                                 >
                                   <CalendarDays className="h-4 w-4 mr-1" />
                                   Manage Slots

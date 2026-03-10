@@ -57,7 +57,8 @@ export const canManageBookings = (userRole: string | undefined): boolean => {
 };
 
 export const canCreateBookings = (userRole: string | undefined): boolean => {
-  return isSuperAdmin(userRole) || isDispensaryAdmin(userRole) || isDispensaryStaff(userRole) || isChannelPartner(userRole);
+  // Dispensary admin can only view bookings, not create
+  return isSuperAdmin(userRole) || isDispensaryStaff(userRole) || isChannelPartner(userRole);
 };
 
 export const canViewOwnReports = (userRole: string | undefined): boolean => {
@@ -69,6 +70,10 @@ export const canViewReports = (userRole: string | undefined): boolean => {
 };
 
 export const canManageFees = (userRole: string | undefined): boolean => {
+  return isSuperAdmin(userRole);
+};
+
+export const canAssignUsers = (userRole: string | undefined): boolean => {
   return isSuperAdmin(userRole);
 };
 export const canManagePatientCheckIn = (userRole: string | undefined): boolean => {

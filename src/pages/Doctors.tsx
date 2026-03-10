@@ -24,7 +24,7 @@ const Doctors = () => {
     const fetchDoctors = async () => {
       try {
         setIsLoading(true);
-        const allDoctors = await DoctorService.getAllDoctors();
+        const allDoctors = await DoctorService.getAllDoctors(true);
         setDoctors(allDoctors);
         setFilteredDoctors(allDoctors);
       } catch (error) {

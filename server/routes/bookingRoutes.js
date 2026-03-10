@@ -223,6 +223,35 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Get bookings by date (optional dispensaryId for dispensary-admin)
+// GET /bookings/by-date?date=YYYY-MM-DD&dispensaryId=optional
+router.get('/by-date', async (req, res) => {
+  try {
+    const { date, dispensaryId } = req.query;
+    if (!date || typeof date !== 'string') {
+      return res.status(400).json({ message: 'Query parameter date (YYYY-MM-DD) is required' });
+    }
+    const startOfDay = new Date(date + 'T00:00:00');
+    const endOfDay = new Date(date + 'T23:59:59.999');
+    const query = {
+      bookingDate: { $gte: startOfDay, $lte: endOfDay },
+      status: { $ne: 'cancelled' }
+    };
+    if (dispensaryId && typeof dispensaryId === 'string') {
+      query.dispensaryId = dispensaryId;
+    }
+    const bookings = await Booking.find(query)
+      .populate('doctorId', 'name specialization')
+      .populate('dispensaryId', 'name address')
+      .sort({ appointmentNumber: 1, estimatedTime: 1 })
+      .lean();
+    res.status(200).json(bookings);
+  } catch (error) {
+    console.error('Error getting bookings by date:', error);
+    res.status(500).json({ message: 'Error fetching bookings', error: error.message });
+  }
+});
+
 // Get bookings for a doctor at a dispensary on a specific date
 router.get('/doctor/:doctorId/dispensary/:dispensaryId/date/:date', async (req, res) => {
   try {
@@ -254,7 +283,9 @@ router.get('/doctor/:doctorId/dispensary/:dispensaryId/date/:date', async (req, 
 router.get('/:id', async (req, res) => {
   try {
     console.log("======== booking ============== " + req.params.id);
-    const booking = await Booking.findById(req.params.id);
+    const booking = await Booking.findById(req.params.id)
+      .populate('doctorId', 'name specialization')
+      .populate('dispensaryId', 'name address');
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }

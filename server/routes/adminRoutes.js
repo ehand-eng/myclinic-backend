@@ -131,7 +131,8 @@ router.post('/users', requireSuperAdmin, async (req, res) => {
       role: roleDoc._id,
       dispensaryIds: dispensaryId ? [dispensaryId] : [],
       isActive: true,
-      nationality: nationality || 'sri_lanka' // Default to 'sri_lanka' if not provided
+      nationality: nationality || 'sri_lanka',
+      mustChangePassword: true
     });
 
     await user.save();

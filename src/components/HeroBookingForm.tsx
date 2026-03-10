@@ -34,9 +34,9 @@ const HeroBookingForm = () => {
 
         let doctorsData: Doctor[];
         if (user?.dispensaryIds && user.dispensaryIds.length > 0) {
-          doctorsData = await DoctorService.getDoctorsByDispensaryIds(user.dispensaryIds);
+          doctorsData = await DoctorService.getDoctorsByDispensaryIds(user.dispensaryIds, true);
         } else {
-          doctorsData = await DoctorService.getAllDoctors();
+          doctorsData = await DoctorService.getAllDoctors(true);
         }
         setDoctors(doctorsData);
       } catch (error) {

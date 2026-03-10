@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Plus, Edit, Trash2, Users, UserPlus, AlertCircle } from 'lucide-react';
+import { Loader2, Plus, Edit, Trash2, Users, UserPlus, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { User, UserRole } from '@/api/models';
 import { AuthService } from '@/api/services';
 import { toast } from 'sonner';
@@ -33,6 +33,7 @@ const UserManagement = () => {
   });
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
+  const [showNewUserPassword, setShowNewUserPassword] = useState(false);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -68,6 +69,23 @@ const UserManagement = () => {
   }, []);
 
   const handleCreateUser = async () => {
+    // Basic password strength hint for admin-created users
+    if (!newUserData.password) {
+      toast.error('Password is required');
+      return;
+    }
+
+    const hasLower = /[a-z]/.test(newUserData.password);
+    const hasUpper = /[A-Z]/.test(newUserData.password);
+    const hasDigit = /[0-9]/.test(newUserData.password);
+    const hasSpecial = /[^A-Za-z0-9]/.test(newUserData.password);
+    const categories = [hasLower, hasUpper, hasDigit, hasSpecial].filter(Boolean).length;
+
+    if (newUserData.password.length < 8 || categories < 3) {
+      toast.error('Use at least 8 characters and include three of: lowercase, uppercase, number, special character.');
+      return;
+    }
+
     setIsCreating(true);
     try {
       const token = AuthService.getToken();
@@ -249,17 +267,57 @@ const UserManagement = () => {
                       className="col-span-3"
                     />
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="password" className="text-right">
+                  <div className="grid grid-cols-4 items-start gap-4">
+                    <Label htmlFor="password" className="text-right pt-2">
                       Password
                     </Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={newUserData.password}
-                      onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
-                      className="col-span-3"
-                    />
+                    <div className="col-span-3 space-y-1">
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          type={showNewUserPassword ? 'text' : 'password'}
+                          value={newUserData.password}
+                          onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          onClick={() => setShowNewUserPassword(!showNewUserPassword)}
+                        >
+                          {showNewUserPassword ? (
+                            <EyeOff className="h-4 w-4 text-gray-400" />
+                          ) : (
+                            <Eye className="h-4 w-4 text-gray-400" />
+                          )}
+                        </Button>
+                      </div>
+                      <div className="mt-1 text-[10px] text-gray-600 space-y-0.5">
+                        {(() => {
+                          const pwd = newUserData.password || '';
+                          const hasLower = /[a-z]/.test(pwd);
+                          const hasUpper = /[A-Z]/.test(pwd);
+                          const hasDigit = /[0-9]/.test(pwd);
+                          const hasSpecial = /[^A-Za-z0-9]/.test(pwd);
+                          const categories = [hasLower, hasUpper, hasDigit, hasSpecial].filter(Boolean).length;
+                          const strong = pwd.length >= 8 && categories >= 3;
+                          return (
+                            <ul className="space-y-0.5">
+                              <li className={pwd.length >= 8 ? 'text-green-600' : 'text-gray-500'}>
+                                • At least 8 characters
+                              </li>
+                              <li className={hasLower ? 'text-green-600' : 'text-gray-500'}>
+                                • Lowercase, uppercase, number, special (any 3 types)
+                              </li>
+                              <li className={strong ? 'text-green-600' : 'text-gray-500'}>
+                                • Overall password is strong
+                              </li>
+                            </ul>
+                          );
+                        })()}
+                      </div>
+                    </div>
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="role" className="text-right">

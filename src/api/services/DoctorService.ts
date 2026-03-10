@@ -7,10 +7,13 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export const DoctorService = {
   // Get doctors by dispensary ID
-  getDoctorsByDispensaryId: async (dispensaryId: string): Promise<Doctor[]> => {
+  getDoctorsByDispensaryId: async (dispensaryId: string, activeOnly = false): Promise<Doctor[]> => {
     try {
-      const response = await api.get(`/doctors/dispensary/${dispensaryId}`);
-      
+      const url = activeOnly
+        ? `/doctors/dispensary/${dispensaryId}?activeOnly=true`
+        : `/doctors/dispensary/${dispensaryId}`;
+      const response = await api.get(url);
+
       return response.data.map((doctor: any) => ({
         ...doctor,
         id: doctor._id,
@@ -23,11 +26,12 @@ export const DoctorService = {
     }
   },
 
-  // Get all doctors
-  getAllDoctors: async (): Promise<Doctor[]> => {
+  // Get all doctors (activeOnly=true for public/booking to exclude disabled)
+  getAllDoctors: async (activeOnly = false): Promise<Doctor[]> => {
     try {
-      const response = await api.get('/doctors');
-      
+      const url = activeOnly ? '/doctors?activeOnly=true' : '/doctors';
+      const response = await api.get(url);
+
       return response.data.map((doctor: any) => ({
         ...doctor,
         id: doctor._id,
@@ -59,29 +63,12 @@ export const DoctorService = {
     }
   },
 
-  // Get doctors by dispensary ID
-  getDoctorsByDispensaryId: async (dispensaryId: string): Promise<Doctor[]> => {
+  getDoctorsByDispensaryIds: async (dispensaryIds: string[], activeOnly = false): Promise<Doctor[]> => {
     try {
-      const response = await api.get(`/doctors/dispensary/${dispensaryId}`);
-      
-      return response.data.map((doctor: any) => ({
-        ...doctor,
-        id: doctor._id,
-        createdAt: new Date(doctor.createdAt),
-        updatedAt: new Date(doctor.updatedAt)
-      }));
-    } catch (error) {
-      console.error(`Error fetching doctors for dispensary ${dispensaryId}:`, error);
-      throw new Error('Failed to fetch doctors for dispensary');
-    }
-  },
-
-  getDoctorsByDispensaryIds: async (dispensaryIds: string[]): Promise<Doctor[]> => {
-    try {
-      const response = await api.post(
-        '/doctors/by-dispensaries',
-        { dispensaryIds }
-      );
+      const response = await api.post('/doctors/by-dispensaries', {
+        dispensaryIds,
+        ...(activeOnly && { activeOnly: true })
+      });
       return response.data.map((doctor: any) => ({
         ...doctor,
         id: doctor._id,
@@ -89,6 +76,23 @@ export const DoctorService = {
     } catch (error) {
       console.error('Error fetching doctors for dispensary IDs:', error);
       throw new Error('Failed to fetch doctors for dispensary IDs');
+    }
+  },
+
+  setDoctorDisabled: async (id: string, disabled: boolean): Promise<Doctor | null> => {
+    try {
+      const endpoint = disabled ? `/doctors/${id}/disable` : `/doctors/${id}/enable`;
+      const response = await api.patch(endpoint);
+      if (!response.data) return null;
+      return {
+        ...response.data,
+        id: response.data._id,
+        createdAt: new Date(response.data.createdAt),
+        updatedAt: new Date(response.data.updatedAt)
+      };
+    } catch (error) {
+      console.error(`Error ${disabled ? 'disabling' : 'enabling'} doctor:`, error);
+      throw new Error(disabled ? 'Failed to disable doctor' : 'Failed to enable doctor');
     }
   },
 

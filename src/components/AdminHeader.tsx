@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   Building2,
@@ -14,18 +14,25 @@ import {
   LayoutDashboard
 } from 'lucide-react';
 import { getRoleDisplayName } from '@/lib/roleUtils';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const AdminHeader = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const userStr = localStorage.getItem('current_user');
   const user = userStr ? JSON.parse(userStr) : null;
 
+  useEffect(() => {
+    if (user?.mustChangePassword && location.pathname !== '/admin/change-password') {
+      navigate('/admin/change-password', { replace: true });
+    }
+  }, [user?.mustChangePassword, location.pathname, navigate]);
+
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('current_user');
-    navigate('/login');
+    navigate('/admin');
   };
 
   const normalizedRole = user?.role?.toLowerCase() || null;
@@ -38,8 +45,8 @@ const AdminHeader = () => {
     { key: 'reports', label: 'Reports', icon: BarChart3, path: '/admin/reports' },
     { key: 'bookings', label: 'Bookings', icon: Calendar, path: '/admin/bookings' },
     { key: 'fees', label: 'Fee Management', icon: DollarSign, path: '/admin/fees' },
-    { key: 'assign-users', label: 'Assign Users aaa', icon: Users, path: '/admin/user-dispensary' },
-    { key: 'dispensary-check-in', label: 'Check-In', path: '/admin/dispensary-check-in' },
+    { key: 'assign-users', label: 'Assign Users', icon: Users, path: '/admin/user-dispensary' },
+    { key: 'dispensary-check-in', label: 'Check-In', icon: Users, path: '/dispensary/check-in' },
   ];
 
   const getFilteredNavItems = () => {
@@ -53,7 +60,7 @@ const AdminHeader = () => {
     }
 
     if (normalizedRole === 'dispensary-admin' || normalizedRole === 'dispensary-staff') {
-      const allowed = new Set(['dashboard', 'dispensaries', 'doctors', 'time-slots', 'reports', 'bookings']);
+      const allowed = new Set(['dashboard', 'dispensaries', 'doctors', 'time-slots', 'reports', 'bookings', 'dispensary-check-in']);
       return navItems.filter(item => allowed.has(item.key));
     }
 
@@ -92,6 +99,16 @@ const AdminHeader = () => {
                       </div>
                     )}
                   </div>
+                  {user && (
+                    <Button
+                      onClick={() => navigate('/admin/profile')}
+                      variant="outline"
+                      size="sm"
+                      className="border-medicalBlue-400 text-medicalBlue-200 hover:bg-medicalBlue-500/20 hover:text-white"
+                    >
+                      Profile
+                    </Button>
+                  )}
                   <Button
                     onClick={handleLogout}
                     variant="outline"
@@ -121,161 +138,39 @@ const AdminHeader = () => {
         <div className="container mx-auto px-4 py-2">
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center justify-center space-x-1">
-            <Link
-              to="/admin/dashboard"
-              className="flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors min-w-[100px]"
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              <span className="text-xs font-medium text-center">Dashboard</span>
-            </Link>
-
-            <Link
-              to="/admin/dispensaries"
-              className="flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors min-w-[100px]"
-            >
-              <Building2 className="h-4 w-4" />
-              <span className="text-xs font-medium text-center">Dispensaries</span>
-            </Link>
-
-            <Link
-              to="/admin/doctors"
-              className="flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors min-w-[100px]"
-            >
-              <Stethoscope className="h-4 w-4" />
-              <span className="text-xs font-medium text-center">Doctors</span>
-            </Link>
-
-            <Link
-              to="/admin/time-slots"
-              className="flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors min-w-[100px]"
-            >
-              <Clock className="h-4 w-4" />
-              <span className="text-xs font-medium text-center">Time Slots</span>
-            </Link>
-
-            <Link
-              to="/admin/reports"
-              className="flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors min-w-[100px]"
-            >
-              <BarChart3 className="h-4 w-4" />
-              <span className="text-xs font-medium text-center">Reports</span>
-            </Link>
-
-            <Link
-              to="/admin/bookings"
-              className="flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors min-w-[100px]"
-            >
-              <Calendar className="h-4 w-4" />
-              <span className="text-xs font-medium text-center">Bookings</span>
-            </Link>
-
-            <Link
-              to="/admin/fees"
-              className="flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors min-w-[100px]"
-            >
-              <DollarSign className="h-4 w-4" />
-              <span className="text-xs font-medium text-center">Fee Management</span>
-            </Link>
-
-            <Link
-              to="/admin/user-dispensary"
-              className="flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors min-w-[100px]"
-            >
-              <Users className="h-4 w-4" />
-              <span className="text-xs font-medium text-center">Assign Users</span>
-            </Link>
-            <Link
-              to="/dispensary/check-in"
-              className="flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors min-w-[100px]"
-            >
-              <Users className="h-4 w-4" />
-              <span className="text-xs font-medium text-center">Check-In</span>
-            </Link>
+            {filteredNavItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.key}
+                  to={item.path}
+                  className="flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors min-w-[100px]"
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="text-xs font-medium text-center">{item.label}</span>
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Mobile Navigation */}
           {mobileMenuOpen && (
             <nav className="lg:hidden">
               <div className="grid grid-cols-2 gap-2 pt-2">
-                <Link
-                  to="/admin/dashboard"
-                  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <LayoutDashboard className="h-4 w-4" />
-                  <span className="text-sm font-medium">Dashboard</span>
-                </Link>
-
-                <Link
-                  to="/admin/dispensaries"
-                  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Building2 className="h-4 w-4" />
-                  <span className="text-sm font-medium">Dispensaries</span>
-                </Link>
-
-                <Link
-                  to="/admin/doctors"
-                  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Stethoscope className="h-4 w-4" />
-                  <span className="text-sm font-medium">Doctors</span>
-                </Link>
-
-                <Link
-                  to="/admin/time-slots"
-                  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Clock className="h-4 w-4" />
-                  <span className="text-sm font-medium">Time Slots</span>
-                </Link>
-
-                <Link
-                  to="/admin/reports"
-                  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <BarChart3 className="h-4 w-4" />
-                  <span className="text-sm font-medium">Reports</span>
-                </Link>
-
-                <Link
-                  to="/admin/bookings"
-                  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Calendar className="h-4 w-4" />
-                  <span className="text-sm font-medium">Bookings</span>
-                </Link>
-
-                <Link
-                  to="/admin/fees"
-                  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <DollarSign className="h-4 w-4" />
-                  <span className="text-sm font-medium">Fee Management</span>
-                </Link>
-
-                <Link
-                  to="/admin/user-dispensary"
-                  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Users className="h-4 w-4" />
-                  <span className="text-sm font-medium">Assign Users111</span>
-                </Link>
-                <Link
-                  to="/dispensary/check-in"
-                  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Users className="h-4 w-4" />
-                  <span className="text-sm font-medium">Assign Users</span>
-                </Link>
+                {filteredNavItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.key}
+                      to={item.path}
+                      className="flex items-center space-x-2 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span className="text-sm font-medium">{item.label}</span>
+                    </Link>
+                  );
+                })}
               </div>
             </nav>
           )}

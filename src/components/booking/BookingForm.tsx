@@ -123,7 +123,7 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCa
         if (user?.dispensaryIds && user.dispensaryIds.length > 0) {
           console.log(user.dispensaryIds);
           const [doctorsData, dispensariesData] = await Promise.all([
-            DoctorService.getDoctorsByDispensaryIds(user.dispensaryIds),
+            DoctorService.getDoctorsByDispensaryIds(user.dispensaryIds, true),
             DispensaryService.getDispensariesByIds(user.dispensaryIds)
           ]);
           console.log("::::::::: " + JSON.stringify(doctorsData));
@@ -131,7 +131,7 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCa
           setDispensaries(dispensariesData);
         } else {
           const [doctorsData, dispensariesData] = await Promise.all([
-            DoctorService.getAllDoctors(),
+            DoctorService.getAllDoctors(true),
             DispensaryService.getAllDispensaries()
           ]);
           setDoctors(doctorsData);

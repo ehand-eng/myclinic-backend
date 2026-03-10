@@ -1,7 +1,33 @@
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
 const Dispensary = require('../models/Dispensary');
 const Doctor = require('../models/Doctor');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+// Require super-admin role for write operations (create, update, delete dispensaries)
+const requireSuperAdmin = (req, res, next) => {
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ message: 'Authorization required' });
+  }
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const role = (decoded.role || '').toLowerCase().replace(/_/g, '-');
+    if (role !== 'super-admin') {
+      return res.status(403).json({ message: 'Only Super Administrators can add, edit, or delete dispensaries' });
+    }
+    req.user = { id: decoded.userId, role: decoded.role };
+    next();
+  } catch (err) {
+    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Invalid or expired token' });
+    }
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
 
 /**Get all dispensaries
  */
@@ -79,7 +105,7 @@ router.get('/location/nearby', async (req, res) => {
 });
 
 // Create a new dispensary
-router.post('/', async (req, res) => {
+router.post('/', requireSuperAdmin, async (req, res) => {
   try {
     const dispensary = new Dispensary(req.body);
     
@@ -118,7 +144,7 @@ router.post('/by-ids', async (req, res) => {
 });
 
 // Update dispensary
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireSuperAdmin, async (req, res) => {
   try {
     const dispensary = await Dispensary.findById(req.params.id);
     if (!dispensary) {
@@ -166,7 +192,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // Delete dispensary
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireSuperAdmin, async (req, res) => {
   try {
     const dispensary = await Dispensary.findById(req.params.id);
     if (!dispensary) {

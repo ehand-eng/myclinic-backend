@@ -92,28 +92,25 @@ export const BookingService = {
     }
   },
 
-  // Get bookings by doctor, dispensary, and date - alias for the above method
-  getBookingsByDoctorDispensaryDate: async (
-    doctorId: string,
-    dispensaryId: string,
-    formattedDate: string
-  ): Promise<Booking[]> => {
+  // Get bookings by date (for list view). Optional dispensaryId for dispensary-admin.
+  getBookingsByDate: async (date: Date, dispensaryId?: string): Promise<any[]> => {
     try {
-      const response = await api.get(
-        `/bookings/doctor/${doctorId}/dispensary/${dispensaryId}/date/${formattedDate}`
-      );
-
-      return response.data.map((booking: any) => ({
+      const formattedDate = date.toISOString().split('T')[0];
+      const params = new URLSearchParams({ date: formattedDate });
+      if (dispensaryId) params.append('dispensaryId', dispensaryId);
+      const response = await api.get(`/bookings/by-date?${params.toString()}`);
+      return (response.data || []).map((booking: any) => ({
         ...booking,
         id: booking._id,
         bookingDate: new Date(booking.bookingDate),
-        checkedInTime: booking.checkedInTime ? new Date(booking.checkedInTime) : undefined,
-        completedTime: booking.completedTime ? new Date(booking.completedTime) : undefined,
-        createdAt: new Date(booking.createdAt),
-        updatedAt: new Date(booking.updatedAt)
+        createdAt: booking.createdAt ? new Date(booking.createdAt) : undefined,
+        doctorName: booking.doctorId?.name,
+        doctorSpecialization: booking.doctorId?.specialization,
+        dispensaryName: booking.dispensaryId?.name,
+        dispensaryAddress: booking.dispensaryId?.address
       }));
     } catch (error) {
-      console.error('Error fetching bookings:', error);
+      console.error('Error fetching bookings by date:', error);
       throw new Error('Failed to fetch bookings');
     }
   },

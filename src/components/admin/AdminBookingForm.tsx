@@ -117,7 +117,7 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
             if (validDispensaries.length === 1) {
               setSelectedDispensary(validDispensaries[0].id);
               // Trigger doctor loading for this dispensary
-              const doctorsData = await DoctorService.getDoctorsByDispensaryId(validDispensaries[0].id);
+              const doctorsData = await DoctorService.getDoctorsByDispensaryId(validDispensaries[0].id, true);
               setDoctors(doctorsData);
             }
           } else {
@@ -135,7 +135,7 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
           // For super-admin: load data based on search mode
           if (searchMode === 'doctor') {
             // Load all doctors
-            const doctorsData = await DoctorService.getAllDoctors();
+            const doctorsData = await DoctorService.getAllDoctors(true);
             setDoctors(doctorsData);
             setDispensaries([]); // Will load when doctor is selected
           } else {
@@ -195,7 +195,7 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
       if (searchMode === 'dispensary' && selectedDispensary) {
         try {
           setIsLoading(true);
-          const doctorsData = await DoctorService.getDoctorsByDispensaryId(selectedDispensary);
+          const doctorsData = await DoctorService.getDoctorsByDispensaryId(selectedDispensary, true);
           setDoctors(doctorsData);
           // Clear selected doctor if it's not in the new list
           if (selectedDoctor && !doctorsData.find(d => d.id === selectedDoctor)) {

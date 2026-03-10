@@ -1,9 +1,27 @@
 
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AdminHeader from '@/components/AdminHeader';
 import AdminFooter from '@/components/AdminFooter';
 import DispensaryForm from '@/components/DispensaryForm';
+import { canManageDispensaries } from '@/lib/roleUtils';
 
 const CreateDispensary = () => {
+  const navigate = useNavigate();
+  const userStr = typeof window !== 'undefined' ? localStorage.getItem('current_user') : null;
+  const currentUser = userStr ? JSON.parse(userStr) : null;
+  const canManage = canManageDispensaries(currentUser?.role);
+
+  useEffect(() => {
+    if (!canManage) {
+      navigate('/admin/dispensaries', { replace: true });
+    }
+  }, [canManage, navigate]);
+
+  if (!canManage) {
+    return null;
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       <AdminHeader />

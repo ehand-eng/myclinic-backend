@@ -9,6 +9,28 @@ const router = express.Router();
 // JWT Secret (should be in env vars)
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
+// Password strength helper
+// Rule: at least 8 chars and at least 3 of 4 categories:
+// - lowercase letters
+// - uppercase letters
+// - digits
+// - special characters
+const isStrongPassword = (password) => {
+  if (typeof password !== 'string') return false;
+  if (password.length < 8) return false;
+
+  const hasLower = /[a-z]/.test(password);
+  const hasUpper = /[A-Z]/.test(password);
+  const hasDigit = /[0-9]/.test(password);
+  const hasSpecial = /[^A-Za-z0-9]/.test(password);
+
+  const categories = [hasLower, hasUpper, hasDigit, hasSpecial].filter(Boolean).length;
+  return categories >= 3;
+};
+
+const PASSWORD_RULE_MESSAGE =
+  'Password must be at least 8 characters and include at least three of the following: lowercase letters, uppercase letters, numbers, and special characters.';
+
 // Register endpoint
 router.post('/register', async (req, res) => {
   try {
@@ -19,8 +41,8 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'Name, email, and password are required' });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({ message: PASSWORD_RULE_MESSAGE });
     }
 
     // Check if user already exists
@@ -91,48 +113,52 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Login endpoint
+// Roles that use the admin portal; everyone else is "regular"
+const ADMIN_ROLES = ['super-admin', 'dispensary-admin', 'dispensary-staff', 'doctor', 'channel-partner'];
+const isAdminRole = (roleName) => roleName && ADMIN_ROLES.includes(roleName.toLowerCase().replace(/_/g, '-'));
+
+// Login endpoint - for REGULAR users only (rejects admin credentials)
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-console.log("email", email);
-console.log("password", password);
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    // Find user and populate role
     const user = await User.findOne({ email }).populate('role');
     if (!user) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
-
-    // Check if user is active
     if (!user.isActive) {
       return res.status(401).json({ message: 'Account is inactive' });
     }
 
-    // Verify password
     const isValidPassword = await bcrypt.compare(password, user.passwordHash);
     if (!isValidPassword) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    // Update last login without triggering full validation
+    const roleName = user.role ? user.role.name : 'online';
+    if (isAdminRole(roleName)) {
+      return res.status(403).json({
+        code: 'USE_ADMIN_PORTAL',
+        message: 'Use the admin portal to sign in with this account.'
+      });
+    }
+
     await User.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } });
 
-    // Generate JWT token
     const token = jwt.sign(
       {
         userId: user._id,
         email: user.email,
-        role: user.role ? user.role.name : 'online',
+        role: roleName,
         permissions: user.role ? user.role.permissions : []
       },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
-console.log("token", token);
+
     res.json({
       message: 'Login successful',
       token,
@@ -140,25 +166,84 @@ console.log("token", token);
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role ? user.role.name : 'online',
+        role: roleName,
         dispensaryIds: user.dispensaryIds,
-        permissions: user.role ? user.role.permissions : []
+        permissions: user.role ? user.role.permissions : [],
+        mustChangePassword: !!user.mustChangePassword
       }
     });
-
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ 
-      message: 'Authentication failed',
-      error: error.message 
+    res.status(500).json({ message: 'Authentication failed', error: error.message });
+  }
+});
+
+// Admin login endpoint - for ADMIN users only (rejects regular user credentials)
+router.post('/login-admin', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+
+    const user = await User.findOne({ email }).populate('role');
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+    if (!user.isActive) {
+      return res.status(401).json({ message: 'Account is inactive' });
+    }
+
+    const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+    if (!isValidPassword) {
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    const roleName = user.role ? user.role.name : 'online';
+    if (!isAdminRole(roleName)) {
+      return res.status(403).json({
+        code: 'USE_REGULAR_LOGIN',
+        message: 'Use the regular login to sign in with this account.'
+      });
+    }
+
+    await User.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } });
+
+    const token = jwt.sign(
+      {
+        userId: user._id,
+        email: user.email,
+        role: roleName,
+        permissions: user.role ? user.role.permissions : []
+      },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    res.json({
+      message: 'Login successful',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: roleName,
+        dispensaryIds: user.dispensaryIds,
+        permissions: user.role ? user.role.permissions : [],
+        mustChangePassword: !!user.mustChangePassword
+      }
     });
+  } catch (error) {
+    console.error('Admin login error:', error);
+    res.status(500).json({ message: 'Authentication failed', error: error.message });
   }
 });
 
 // Get current user profile
 router.get('/me', async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.split(' ')[1];
     if (!token) {
       return res.status(401).json({ message: 'No token provided' });
     }
@@ -177,7 +262,8 @@ router.get('/me', async (req, res) => {
       role: user.role ? user.role.name : 'online',
       dispensaryIds: user.dispensaryIds,
       permissions: user.role ? user.role.permissions : [],
-      lastLogin: user.lastLogin
+      lastLogin: user.lastLogin,
+      mustChangePassword: !!user.mustChangePassword
     });
 
   } catch (error) {
@@ -189,6 +275,114 @@ router.get('/me', async (req, res) => {
     }
     
     console.error('Get user profile error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update current user basic profile (e.g. name)
+router.put('/me', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.userId).populate('role');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const { name } = req.body;
+
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      return res.status(400).json({ message: 'Name is required' });
+    }
+
+    user.name = name.trim();
+    await user.save();
+
+    res.json({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role ? user.role.name : 'online',
+      dispensaryIds: user.dispensaryIds,
+      permissions: user.role ? user.role.permissions : [],
+      lastLogin: user.lastLogin
+    });
+  } catch (error) {
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Token expired' });
+    }
+
+    console.error('Update user profile error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Change password for current user
+router.post('/change-password', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current password and new password are required' });
+    }
+
+    if (currentPassword === newPassword) {
+      return res.status(400).json({ message: 'New password must be different from the current password' });
+    }
+
+    if (!isStrongPassword(newPassword)) {
+      return res.status(400).json({ message: PASSWORD_RULE_MESSAGE });
+    }
+
+    if (!user.passwordHash) {
+      return res.status(400).json({ message: 'Password change is not available for this account' });
+    }
+
+    const isValidPassword = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isValidPassword) {
+      return res.status(401).json({ message: 'Current password is incorrect' });
+    }
+
+    const saltRounds = 10;
+    user.passwordHash = await bcrypt.hash(newPassword, saltRounds);
+    user.mustChangePassword = false;
+    await user.save();
+
+    res.json({
+      message: 'Password updated successfully',
+      mustChangePassword: false
+    });
+  } catch (error) {
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Token expired' });
+    }
+
+    console.error('Change password error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

@@ -65,11 +65,15 @@ import MobileHome from './pages/MobileHome';
 import TimeSlotManagement from './pages/TimeSlotManagement';
 import CustomRoleManagement from './pages/admin/CustomRoleManagement';
 import Appointments from './pages/Appointments';
+import BookingDetail from './pages/BookingDetail';
 import DispensaryCheckIn from './pages/DispensaryCheckIn';
 import { Dashboard } from '@mui/icons-material';
 import { Toaster } from '@/components/ui/toaster';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentFailed from './pages/PaymentFailed';
+import Profile from './pages/Profile';
+import AdminLogin from './pages/AdminLogin';
+import AdminChangePassword from './pages/AdminChangePassword';
 
 const App = () => {
   useEffect(() => {
@@ -108,6 +112,11 @@ const App = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/callback" element={<Callback />} />
+        <Route path="/profile" element={<Profile />} />
+
+        {/* Admin login - must be before other /admin/* routes */}
+        <Route path="/admin" element={<AdminLogin />} />
+        <Route path="/admin/change-password" element={<AdminChangePassword />} />
 
         {/* Admin Routes */}
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
@@ -116,6 +125,7 @@ const App = () => {
         <Route path="/admin/reports" element={<AdminReports />} />
         <Route path="/admin/time-slots" element={<AdminTimeSlots />} />
         <Route path="/admin/bookings" element={<Appointments />} />
+        <Route path="/admin/bookings/:id" element={<BookingDetail />} />
         <Route path="/admin/doctors/create" element={<CreateDoctor />} />
         <Route path="/admin/doctors/edit/:id" element={<EditDoctor />} />
         <Route path="/admin/doctors/view/:id" element={<ViewDoctor />} />
@@ -125,6 +135,7 @@ const App = () => {
         <Route path="/admin/user-dispensary" element={<CustomRoleManagement />} />
         <Route path="/admin/roles" element={<CustomRoleManagement />} />
         <Route path='/admin/fees' element={<AdminFeeManage />} />
+        <Route path="/admin/profile" element={<Profile />} />
 
         {/* Dispensary Routes */}
         <Route path="/dispensary/check-in" element={<DispensaryCheckIn />} />

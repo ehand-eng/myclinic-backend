@@ -103,6 +103,7 @@ router.get('/doctors-nearby', async (req, res) => {
 
         for (const dd of activeDoctorDispensaries) {
             if (!dd.doctorId) continue; // Skip if doctor not found
+            if (dd.doctorId.disabled) continue; // Exclude disabled doctors
 
             const doctorId = dd.doctorId._id.toString();
             const dispensary = dispensariesWithDistance.find(
@@ -273,6 +274,7 @@ router.post('/doctors-at-dispensaries', async (req, res) => {
 
         for (const dd of doctorDispensaries) {
             if (!dd.doctorId) continue;
+            if (dd.doctorId.disabled) continue; // Exclude disabled doctors
 
             const doctorId = dd.doctorId._id.toString();
 

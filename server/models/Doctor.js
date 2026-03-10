@@ -29,6 +29,10 @@ const doctorSchema = new mongoose.Schema({
     type: Number,
     default: 30,
     min: 1
+  },
+  disabled: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: {

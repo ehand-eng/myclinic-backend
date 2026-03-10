@@ -17,6 +17,7 @@ export interface Doctor extends BaseModel {
   profilePicture?: string;
   dispensaries: string[]; // IDs of associated dispensaries
   bookingVisibleDays?: number;
+  disabled?: boolean;
 }
 
 // Dispensary model

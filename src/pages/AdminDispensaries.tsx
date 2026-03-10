@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Eye, Edit, Trash2, Plus, Search, MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { canManageDispensaries } from '@/lib/roleUtils';
 
 const AdminDispensaries = () => {
   const navigate = useNavigate();
@@ -19,6 +20,11 @@ const AdminDispensaries = () => {
   const [filteredDispensaries, setFilteredDispensaries] = useState<Dispensary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Get current user for role-based UI
+  const userStr = typeof window !== 'undefined' ? localStorage.getItem('current_user') : null;
+  const currentUser = userStr ? JSON.parse(userStr) : null;
+  const canManage = canManageDispensaries(currentUser?.role);
 
   useEffect(() => {
     fetchDispensaries();
@@ -31,13 +37,11 @@ const AdminDispensaries = () => {
       // Get current user for role-based filtering
       const userStr = localStorage.getItem('current_user');
       const user = userStr ? JSON.parse(userStr) : null;
-
       const isSuper = user?.role === 'super-admin' || (user?.roles && user.roles.includes('super-admin'));
 
       let data: Dispensary[] = [];
 
       if (isSuper) {
-        // Super admin sees all
         data = await DispensaryService.getAllDispensaries();
       } else if (user?.dispensaryIds && user.dispensaryIds.length > 0) {
         // Dispensary user sees only assigned
@@ -108,9 +112,11 @@ const AdminDispensaries = () => {
       <main className="container mx-auto px-4 py-8 flex-grow">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Manage Dispensaries</h1>
-          <Button onClick={() => navigate('/admin/dispensaries/create')} className="bg-medical-600 hover:bg-medical-700">
-            <Plus className="mr-2 h-4 w-4" /> Add New Dispensary
-          </Button>
+          {canManage && (
+            <Button onClick={() => navigate('/admin/dispensaries/create')} className="bg-medical-600 hover:bg-medical-700">
+              <Plus className="mr-2 h-4 w-4" /> Add New Dispensary
+            </Button>
+          )}
         </div>
 
         <Card className="mb-6">
@@ -180,20 +186,24 @@ const AdminDispensaries = () => {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/admin/dispensaries/edit/${dispensary.id}`)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteDispensary(dispensary.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
+                          {canManage && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => navigate(`/admin/dispensaries/edit/${dispensary.id}`)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteDispensary(dispensary.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}

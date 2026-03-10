@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Loader2, Users, Shield, UserPlus, Edit, Trash2, AlertCircle } from 'lucide-react';
+import { Loader2, Users, Shield, UserPlus, Edit, Trash2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Role {
@@ -66,6 +66,7 @@ const CustomRoleAssignment = () => {
   });
 
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -143,6 +144,23 @@ const CustomRoleAssignment = () => {
   };
 
   const handleCreateUser = async () => {
+    // Basic password strength validation for admin-created users
+    if (!createUserForm.password) {
+      toast.error('Password is required');
+      return;
+    }
+
+    const hasLower = /[a-z]/.test(createUserForm.password);
+    const hasUpper = /[A-Z]/.test(createUserForm.password);
+    const hasDigit = /[0-9]/.test(createUserForm.password);
+    const hasSpecial = /[^A-Za-z0-9]/.test(createUserForm.password);
+    const categories = [hasLower, hasUpper, hasDigit, hasSpecial].filter(Boolean).length;
+
+    if (createUserForm.password.length < 8 || categories < 3) {
+      toast.error('Use at least 8 characters and include three of: lowercase, uppercase, number, special character.');
+      return;
+    }
+
     try {
       setIsUpdating(true);
       const token = localStorage.getItem('auth_token');
@@ -378,13 +396,52 @@ const CustomRoleAssignment = () => {
               </div>
               <div>
                 <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={createUserForm.password}
-                  onChange={(e) => setCreateUserForm(prev => ({ ...prev, password: e.target.value }))}
-                  placeholder="Enter password (min 6 characters)"
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showCreatePassword ? 'text' : 'password'}
+                    value={createUserForm.password}
+                    onChange={(e) => setCreateUserForm(prev => ({ ...prev, password: e.target.value }))}
+                    placeholder="Enter password"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowCreatePassword(!showCreatePassword)}
+                  >
+                    {showCreatePassword ? (
+                      <EyeOff className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    )}
+                  </Button>
+                </div>
+                <div className="mt-1 text-[10px] text-gray-600 space-y-0.5">
+                  {(() => {
+                    const pwd = createUserForm.password || '';
+                    const hasLower = /[a-z]/.test(pwd);
+                    const hasUpper = /[A-Z]/.test(pwd);
+                    const hasDigit = /[0-9]/.test(pwd);
+                    const hasSpecial = /[^A-Za-z0-9]/.test(pwd);
+                    const categories = [hasLower, hasUpper, hasDigit, hasSpecial].filter(Boolean).length;
+                    const strong = pwd.length >= 8 && categories >= 3;
+                    return (
+                      <ul className="space-y-0.5">
+                        <li className={pwd.length >= 8 ? 'text-green-600' : 'text-gray-500'}>
+                          • At least 8 characters
+                        </li>
+                        <li className={categories >= 3 ? 'text-green-600' : 'text-gray-500'}>
+                          • Uses three of: lowercase, uppercase, number, special
+                        </li>
+                        <li className={strong ? 'text-green-600' : 'text-gray-500'}>
+                          • Overall password is strong
+                        </li>
+                      </ul>
+                    );
+                  })()}
+                </div>
               </div>
               <div>
                 <Label htmlFor="role">Role</Label>

@@ -117,22 +117,28 @@ const Login = () => {
 
       const response = await axios.post(`${API_URL}/auth/login-mobile`, loginPayload);
 
-      // Store the token
+      const user = response.data.user;
+      const adminRoles = ['super-admin', 'dispensary-admin', 'dispensary-staff', 'doctor', 'channel-partner'];
+      const isAdmin = user?.role && adminRoles.includes(user.role.toLowerCase().replace(/_/g, '-'));
+
+      if (isAdmin) {
+        toast({
+          title: "Use admin portal",
+          description: "Use the admin portal to sign in with this account.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       localStorage.setItem('auth_token', response.data.token);
-      localStorage.setItem('current_user', JSON.stringify(response.data.user));
+      localStorage.setItem('current_user', JSON.stringify(user));
 
       toast({
         title: "Login Successful",
         description: "Welcome back!"
       });
 
-      // Redirect based on user role
-      const user = response.data.user;
-      if (!user.role || user.role === 'online') {
-        navigate('/');
-      } else {
-        navigate('/admin/dashboard');
-      }
+      navigate('/');
     } catch (error: any) {
       toast({
         title: "Login Failed",
@@ -159,48 +165,41 @@ const Login = () => {
     try {
       setIsLoading(true);
 
-      // Try the new mobile auth first, then fallback to existing custom auth
-      let response;
-      try {
-        const loginPayload = {
-          loginType: 'email',
-          email: loginData.email,
-          password: loginData.password,
-          keepSignedIn: loginData.keepSignedIn
-        };
-        response = await axios.post(`${API_URL}/custom-auth/login`, loginPayload);
-      } catch (mobileAuthError) {
-        // Fallback to existing custom auth for backward compatibility
-        response = await axios.post(`${API_URL}/custom-auth/login`, {
-          email: loginData.email,
-          password: loginData.password
-        });
-      }
+      const loginPayload = {
+        email: loginData.email,
+        password: loginData.password,
+        keepSignedIn: loginData.keepSignedIn
+      };
+      const response = await axios.post(`${API_URL}/custom-auth/login`, loginPayload);
 
-      // Store the token
-      const { token, access_token, user } = response.data;
-      console.log(response.data);
-      localStorage.setItem('auth_token', token || access_token);
-      localStorage.setItem('current_user', JSON.stringify(user));
+      const { token, user: userData } = response.data;
+      localStorage.setItem('auth_token', token || response.data.access_token);
+      localStorage.setItem('current_user', JSON.stringify(userData));
 
       toast({
         title: "Login Successful",
         description: "Welcome back!"
       });
 
-      // Redirect based on user role
-      const userData = response.data.user;
-      if (!userData.role || userData.role === 'online') {
-        navigate('/');
-      } else {
-        navigate('/admin/dashboard');
-      }
+      navigate('/');
     } catch (error: any) {
-      toast({
-        title: "Login Failed",
-        description: error.response?.data?.message || "Invalid credentials",
-        variant: "destructive"
-      });
+      const data = error.response?.data;
+      const code = data?.code;
+      const message = data?.message || "Invalid credentials";
+
+      if (code === 'USE_ADMIN_PORTAL') {
+        toast({
+          title: "Use admin portal",
+          description: message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Login Failed",
+          description: message,
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -323,6 +322,13 @@ const Login = () => {
             )}
           </Button>
         </div>
+        {loginData.password && (
+          <div className="mt-1 text-[10px] text-gray-500">
+            <p>
+              For new passwords, we recommend at least 8 characters with a mix of lowercase, uppercase, numbers, and special characters.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between">
@@ -403,6 +409,15 @@ const Login = () => {
                       className="text-[#0a1f44] hover:text-[#0a1f44]/80 font-medium hover:underline"
                     >
                       Sign up
+                    </Link>
+                  </p>
+                  <p className="text-sm text-gray-600 mt-2">
+                    Admin?{' '}
+                    <Link
+                      to="/admin"
+                      className="text-[#0a1f44] hover:text-[#0a1f44]/80 font-medium hover:underline"
+                    >
+                      Sign in to admin portal
                     </Link>
                   </p>
                 </div>

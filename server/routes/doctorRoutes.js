@@ -1,21 +1,52 @@
 
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
 const Doctor = require('../models/Doctor');
 const Dispensary = require('../models/Dispensary');
 const logger = require('../utils/logger');
 
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+// Allow super-admin or dispensary-admin to disable/enable doctors
+const requireDoctorManager = (req, res, next) => {
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ message: 'Authorization required' });
+  }
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const role = (decoded.role || '').toLowerCase().replace(/_/g, '-');
+    const allowed = role === 'super-admin' || role === 'dispensary-admin';
+    if (!allowed) {
+      return res.status(403).json({ message: 'Only Super Administrators or Dispensary Administrators can disable or enable doctors' });
+    }
+    req.user = { id: decoded.userId, role: decoded.role };
+    next();
+  } catch (err) {
+    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Invalid or expired token' });
+    }
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
 /**Get all doctors
  * GET /api/doctors
+ * Query: activeOnly=true to exclude disabled (for public/booking)
  */
 router.get('/', async (req, res) => {
   const startTime = Date.now();
 
   try {
+    const activeOnly = req.query.activeOnly === 'true';
+    const query = activeOnly ? { disabled: { $ne: true } } : {};
     logger.info('Fetching all doctors', {
-      requestId: req.requestId
+      requestId: req.requestId,
+      activeOnly
     });
-    const doctors = await Doctor.find().populate('dispensaries', 'name');
+    const doctors = await Doctor.find(query).populate('dispensaries', 'name');
     res.status(200).json(doctors);
   } catch (error) {
     logger.error('Error fetching all doctors', {
@@ -58,13 +89,16 @@ router.get('/:id', async (req, res) => {
 });
 
 /**Get doctors by dispensary ID
+ * Query: activeOnly=true to exclude disabled (for public/booking)
  */
 router.get('/dispensary/:dispensaryId', async (req, res) => {
   const { dispensaryId } = req.params;
+  const activeOnly = req.query.activeOnly === 'true';
 
   try {
     logger.info('Fetching doctors by dispensary ID', {
-      dispensaryId
+      dispensaryId,
+      activeOnly
     });
 
     const dispensary = await Dispensary.findById(dispensaryId);
@@ -75,7 +109,9 @@ router.get('/dispensary/:dispensaryId', async (req, res) => {
       return res.status(404).json({ message: 'Dispensary not found' });
     }
 
-    const doctors = await Doctor.find({ dispensaries: dispensaryId });
+    const query = { dispensaries: dispensaryId };
+    if (activeOnly) query.disabled = { $ne: true };
+    const doctors = await Doctor.find(query);
     if (!doctors) {
       logger.warn('Doctors not found for dispensary', {
         dispensaryId
@@ -96,7 +132,7 @@ router.get('/dispensary/:dispensaryId', async (req, res) => {
 
 // POST /api/doctors/by-dispensaries
 router.post('/by-dispensaries', async (req, res) => {
-  const { dispensaryIds } = req.body;
+  const { dispensaryIds, activeOnly } = req.body;
 
   try {
     logger.info('Fetching doctors by multiple dispensary IDs', {
@@ -115,8 +151,9 @@ router.post('/by-dispensaries', async (req, res) => {
       return res.status(400).json({ message: 'No dispensary IDs provided' });
     }
 
-    // Find doctors who are associated with any of the given dispensary IDs
-    const doctors = await Doctor.find({ dispensaries: { $in: dispensaryIds } });
+    const query = { dispensaries: { $in: dispensaryIds } };
+    if (activeOnly) query.disabled = { $ne: true };
+    const doctors = await Doctor.find(query);
 
     // const duration = Date.now() - startTime;
     logger.info('Successfully fetched doctors by dispensary IDs', {
@@ -191,6 +228,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
   const updateData = req.body;
+  const startTime = Date.now();
 
   try {
     logger.info('Updating doctor', {
@@ -263,6 +301,46 @@ router.put('/:id', async (req, res) => {
       stack: error.stack,
     });
     res.status(500).json({ message: 'Error updating doctor', error: error.message });
+  }
+});
+
+/** Disable a doctor (super-admin or dispensary-admin)
+ * PATCH /api/doctors/:id/disable
+ */
+router.patch('/:id/disable', requireDoctorManager, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const doctor = await Doctor.findById(id);
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found' });
+    }
+    doctor.disabled = true;
+    await doctor.save();
+    logger.info('Doctor disabled', { doctorId: id });
+    res.status(200).json(doctor);
+  } catch (error) {
+    logger.error('Error disabling doctor', { doctorId: id, error: error.message });
+    res.status(500).json({ message: 'Error disabling doctor', error: error.message });
+  }
+});
+
+/** Enable a doctor (super-admin or dispensary-admin)
+ * PATCH /api/doctors/:id/enable
+ */
+router.patch('/:id/enable', requireDoctorManager, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const doctor = await Doctor.findById(id);
+    if (!doctor) {
+      return res.status(404).json({ message: 'Doctor not found' });
+    }
+    doctor.disabled = false;
+    await doctor.save();
+    logger.info('Doctor enabled', { doctorId: id });
+    res.status(200).json(doctor);
+  } catch (error) {
+    logger.error('Error enabling doctor', { doctorId: id, error: error.message });
+    res.status(500).json({ message: 'Error enabling doctor', error: error.message });
   }
 });
 
