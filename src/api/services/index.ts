@@ -6,6 +6,7 @@ export { DoctorService } from './DoctorService';
 export { DispensaryService } from './DispensaryService';
 export { PatientService } from './PatientService';
 export { ReportService } from './ReportService';
+export { DashboardService } from './DashboardService';
 export { TimeSlotService } from './TimeSlotService';
 export { UserDispensaryService } from './UserDispensaryService';
 export { DoctorDispensaryService } from './DoctorDispensaryService';

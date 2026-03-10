@@ -29,6 +29,7 @@ const utilRoutes = require('./routes/utilRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const whatsappRoutes = require('./routes/whatsappRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
 // Create Express app
 const app = express();
 
@@ -76,6 +77,7 @@ app.use('/api/util', utilRoutes); // Utility routes (OTP management)
 app.use('/api/location', locationRoutes); // Location-based search routes
 app.use('/api/payments', paymentRoutes); // Payment gateway routes (Dialog Genie, Stripe)
 app.use('/api/whatsapp', whatsappRoutes); // WhatsApp booking chatbot webhook
+app.use('/api/dashboard', dashboardRoutes); // Dashboard stats (role-aware)
 
 // Base route
 app.get('/api', (req, res) => {
