@@ -14,7 +14,7 @@ import { DoctorService } from '@/api/services/DoctorService';
 import { DispensaryService } from '@/api/services/DispensaryService';
 import { TimeSlotService } from '@/api/services/TimeSlotService';
 import { Booking, BookingStatus } from '@/api/models';
-import { Search, Loader2, CheckCircle2, Calendar } from 'lucide-react';
+import { Search, Loader2, CheckCircle2, Calendar, LogOut, TimerReset } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface BookingWithDetails extends Booking {
@@ -58,6 +58,16 @@ const DispensaryCheckIn = () => {
   const [bookings, setBookings] = useState<BookingWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingIn, setIsCheckingIn] = useState<string | null>(null);
+  const [isCheckingOut, setIsCheckingOut] = useState<string | null>(null);
+  const [now, setNow] = useState<Date>(new Date());
+
+  // Global timer tick (updates every second for countdowns)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Load user context and initial data
   useEffect(() => {
@@ -302,6 +312,55 @@ const DispensaryCheckIn = () => {
     } finally {
       setIsCheckingIn(null);
     }
+  };
+
+  // Handle check-out (complete visit)
+  const handleCheckOut = async (bookingId: string) => {
+    try {
+      setIsCheckingOut(bookingId);
+      const updatedBooking = await BookingService.checkOutBooking(bookingId);
+
+      setBookings(prev =>
+        prev.map(booking =>
+          booking.id === bookingId
+            ? {
+                ...booking,
+                status: updatedBooking.status,
+                checkedInTime: updatedBooking.checkedInTime,
+                completedTime: (updatedBooking as any).completedTime,
+                isPatientVisited: (updatedBooking as any).isPatientVisited,
+              }
+            : booking
+        )
+      );
+
+      toast({
+        title: updatedBooking.status === BookingStatus.SCHEDULED ? 'Check-in reverted' : 'Checked out',
+        description:
+          updatedBooking.status === BookingStatus.SCHEDULED
+            ? 'Patient check-in has been reverted.'
+            : 'Patient checked out successfully.',
+      });
+    } catch (error: any) {
+      console.error('Error checking out:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to check out patient',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCheckingOut(null);
+    }
+  };
+
+  // Returns remaining seconds within 5 minutes from checked-in time, or 0 if expired / not available
+  const getCheckoutRemainingSeconds = (booking: BookingWithDetails): number => {
+    if (!booking.checkedInTime) return 0;
+    const checkedInAt = new Date(booking.checkedInTime);
+    const expiresAt = new Date(checkedInAt.getTime() + 5 * 60 * 1000);
+    const diffMs = expiresAt.getTime() - now.getTime();
+    if (diffMs <= 0) return 0;
+    return Math.floor(diffMs / 1000);
   };
 
   const getStatusBadge = (status: string) => {
@@ -616,11 +675,45 @@ const DispensaryCheckIn = () => {
                           </TableCell>
                           <TableCell className="text-right">
                             {booking.status === 'checked_in' ? (
-                              <div className="flex items-center justify-end gap-2 text-green-600">
-                                <CheckCircle2 className="h-4 w-4" />
-                                <span className="text-sm">Checked In</span>
-                              </div>
-                            ) : (
+                              (() => {
+                                const remaining = getCheckoutRemainingSeconds(booking);
+                                const minutes = Math.floor(remaining / 60);
+                                const seconds = remaining % 60;
+                                const disabled = remaining <= 0 || isCheckingOut === booking.id;
+                                return (
+                                  <div className="flex items-center justify-end gap-3">
+                                    <div className="flex items-center gap-1 text-xs text-red-600">
+                                      <TimerReset className="h-3 w-3" />
+                                      {remaining > 0 ? (
+                                        <span>
+                                          {minutes}:{seconds.toString().padStart(2, '0')} left
+                                        </span>
+                                      ) : (
+                                        <span>Checkout window expired</span>
+                                      )}
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleCheckOut(booking.id)}
+                                      disabled={disabled}
+                                    >
+                                      {isCheckingOut === booking.id ? (
+                                        <>
+                                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                          Checking out...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <LogOut className="h-3 w-3 mr-1" />
+                                          Check-Out
+                                        </>
+                                      )}
+                                    </Button>
+                                  </div>
+                                );
+                              })()
+                            ) : booking.status === 'scheduled' ? (
                               <Button
                                 size="sm"
                                 onClick={() => handleCheckIn(booking.id)}
@@ -635,7 +728,7 @@ const DispensaryCheckIn = () => {
                                   'Check-In'
                                 )}
                               </Button>
-                            )}
+                            ) : null}
                           </TableCell>
                         </TableRow>
                       ))}

@@ -2,7 +2,7 @@
 // Change this to your backend server URL
 export const API_BASE_URL = 'http://localhost:5001'; // Update with your server IP
 
-// For iOS simulator use: 'http://localhost:5000'
+// For iOS simulator use: 'http://localhost:5001'
 // For Android emulator use: 'http://10.0.2.2:5000'
 // For real device, use your computer's local IP: 'http://192.168.x.x:5000'
 

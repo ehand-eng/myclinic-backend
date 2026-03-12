@@ -2,7 +2,7 @@
 const fetch = require('node-fetch');
 
 const testSMSDeliveryStatus = async () => {
-  const baseUrl = 'http://localhost:5000/api';
+  const baseUrl = 'http://localhost:5001/api';
   
   // Test data - replace with actual booking ID
   const testData = {

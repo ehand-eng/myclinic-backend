@@ -85,7 +85,7 @@ import {
 // import DoctorDispensaryFeeManager from '@/components/AdminF';
 
 // Get API URL from environment variables with fallback
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 // Detect environment - local by default
 const IS_LOVABLE_ENVIRONMENT = window.location.hostname.includes('lovableproject.com') || 

@@ -43,6 +43,7 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCa
   // Role-based access control
   const [userRole, setUserRole] = useState<string>('');
   const [canAccessAdvancedFeatures, setCanAccessAdvancedFeatures] = useState(false);
+  const [isAdminOrStaff, setIsAdminOrStaff] = useState(false);
 
   // Form state
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -86,24 +87,31 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCa
         const user = userStr ? JSON.parse(userStr) : null;
 
         if (user && user.role) {
-          const role = user.role.toLowerCase();
-          setUserRole(role);
+          const rawRole = String(user.role);
+          const normalizedRole = rawRole.toLowerCase().replace(/_/g, '-');
+          setUserRole(normalizedRole);
 
           // Allow access to advanced features for Super Admin, Dispensary Admin, and Channel Partner
-          const allowedRoles = ['super admin', 'dispensary admin', 'channel partner'];
-          const hasAccess = allowedRoles.includes(role);
+          const advancedRoles = ['super-admin', 'dispensary-admin', 'channel-partner'];
+          const hasAccess = advancedRoles.includes(normalizedRole);
           setCanAccessAdvancedFeatures(hasAccess);
 
-          console.log(`User role: ${role}, Advanced features access: ${hasAccess}`);
+          // Treat all admin/staff/doctor/channel partner roles as non-regular users
+          const adminStaffRoles = ['super-admin', 'dispensary-admin', 'dispensary-staff', 'doctor', 'channel-partner'];
+          setIsAdminOrStaff(adminStaffRoles.includes(normalizedRole));
+
+          console.log(`User role: ${normalizedRole}, Advanced features access: ${hasAccess}`);
         } else {
           setUserRole('');
           setCanAccessAdvancedFeatures(false);
+          setIsAdminOrStaff(false);
           console.log('No user found or no role assigned');
         }
       } catch (error) {
         console.error('Error parsing user data:', error);
         setUserRole('');
         setCanAccessAdvancedFeatures(false);
+        setIsAdminOrStaff(false);
       }
     };
 
@@ -519,6 +527,9 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCa
     }
   };
 
+  // Detect if user arrived from the hero "search booking" flow on the home page
+  const isFromSearchFlow = Boolean(initialDoctorId || initialDispensaryId || initialDate);
+
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardContent className="pt-6">
@@ -560,6 +571,14 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCa
                   isLoading={isLoading}
                   onContinue={() => setCurrentStep(1)}
                   showCalendar={showCalendar}
+                  readOnly={
+                    isFromSearchFlow && !isAdminOrStaff
+                      ? {
+                          doctor: true,
+                          dispensary: true,
+                        }
+                      : undefined
+                  }
                 />
               ) : (
                 <BookingStep2

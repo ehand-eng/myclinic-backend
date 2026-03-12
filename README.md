@@ -8,7 +8,7 @@
 Ensure your `.env` file has the correct API URL:
 
 ```
-VITE_API_URL=http://localhost:5000/api
+VITE_API_URL=http://localhost:5001/api
 ```
 
 If your server runs on a different port, update this URL accordingly.
@@ -30,7 +30,7 @@ npm install
 npm start
 ```
 
-The server will run at http://localhost:5000 by default.
+The server will run at http://localhost:5001 by default.
 
 ### 3. Start the Frontend
 
@@ -62,7 +62,7 @@ If you encounter a "Server Unavailable" message:
 
 ## Notes
 
-- The API server runs at http://localhost:5000 by default
+- The API server runs at http://localhost:5001 by default
 - The MongoDB connection string is configured in server/.env
 - If you encounter any MongoDB connection issues, check your .env file and internet connection
 

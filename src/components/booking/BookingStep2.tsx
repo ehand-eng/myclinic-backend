@@ -108,9 +108,11 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
   };
 
   const handlePhoneChange = (value: string) => {
-    const safeValue = value || '';
-    setPhone(safeValue);
-    setValidationErrors(prev => ({ ...prev, phone: validatePhone(safeValue) }));
+    // Strip all whitespace characters immediately as the user types
+    const rawValue = value || '';
+    const normalizedValue = rawValue.replace(/\s+/g, '');
+    setPhone(normalizedValue);
+    setValidationErrors(prev => ({ ...prev, phone: validatePhone(normalizedValue) }));
   };
 
   const handleEmailChange = (value: string) => {

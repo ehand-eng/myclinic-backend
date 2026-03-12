@@ -400,6 +400,74 @@ router.patch('/bookings/:bookingId/check-in', validateCustomJwt, requireDispensa
   }
 });
 
+// Toggle check-in state within allowed window (frontend enforces 5-minute window)
+// PATCH /api/dispensary/bookings/:bookingId/check-out
+// Semantics: for a checked-in booking, revert it back to scheduled (undo check-in).
+router.patch('/bookings/:bookingId/check-out', validateCustomJwt, requireDispensaryAccess, validateBookingDispensary, async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const booking = req.booking;
+
+    // Only allow toggle for checked-in bookings
+    if (booking.status !== 'checked_in') {
+      return res.status(400).json({
+        message: 'Only checked-in bookings can be toggled back',
+        status: booking.status
+      });
+    }
+
+    // Revert back to scheduled and clear visit flags
+    booking.status = 'scheduled';
+    booking.checkedInTime = null;
+    booking.completedTime = null;
+    booking.isPatientVisited = false;
+
+    await booking.save();
+
+    const updatedBooking = await Booking.findById(bookingId)
+      .populate('doctorId', 'name specialization')
+      .populate('dispensaryId', 'name address')
+      .lean();
+
+    const formattedBooking = {
+      _id: updatedBooking._id,
+      transactionId: updatedBooking.transactionId,
+      appointmentNumber: updatedBooking.appointmentNumber,
+      patientName: updatedBooking.patientName,
+      patientPhone: updatedBooking.patientPhone,
+      patientEmail: updatedBooking.patientEmail,
+      doctor: {
+        id: updatedBooking.doctorId?._id?.toString(),
+        name: updatedBooking.doctorId?.name || 'Unknown',
+        specialization: updatedBooking.doctorId?.specialization || 'Unknown'
+      },
+      dispensary: {
+        id: updatedBooking.dispensaryId?._id?.toString(),
+        name: updatedBooking.dispensaryId?.name || 'Unknown',
+        address: updatedBooking.dispensaryId?.address || 'Unknown'
+      },
+      bookingDate: updatedBooking.bookingDate,
+      timeSlot: updatedBooking.timeSlot,
+      estimatedTime: updatedBooking.estimatedTime,
+      status: updatedBooking.status,
+      checkedInTime: updatedBooking.checkedInTime,
+      completedTime: updatedBooking.completedTime,
+      symptoms: updatedBooking.symptoms,
+      notes: updatedBooking.notes,
+      isPaid: updatedBooking.isPaid,
+      isPatientVisited: updatedBooking.isPatientVisited
+    };
+
+    res.status(200).json({
+      message: 'Booking check-in reverted successfully',
+      booking: formattedBooking
+    });
+  } catch (error) {
+    console.error('Error checking out booking:', error);
+    res.status(500).json({ message: 'Error checking out booking', error: error.message });
+  }
+});
+
 // Get current queue status (ongoing number)
 // GET /api/dispensary/queue-status
 router.get('/queue-status', validateCustomJwt, async (req, res) => {

@@ -27,7 +27,7 @@ fi
 
 # Remind user about API URL
 echo ""
-echo "IMPORTANT: Make sure your frontend .env file has VITE_API_URL set to http://localhost:5000/api"
+echo "IMPORTANT: Make sure your frontend .env file has VITE_API_URL set to http://localhost:5001/api"
 echo "If you need to use a different port, update both the server PORT in server/.env and the VITE_API_URL in .env"
 echo ""
 

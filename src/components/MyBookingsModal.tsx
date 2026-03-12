@@ -7,7 +7,7 @@ import { CalendarDays, Clock, MapPin, Stethoscope, Phone, Mail, X } from 'lucide
 import { useToast } from '@/hooks/use-toast';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 interface Booking {
   _id: string;

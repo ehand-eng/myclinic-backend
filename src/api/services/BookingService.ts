@@ -2,7 +2,7 @@ import { Booking, BookingStatus } from '../models';
 import api from '../../lib/axios';
 import { TimeSlotService, AvailableTimeSlot, TimeSlotAvailability } from './TimeSlotService';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 export interface BookingCreateParams {
   doctorId: string;
@@ -502,6 +502,27 @@ export const BookingService = {
     } catch (error) {
       console.error('Error checking in booking:', error);
       throw new Error('Failed to check in booking');
+    }
+  },
+
+  // Mark booking as checked-out/completed from dispensary
+  checkOutBooking: async (bookingId: string): Promise<Booking> => {
+    try {
+      const response = await api.patch(`/dispensary/bookings/${bookingId}/check-out`);
+
+      const booking = response.data.booking;
+      return {
+        ...booking,
+        id: booking._id,
+        bookingDate: new Date(booking.bookingDate),
+        checkedInTime: booking.checkedInTime ? new Date(booking.checkedInTime) : undefined,
+        completedTime: booking.completedTime ? new Date(booking.completedTime) : undefined,
+        createdAt: booking.createdAt ? new Date(booking.createdAt) : undefined,
+        updatedAt: booking.updatedAt ? new Date(booking.updatedAt) : undefined
+      };
+    } catch (error) {
+      console.error('Error checking out booking:', error);
+      throw new Error('Failed to check out booking');
     }
   }
 };
