@@ -1,5 +1,6 @@
 
 import type { Config } from "tailwindcss";
+import defaultTheme from "tailwindcss/defaultTheme";
 
 export default {
 	darkMode: ["class"],
@@ -19,6 +20,10 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				poppins: ['Poppins', ...defaultTheme.fontFamily.sans],
+				'open-sans': ['"Open Sans"', ...defaultTheme.fontFamily.sans],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -122,6 +127,15 @@ export default {
 					700: '#334155',
 					800: '#1e293b',
 					900: '#0f172a',
+				},
+				medilab: {
+					primary: '#1977cc',
+					'primary-hover': '#3291e6',
+					'primary-dark': '#1564ad',
+					heading: '#2c4964',
+					body: '#444444',
+					'section-bg': '#f1f7fd',
+					'light-bg': '#d1e7fd',
 				}
 			},
 			borderRadius: {

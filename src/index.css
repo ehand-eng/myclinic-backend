@@ -6,26 +6,26 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 213 32% 28%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 213 32% 28%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 201 96% 32%;
+    --popover-foreground: 213 32% 28%;
+    --primary: 207 76% 45%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 180 20% 95%;
-    --secondary-foreground: 201 96% 32%;
-    --muted: 180 20% 95%;
-    --muted-foreground: 201 20% 50%;
-    --accent: 160 84% 39%;
+    --secondary: 210 50% 96%;
+    --secondary-foreground: 207 76% 45%;
+    --muted: 210 50% 96%;
+    --muted-foreground: 213 18% 40%;
+    --accent: 207 76% 45%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 201 20% 90%;
-    --input: 201 20% 90%;
-    --ring: 201 96% 32%;
-    --radius: 0.75rem;
-    --chart-1: 201 96% 32%;
+    --border: 210 30% 90%;
+    --input: 210 30% 90%;
+    --ring: 207 76% 45%;
+    --radius: 0.5rem;
+    --chart-1: 207 76% 45%;
     --chart-2: 160 84% 39%;
     --chart-3: 180 100% 25%;
     --chart-4: 120 60% 50%;
@@ -65,8 +65,13 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-open-sans;
     font-feature-settings: "rlig" 1, "calt" 1;
+    color: #444444;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Poppins', sans-serif;
+    color: #2c4964;
   }
 }
 
@@ -100,39 +105,39 @@ html {
 /* Medical-themed utilities */
 @layer utilities {
   .medical-gradient {
-    @apply bg-gradient-to-br from-medicalBlue-50 to-medicalBlue-100 border border-medicalBlue-200;
+    @apply bg-white border border-medicalBlue-100;
   }
   
   .medical-gradient-dark {
-    @apply bg-gradient-to-br from-medicalBlue-900/20 to-medicalBlue-800/20 border border-medicalBlue-800/30;
+    @apply bg-medicalGray-900/95 border border-medicalBlue-800/40;
   }
   
   .medical-card {
-    @apply bg-white rounded-xl shadow-lg border border-medicalBlue-100 hover:shadow-xl transition-all duration-300;
+    @apply bg-white rounded-xl border border-medicalBlue-100 shadow-sm hover:shadow-md transition-all duration-200;
   }
   
   .medical-card-dark {
-    @apply bg-slate-800 rounded-xl shadow-lg border border-medicalBlue-800/30 hover:shadow-xl transition-all duration-300;
+    @apply bg-slate-900 rounded-xl border border-medicalBlue-800/40 shadow-sm hover:shadow-md transition-all duration-200;
   }
   
   .medical-button {
-    @apply bg-gradient-to-r from-medicalBlue-600 to-medicalBlue-700 hover:from-medicalBlue-700 hover:to-medicalBlue-800 text-white font-medium px-6 py-3 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl;
+    @apply bg-medicalBlue-600 hover:bg-medicalBlue-700 text-white font-medium px-6 py-3 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md;
   }
   
   .medical-button-outline {
-    @apply border-2 border-medicalBlue-600 text-medicalBlue-600 hover:bg-medicalBlue-600 hover:text-white font-medium px-6 py-3 rounded-lg transition-all duration-300;
+    @apply border border-medicalBlue-500 text-medicalBlue-600 hover:bg-medicalBlue-50 font-medium px-6 py-3 rounded-lg transition-colors duration-200;
   }
   
   .medical-text-gradient {
-    @apply bg-gradient-to-r from-medicalBlue-600 to-medicalBlue-800 bg-clip-text text-transparent;
+    @apply text-medicalBlue-700;
   }
   
   .medical-icon-bg {
-    @apply bg-gradient-to-br from-medicalBlue-100 to-medicalBlue-200 p-4 rounded-full;
+    @apply bg-medicalBlue-50 p-4 rounded-full;
   }
   
   .medical-icon-bg-dark {
-    @apply bg-gradient-to-br from-medicalBlue-900/30 to-medicalBlue-800/30 p-4 rounded-full;
+    @apply bg-slate-800/80 p-4 rounded-full;
   }
   
   .pulse-medical {
@@ -149,6 +154,110 @@ html {
   
   .fade-in-right {
     animation: fade-in-right 0.6s ease-out;
+  }
+
+  @keyframes float-pattern {
+    0% {
+      transform: translate3d(0, 0, 0);
+    }
+    50% {
+      transform: translate3d(-20px, -10px, 0);
+    }
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  .animate-float-pattern {
+    animation: float-pattern 18s linear infinite;
+  }
+
+  /* Medilab-specific utilities */
+  .medilab-section-title {
+    @apply text-center mb-12;
+  }
+
+  .medilab-section-title h2 {
+    font-family: 'Poppins', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: #2c4964;
+    position: relative;
+    padding-bottom: 15px;
+  }
+
+  .medilab-section-title h2::after {
+    content: '';
+    position: absolute;
+    display: block;
+    width: 60px;
+    height: 3px;
+    background: #1977cc;
+    bottom: 0;
+    left: calc(50% - 30px);
+  }
+
+  .medilab-section-title h2::before {
+    content: '';
+    position: absolute;
+    display: block;
+    width: 120px;
+    height: 1px;
+    background: #ddd;
+    bottom: 1px;
+    left: calc(50% - 60px);
+  }
+
+  .medilab-section-title p {
+    margin-top: 12px;
+    color: #444444;
+    font-size: 15px;
+  }
+
+  .medilab-btn {
+    background: #1977cc;
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    padding: 10px 35px;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .medilab-btn:hover {
+    background: #3291e6;
+  }
+
+  .medilab-topbar {
+    background: #1977cc;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    padding: 8px 0;
+  }
+
+  .medilab-hero-overlay {
+    background: linear-gradient(135deg, rgba(25, 119, 204, 0.85) 0%, rgba(25, 119, 204, 0.5) 50%, rgba(25, 119, 204, 0.2) 100%);
+  }
+
+  .medilab-icon-box {
+    @apply flex items-center justify-center;
+    width: 64px;
+    height: 64px;
+    background: rgba(25, 119, 204, 0.1);
+    border-radius: 6px;
+    transition: 0.3s;
+  }
+
+  .medilab-icon-box:hover {
+    background: #1977cc;
+  }
+
+  .medilab-icon-box:hover svg {
+    color: #fff !important;
   }
 }
 

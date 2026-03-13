@@ -53,7 +53,7 @@ const BookingStep1: React.FC<BookingStep1Props> = ({
     <>
       <div className={`grid gap-6 mb-6 ${disableDispensarySelection ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
         <div className="space-y-4">
-          <Label htmlFor="doctor">Select Doctor</Label>
+          <Label htmlFor="doctor" className="text-medilab-heading font-semibold font-poppins">Select Doctor</Label>
           <Select
             value={selectedDoctor}
             onValueChange={setSelectedDoctor}
@@ -74,7 +74,7 @@ const BookingStep1: React.FC<BookingStep1Props> = ({
         
         {!disableDispensarySelection && (
           <div className="space-y-4">
-            <Label htmlFor="dispensary">Select Dispensary</Label>
+          <Label htmlFor="dispensary" className="text-medilab-heading font-semibold font-poppins">Select Dispensary</Label>
             <Select
               value={selectedDispensary}
               onValueChange={setSelectedDispensary}
@@ -108,7 +108,7 @@ const BookingStep1: React.FC<BookingStep1Props> = ({
       </div>
       
       <div className="space-y-4">
-        <Label htmlFor="date">Select Date</Label>
+        <Label htmlFor="date" className="text-medilab-heading font-semibold font-poppins">Select Date</Label>
         <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
           <PopoverTrigger asChild>
                 <Button
@@ -138,7 +138,7 @@ const BookingStep1: React.FC<BookingStep1Props> = ({
                 return date < today || date > addDays(today, 30);
               }}
               initialFocus
-              className="rounded-xl border border-medicalGreen-200 shadow-lg"
+              className="rounded-xl border border-gray-200 shadow-lg"
             />
           </PopoverContent>
         </Popover>
@@ -206,7 +206,7 @@ const BookingStep1: React.FC<BookingStep1Props> = ({
         <Button
           onClick={onContinue}
           disabled={!selectedDoctor || !selectedDispensary || !selectedDate || !availability?.available || !availability.slots?.length}
-          className="bg-medical-600 hover:bg-medical-700"
+          className="bg-[#1977cc] hover:bg-[#3291e6] text-white rounded-full px-8"
         >
           Continue
         </Button>
@@ -217,30 +217,30 @@ const BookingStep1: React.FC<BookingStep1Props> = ({
 
 // Extracted appointment card component
 const AppointmentCard: React.FC<{ appointment: AvailableTimeSlot }> = ({ appointment }) => (
-  <Card className="border-2 border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 shadow-lg hover:shadow-xl transition-all duration-300">
+  <Card className="border-2 border-[#1977cc]/30 bg-gradient-to-r from-[#f1f7fd] to-blue-50 shadow-lg hover:shadow-xl transition-all duration-300">
     <CardContent className="p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
-          <div className="bg-green-500 p-2 rounded-full">
+          <div className="bg-[#1977cc] p-2 rounded-full">
             <User className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h3 className="font-bold text-lg text-green-800">Appointment #{appointment.appointmentNumber}</h3>
+            <h3 className="font-bold text-lg text-medilab-heading font-poppins">Appointment #{appointment.appointmentNumber}</h3>
           </div>
         </div>
-        <div className="bg-green-100 px-3 py-1 rounded-full">
-          <span className="text-sm font-semibold text-green-800">Available</span>
+        <div className="bg-[#1977cc]/10 px-3 py-1 rounded-full">
+          <span className="text-sm font-semibold text-[#1977cc]">Available</span>
         </div>
       </div>
       
       <div className="grid grid-cols-2 gap-4">
         <div className="flex items-center space-x-3">
-          <div className="bg-blue-100 p-2 rounded-lg">
-            <Clock className="h-5 w-5 text-blue-600" />
+          <div className="bg-[#1977cc]/10 p-2 rounded-lg">
+            <Clock className="h-5 w-5 text-[#1977cc]" />
           </div>
           <div>
-            <p className="text-sm text-gray-600">Appointment Time</p>
-            <p className="font-bold text-lg text-blue-700">{appointment.estimatedTime}</p>
+            <p className="text-sm text-medilab-body">Appointment Time</p>
+            <p className="font-bold text-lg text-[#1977cc]">{appointment.estimatedTime}</p>
           </div>
         </div>
         
@@ -255,9 +255,9 @@ const AppointmentCard: React.FC<{ appointment: AvailableTimeSlot }> = ({ appoint
         </div>
       </div>
       
-      <div className="mt-4 pt-4 border-t border-green-200">
-        <div className="flex items-center justify-center space-x-2 text-green-700">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+      <div className="mt-4 pt-4 border-t border-[#1977cc]/20">
+        <div className="flex items-center justify-center space-x-2 text-[#1977cc]">
+          <div className="w-2 h-2 bg-[#1977cc] rounded-full animate-pulse"></div>
           <span className="text-sm font-medium">Ready for booking</span>
         </div>
       </div>

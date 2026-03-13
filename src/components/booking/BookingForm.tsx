@@ -531,7 +531,7 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCa
   const isFromSearchFlow = Boolean(initialDoctorId || initialDispensaryId || initialDate);
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
+    <Card className="w-full">
       <CardContent className="pt-6">
         {/* Role-based access notice */}
         {!canAccessAdvancedFeatures && userRole && (

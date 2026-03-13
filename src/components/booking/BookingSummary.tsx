@@ -293,19 +293,19 @@ const BookingSummary = () => {
           <Header />
         </div>
       
-      <main className="flex-grow py-12 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 print-content">
+      <main className="flex-grow py-12 print-content" style={{ background: '#f1f7fd' }}>
         <div className="container mx-auto px-4">
           {/* Success Header */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4 no-print">
               <CheckCircle className="h-10 w-10 text-green-600" />
             </div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            <h1 className="text-4xl font-bold text-medilab-heading font-poppins mb-2">
               <span className="no-print">Booking Confirmed!</span>
               <span className="print-only hidden">DOCSPOT CONNECT - BOOKING CONFIRMATION</span>
             </h1>
-            <p className="text-lg text-gray-600 no-print">Your appointment has been successfully booked</p>
-            <div className="mt-4 inline-flex items-center bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium">
+            <p className="text-lg text-medilab-body no-print">Your appointment has been successfully booked</p>
+            <div className="mt-4 inline-flex items-center bg-[#1977cc]/10 text-[#1977cc] px-4 py-2 rounded-full text-sm font-medium">
               <strong>Booking Reference: {summary.transactionId}</strong>
             </div>
             <div className="print-only hidden text-center">
@@ -316,16 +316,16 @@ const BookingSummary = () => {
 
           <div className="max-w-6xl mx-auto space-y-8">
             {/* Appointment Details Card */}
-            <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg hover:shadow-xl transition-all duration-300">
+            <Card className="border border-[#1977cc]/20 bg-gradient-to-r from-[#f1f7fd] to-blue-50 shadow-md hover:shadow-lg transition-all duration-300">
               <CardContent className="p-8">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center space-x-3">
-                    <div className="bg-blue-500 p-3 rounded-full">
+                    <div className="bg-[#1977cc] p-3 rounded-full">
                       <Calendar className="h-6 w-6 text-white" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-xl text-blue-800">Appointment Details</h3>
-                      <p className="text-sm text-blue-600">Your scheduled appointment information</p>
+                      <h3 className="font-bold text-xl text-medilab-heading font-poppins">Appointment Details</h3>
+                      <p className="text-sm text-[#1977cc]">Your scheduled appointment information</p>
                     </div>
                   </div>
                   <div className="bg-green-100 px-4 py-2 rounded-full">
@@ -334,50 +334,50 @@ const BookingSummary = () => {
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <div className="bg-white p-4 rounded-lg border border-blue-200 shadow-sm">
+                  <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                     <div className="flex items-center space-x-3">
-                      <div className="bg-green-100 p-2 rounded-lg">
-                        <Calendar className="h-5 w-5 text-green-600" />
+                      <div className="bg-[#1977cc]/10 p-2 rounded-lg">
+                        <Calendar className="h-5 w-5 text-[#1977cc]" />
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600">Appointment Date</p>
-                        <p className="font-bold text-lg text-green-700">{format(summary.bookingDate, 'PPP')}</p>
+                        <p className="text-sm text-medilab-body">Appointment Date</p>
+                        <p className="font-bold text-lg text-medilab-heading">{format(summary.bookingDate, 'PPP')}</p>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="bg-white p-4 rounded-lg border border-blue-200 shadow-sm">
+                  <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                     <div className="flex items-center space-x-3">
-                      <div className="bg-orange-100 p-2 rounded-lg">
-                        <Clock className="h-5 w-5 text-orange-600" />
+                      <div className="bg-[#2c4964]/10 p-2 rounded-lg">
+                        <Clock className="h-5 w-5 text-[#2c4964]" />
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600">Time Slot</p>
-                        <p className="font-bold text-lg text-orange-700">{summary.timeSlot}</p>
+                        <p className="text-sm text-medilab-body">Time Slot</p>
+                        <p className="font-bold text-lg text-medilab-heading">{summary.timeSlot}</p>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="bg-white p-4 rounded-lg border border-blue-200 shadow-sm">
+                  <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                     <div className="flex items-center space-x-3">
-                      <div className="bg-purple-100 p-2 rounded-lg">
-                        <User className="h-5 w-5 text-purple-600" />
+                      <div className="bg-[#1977cc]/10 p-2 rounded-lg">
+                        <User className="h-5 w-5 text-[#1977cc]" />
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600">Appointment Number</p>
-                        <p className="font-bold text-lg text-purple-700">#{summary.appointmentNumber}</p>
+                        <p className="text-sm text-medilab-body">Appointment Number</p>
+                        <p className="font-bold text-lg text-[#1977cc]">#{summary.appointmentNumber}</p>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="bg-white p-4 rounded-lg border border-blue-200 shadow-sm">
+                  <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                     <div className="flex items-center space-x-3">
-                      <div className="bg-indigo-100 p-2 rounded-lg">
-                        <Clock className="h-5 w-5 text-indigo-600" />
+                      <div className="bg-[#1977cc]/10 p-2 rounded-lg">
+                        <Clock className="h-5 w-5 text-[#1977cc]" />
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600">Estimated Time</p>
-                        <p className="font-bold text-lg text-indigo-700">{summary.estimatedTime}</p>
+                        <p className="text-sm text-medilab-body">Estimated Time</p>
+                        <p className="font-bold text-lg text-[#1977cc]">{summary.estimatedTime}</p>
                       </div>
                     </div>
                   </div>
@@ -415,47 +415,47 @@ const BookingSummary = () => {
             {/* Patient & Doctor Information Cards */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Patient Information */}
-              <Card className="border-2 border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 shadow-lg hover:shadow-xl transition-all duration-300">
+              <Card className="border border-[#1977cc]/20 bg-gradient-to-r from-[#f1f7fd] to-blue-50 shadow-md hover:shadow-lg transition-all duration-300">
                 <CardContent className="p-6">
                   <div className="flex items-center space-x-3 mb-6">
-                    <div className="bg-green-500 p-3 rounded-full">
+                    <div className="bg-[#1977cc] p-3 rounded-full">
                       <User className="h-6 w-6 text-white" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-xl text-green-800">Patient Information</h3>
-                      <p className="text-sm text-green-600">Your personal details</p>
+                      <h3 className="font-bold text-xl text-medilab-heading font-poppins">Patient Information</h3>
+                      <p className="text-sm text-[#1977cc]">Your personal details</p>
                     </div>
                   </div>
                   
                   <div className="space-y-4">
                     <div className="flex items-center space-x-3">
                       <div className="bg-white p-2 rounded-lg">
-                        <User className="h-5 w-5 text-green-600" />
+                        <User className="h-5 w-5 text-[#1977cc]" />
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600">Full Name</p>
-                        <p className="font-semibold text-green-800">{summary.patient.name}</p>
+                        <p className="text-sm text-medilab-body">Full Name</p>
+                        <p className="font-semibold text-medilab-heading">{summary.patient.name}</p>
                       </div>
                     </div>
                     
                     <div className="flex items-center space-x-3">
                       <div className="bg-white p-2 rounded-lg">
-                        <Phone className="h-5 w-5 text-green-600" />
+                        <Phone className="h-5 w-5 text-[#1977cc]" />
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600">Phone Number</p>
-                        <p className="font-semibold text-green-800">{summary.patient.phone}</p>
+                        <p className="text-sm text-medilab-body">Phone Number</p>
+                        <p className="font-semibold text-medilab-heading">{summary.patient.phone}</p>
                       </div>
                     </div>
                     
                     {summary.patient.email && (
                       <div className="flex items-center space-x-3">
                         <div className="bg-white p-2 rounded-lg">
-                          <Mail className="h-5 w-5 text-green-600" />
+                          <Mail className="h-5 w-5 text-[#1977cc]" />
                         </div>
                         <div>
-                          <p className="text-sm text-gray-600">Email Address</p>
-                          <p className="font-semibold text-green-800">{summary.patient.email}</p>
+                          <p className="text-sm text-medilab-body">Email Address</p>
+                          <p className="font-semibold text-medilab-heading">{summary.patient.email}</p>
                         </div>
                       </div>
                     )}
@@ -464,36 +464,36 @@ const BookingSummary = () => {
               </Card>
 
               {/* Doctor Information */}
-              <Card className="border-2 border-purple-200 bg-gradient-to-r from-purple-50 to-indigo-50 shadow-lg hover:shadow-xl transition-all duration-300">
+              <Card className="border border-[#1977cc]/20 bg-gradient-to-r from-[#f1f7fd] to-blue-50 shadow-md hover:shadow-lg transition-all duration-300">
                 <CardContent className="p-6">
                   <div className="flex items-center space-x-3 mb-6">
-                    <div className="bg-purple-500 p-3 rounded-full">
+                    <div className="bg-[#2c4964] p-3 rounded-full">
                       <Stethoscope className="h-6 w-6 text-white" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-xl text-purple-800">Doctor Information</h3>
-                      <p className="text-sm text-purple-600">Your healthcare provider</p>
+                      <h3 className="font-bold text-xl text-medilab-heading font-poppins">Doctor Information</h3>
+                      <p className="text-sm text-[#1977cc]">Your healthcare provider</p>
                     </div>
                   </div>
                   
                   <div className="space-y-4">
                     <div className="flex items-center space-x-3">
                       <div className="bg-white p-2 rounded-lg">
-                        <User className="h-5 w-5 text-purple-600" />
+                        <User className="h-5 w-5 text-[#2c4964]" />
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600">Doctor Name</p>
-                        <p className="font-semibold text-purple-800">{summary.doctor.name}</p>
+                        <p className="text-sm text-medilab-body">Doctor Name</p>
+                        <p className="font-semibold text-medilab-heading">{summary.doctor.name}</p>
                       </div>
                     </div>
                     
                     <div className="flex items-center space-x-3">
                       <div className="bg-white p-2 rounded-lg">
-                        <Stethoscope className="h-5 w-5 text-purple-600" />
+                        <Stethoscope className="h-5 w-5 text-[#2c4964]" />
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600">Specialization</p>
-                        <p className="font-semibold text-purple-800">{summary.doctor.specialization}</p>
+                        <p className="text-sm text-medilab-body">Specialization</p>
+                        <p className="font-semibold text-medilab-heading">{summary.doctor.specialization}</p>
                       </div>
                     </div>
                   </div>
@@ -553,15 +553,15 @@ const BookingSummary = () => {
             </div>
 
             {/* Dispensary Information */}
-            <Card className="border-2 border-orange-200 bg-gradient-to-r from-orange-50 to-yellow-50 shadow-lg hover:shadow-xl transition-all duration-300">
+            <Card className="border border-[#1977cc]/20 bg-gradient-to-r from-[#f1f7fd] to-blue-50 shadow-md hover:shadow-lg transition-all duration-300">
               <CardContent className="p-6">
                 <div className="flex items-center space-x-3 mb-6">
-                  <div className="bg-orange-500 p-3 rounded-full">
+                  <div className="bg-[#2c4964] p-3 rounded-full">
                     <Building className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-xl text-orange-800">Dispensary Information</h3>
-                    <p className="text-sm text-orange-600">Appointment location details</p>
+                    <h3 className="font-bold text-xl text-medilab-heading font-poppins">Dispensary Information</h3>
+                    <p className="text-sm text-[#1977cc]">Appointment location details</p>
                   </div>
                 </div>
                 
@@ -591,76 +591,76 @@ const BookingSummary = () => {
 
             {/* Fee Breakdown */}
             {summary.fees && (
-              <Card className="border-2 border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50 shadow-lg hover:shadow-xl transition-all duration-300">
+              <Card className="border border-[#1977cc]/20 bg-gradient-to-r from-[#f1f7fd] to-blue-50 shadow-md hover:shadow-lg transition-all duration-300">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center space-x-3">
-                      <div className="bg-emerald-500 p-3 rounded-full">
+                      <div className="bg-[#1977cc] p-3 rounded-full">
                         <Receipt className="h-6 w-6 text-white" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-xl text-emerald-800">Fee Breakdown</h3>
-                        <p className="text-sm text-emerald-600">Complete payment details</p>
+                        <h3 className="font-bold text-xl text-medilab-heading font-poppins">Fee Breakdown</h3>
+                        <p className="text-sm text-[#1977cc]">Complete payment details</p>
                       </div>
                     </div>
-                    <div className="bg-emerald-100 px-4 py-2 rounded-full">
-                      <span className="text-sm font-semibold text-emerald-800">Payment Summary</span>
+                    <div className="bg-[#1977cc]/10 px-4 py-2 rounded-full">
+                      <span className="text-sm font-semibold text-[#1977cc]">Payment Summary</span>
                     </div>
                   </div>
                   
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="bg-white p-4 rounded-lg border border-green-200 shadow-sm">
+                      <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                         <div className="flex items-center space-x-3">
-                          <div className="bg-blue-100 p-2 rounded-lg">
-                            <Stethoscope className="h-5 w-5 text-blue-600" />
+                          <div className="bg-[#1977cc]/10 p-2 rounded-lg">
+                            <Stethoscope className="h-5 w-5 text-[#1977cc]" />
                           </div>
                           <div className="flex-1">
-                            <p className="text-sm text-gray-600">Doctor Fee</p>
-                            <p className="font-bold text-lg text-blue-700">Rs {summary.fees.doctorFee.toFixed(2)}</p>
+                            <p className="text-sm text-medilab-body">Doctor Fee</p>
+                            <p className="font-bold text-lg text-medilab-heading">Rs {summary.fees.doctorFee.toFixed(2)}</p>
                           </div>
                         </div>
                       </div>
                       
-                      <div className="bg-white p-4 rounded-lg border border-green-200 shadow-sm">
+                      <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                         <div className="flex items-center space-x-3">
-                          <div className="bg-orange-100 p-2 rounded-lg">
-                            <Building className="h-5 w-5 text-orange-600" />
+                          <div className="bg-[#2c4964]/10 p-2 rounded-lg">
+                            <Building className="h-5 w-5 text-[#2c4964]" />
                           </div>
                           <div className="flex-1">
-                            <p className="text-sm text-gray-600">Dispensary Fee</p>
-                            <p className="font-bold text-lg text-orange-700">Rs {summary.fees.dispensaryFee.toFixed(2)}</p>
+                            <p className="text-sm text-medilab-body">Dispensary Fee</p>
+                            <p className="font-bold text-lg text-medilab-heading">Rs {summary.fees.dispensaryFee.toFixed(2)}</p>
                           </div>
                         </div>
                       </div>
                       
-                      <div className="bg-white p-4 rounded-lg border border-green-200 shadow-sm">
+                      <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                         <div className="flex items-center space-x-3">
-                          <div className="bg-purple-100 p-2 rounded-lg">
-                            <DollarSign className="h-5 w-5 text-purple-600" />
+                          <div className="bg-[#1977cc]/10 p-2 rounded-lg">
+                            <DollarSign className="h-5 w-5 text-[#1977cc]" />
                           </div>
                           <div className="flex-1">
-                            <p className="text-sm text-gray-600">Booking Commission</p>
-                            <p className="font-bold text-lg text-purple-700">Rs {summary.fees.bookingCommission.toFixed(2)}</p>
+                            <p className="text-sm text-medilab-body">Booking Commission</p>
+                            <p className="font-bold text-lg text-medilab-heading">Rs {summary.fees.bookingCommission.toFixed(2)}</p>
                           </div>
                         </div>
                       </div>
                     </div>
                     
-                    <div className="bg-gradient-to-r from-emerald-100 to-green-100 p-6 rounded-lg border-2 border-emerald-300">
+                    <div className="bg-gradient-to-r from-[#1977cc]/10 to-[#1977cc]/5 p-6 rounded-lg border-2 border-[#1977cc]/30">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
-                          <div className="bg-emerald-500 p-3 rounded-full">
+                          <div className="bg-[#1977cc] p-3 rounded-full">
                             <Receipt className="h-6 w-6 text-white" />
                           </div>
                           <div>
-                            <p className="text-lg font-semibold text-emerald-800">Total Amount</p>
-                            <p className="text-sm text-emerald-600">Inclusive of all charges</p>
+                            <p className="text-lg font-semibold text-medilab-heading">Total Amount</p>
+                            <p className="text-sm text-[#1977cc]">Inclusive of all charges</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-3xl font-bold text-emerald-800">Rs {summary.fees.totalAmount.toFixed(2)}</p>
-                          <p className="text-sm text-emerald-600">Payment completed</p>
+                          <p className="text-3xl font-bold text-[#1977cc]">Rs {summary.fees.totalAmount.toFixed(2)}</p>
+                          <p className="text-sm text-medilab-body">Payment completed</p>
                         </div>
                       </div>
                     </div>
@@ -739,14 +739,14 @@ const BookingSummary = () => {
             <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-6 no-print">
               <Button 
                 onClick={() => navigate('/')}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+                className="bg-[#1977cc] hover:bg-[#3291e6] text-white px-8 py-3 text-lg shadow-md hover:shadow-lg transition-all duration-300 rounded-full"
               >
                 Back to Home
               </Button>
               <Button 
                 variant="outline" 
                 onClick={handleDownloadPDF}
-                className="border-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 px-8 py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+                className="border-2 border-[#1977cc] text-[#1977cc] hover:bg-[#f1f7fd] px-8 py-3 text-lg shadow-md hover:shadow-lg transition-all duration-300 rounded-full"
               >
                 <Download className="mr-2 h-5 w-5" />
                 Download PDF

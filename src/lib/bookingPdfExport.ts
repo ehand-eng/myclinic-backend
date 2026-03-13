@@ -156,7 +156,7 @@ export const exportBookingSummaryToPDF = (bookingData: BookingSummaryData) => {
     doc.setFontSize(10); // Reduced from 14
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(255, 255, 255);
-    doc.text('DocSpot Connect', margin + 20, 12);
+    doc.text('MyClinic Connect', margin + 20, 12);
     
     yPos = 30; // Reduced from 45
     
@@ -264,7 +264,7 @@ export const exportBookingSummaryToPDF = (bookingData: BookingSummaryData) => {
     doc.setFontSize(6); // Reduced from 8
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(128, 128, 128);
-    doc.text('Thank you for choosing DocSpot Connect', pageWidth / 2, footerY, { align: 'center' });
+    doc.text('Thank you for choosing MyClinic Connect', pageWidth / 2, footerY, { align: 'center' });
     doc.text(`Generated on: ${new Date().toLocaleDateString()}`, pageWidth / 2, footerY + 4, { align: 'center' }); // Reduced spacing
     
     // Save the PDF

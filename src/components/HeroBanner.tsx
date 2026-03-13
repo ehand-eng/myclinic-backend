@@ -1,89 +1,103 @@
-
-import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
-import { Calendar, Clock, CheckCircle } from 'lucide-react';
 import HeroBookingForm from './HeroBookingForm';
+import { Heart, Activity, Stethoscope, Shield, Clock, Users } from 'lucide-react';
 
 const HeroBanner = () => {
   return (
-    <div className="hero-banner-section relative bg-gradient-to-br from-medicalGray-900 via-medicalBlue-900 to-medicalTeal-900 text-white overflow-hidden">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute inset-0" style={{
-          backgroundImage: "url('https://images.unsplash.com/photo-1584982751601-97dcc096659c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2072&q=80')",
-          backgroundPosition: "center",
-          backgroundSize: "cover",
-          backgroundRepeat: "no-repeat"
-        }} />
-      </div>
-      
-      {/* Medical Pattern Overlay */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute inset-0" style={{
-          backgroundImage: "radial-gradient(circle at 25% 25%, #ffffff 2px, transparent 2px), radial-gradient(circle at 75% 75%, #ffffff 2px, transparent 2px)",
-          backgroundSize: "60px 60px"
-        }} />
-      </div>
-      
-      <div className="container mx-auto px-4 py-20 md:py-32 relative z-10">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="fade-in-up">
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-8 leading-tight">
-              Book Your Doctor
-              <span className="block text-transparent bg-gradient-to-r from-white to-medicalTeal-300 bg-clip-text drop-shadow-lg">
-                Appointment Online
-              </span>
+    <div className="hero-banner-section">
+      {/* Hero Image Section */}
+      <section
+        className="relative min-h-[600px] flex items-center"
+        style={{
+          backgroundImage: 'url(/hero-bg.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center right',
+          backgroundRepeat: 'no-repeat',
+        }}
+      >
+        {/* Blue gradient overlay */}
+        <div className="absolute inset-0 medilab-hero-overlay" />
+
+        <div className="container mx-auto px-4 relative z-10 text-center">
+          <div className="max-w-3xl mx-auto mb-10">
+            <h1 className="font-poppins text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight" style={{ color: '#fff' }}>
+              Welcome to MyClinic
             </h1>
-          </div>
-          
-          <div className="fade-in-up" style={{ animationDelay: '0.2s' }}>
-            <p className="text-xl md:text-2xl mb-12 text-white/90 max-w-3xl mx-auto leading-relaxed drop-shadow-md">
-              Skip the queue and save time with our modern, easy-to-use 
-              online booking system designed for healthcare excellence.
+            <p className="text-lg md:text-xl text-white/90 font-open-sans leading-relaxed">
+              Book your doctor appointments online with ease. Skip the queue and save time with our modern booking platform designed for healthcare excellence.
             </p>
           </div>
-          
-          <div className="fade-in-up" style={{ animationDelay: '0.4s' }}>
+
+          {/* Booking Form embedded in hero */}
+          <div className="bg-white/95 backdrop-blur-sm rounded-lg p-6 md:p-8 shadow-xl max-w-5xl mx-auto">
             <HeroBookingForm />
           </div>
         </div>
-      </div>
-      
-      <div className="bg-gradient-to-r from-white via-medicalBlue-50 to-medicalTeal-50 py-12">
+      </section>
+
+      {/* Why Choose Us + Feature Cards Section */}
+      <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="flex items-center space-x-6 p-6 medical-card group hover:scale-105 transition-all duration-300">
-              <div className="medical-icon-bg group-hover:scale-110 transition-transform">
-                <Calendar className="h-8 w-8 text-medicalBlue-600" />
-              </div>
-              <div>
-                <h3 className="font-bold text-xl text-medicalGray-800 mb-2">Easy Booking</h3>
-                <p className="text-medicalGray-600 text-lg">Book appointments in minutes with our intuitive platform</p>
-              </div>
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+            {/* Why Choose Us Box */}
+            <div className="lg:col-span-2 bg-medilab-primary rounded-lg p-8 text-white">
+              <h2 className="font-poppins text-2xl md:text-3xl font-bold mb-6" style={{ color: '#fff' }}>
+                Why Choose MyClinic?
+              </h2>
+              <p className="text-white/90 leading-relaxed mb-4 font-open-sans">
+                We connect patients with qualified healthcare professionals through our seamless online booking platform. With real-time availability, transparent pricing, and multiple convenient dispensary locations across Sri Lanka, your health is in good hands.
+              </p>
+              <p className="text-white/90 leading-relaxed font-open-sans">
+                Our platform supports online payments, SMS confirmations, and a dedicated WhatsApp booking channel — making healthcare access easier than ever before.
+              </p>
             </div>
-            
-            <div className="flex items-center space-x-6 p-6 medical-card group hover:scale-105 transition-all duration-300">
-              <div className="bg-gradient-to-br from-purple-100 to-purple-200 p-4 rounded-full group-hover:scale-110 transition-transform">
-                <Clock className="h-8 w-8 text-purple-600" />
+
+            {/* Feature Cards */}
+            <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="bg-white rounded-lg p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
+                <div className="medilab-icon-box mb-4">
+                  <Heart className="h-7 w-7 text-medilab-primary" />
+                </div>
+                <h3 className="font-poppins font-bold text-lg text-medilab-heading mb-2">Quality Healthcare</h3>
+                <p className="text-medilab-body text-sm leading-relaxed">
+                  Access qualified doctors and specialists across our network of trusted dispensaries.
+                </p>
               </div>
-              <div>
-                <h3 className="font-bold text-xl text-medicalGray-800 mb-2">Save Time</h3>
-                <p className="text-medicalGray-600 text-lg">Avoid waiting in long queues with instant booking</p>
+
+              <div className="bg-white rounded-lg p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
+                <div className="medilab-icon-box mb-4">
+                  <Clock className="h-7 w-7 text-medilab-primary" />
+                </div>
+                <h3 className="font-poppins font-bold text-lg text-medilab-heading mb-2">Save Time</h3>
+                <p className="text-medilab-body text-sm leading-relaxed">
+                  Book appointments instantly and avoid long waiting queues at the dispensary.
+                </p>
               </div>
-            </div>
-            
-            <div className="flex items-center space-x-6 p-6 medical-card group hover:scale-105 transition-all duration-300">
-              <div className="medical-icon-bg group-hover:scale-110 transition-transform">
-                <CheckCircle className="h-8 w-8 text-medicalGreen-600" />
+
+              <div className="bg-white rounded-lg p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
+                <div className="medilab-icon-box mb-4">
+                  <Shield className="h-7 w-7 text-medilab-primary" />
+                </div>
+                <h3 className="font-poppins font-bold text-lg text-medilab-heading mb-2">Secure Payments</h3>
+                <p className="text-medilab-body text-sm leading-relaxed">
+                  Pay online securely through Dialog Genie or choose to pay at the dispensary.
+                </p>
               </div>
-              <div>
-                <h3 className="font-bold text-xl text-medicalGray-800 mb-2">Reliable Service</h3>
-                <p className="text-medicalGray-600 text-lg">Track your booking status with real-time updates</p>
+
+              <div className="bg-white rounded-lg p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
+                <div className="medilab-icon-box mb-4">
+                  <Users className="h-7 w-7 text-medilab-primary" />
+                </div>
+                <h3 className="font-poppins font-bold text-lg text-medilab-heading mb-2">Multiple Locations</h3>
+                <p className="text-medilab-body text-sm leading-relaxed">
+                  Find dispensaries near you across Sri Lanka with GPS-powered location search.
+                </p>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
+
+
     </div>
   );
 };

@@ -56,10 +56,10 @@ const Contact = () => {
       <Header />
       
       <main className="flex-grow">
-        <div className="bg-medical-700 text-white py-12">
+        <div className="bg-medicalBlue-50 border-b border-medicalBlue-100 py-10">
           <div className="container mx-auto px-4">
-            <h1 className="text-3xl font-bold">Contact Us</h1>
-            <p className="mt-2 text-medical-100">
+            <h1 className="text-3xl md:text-4xl font-bold text-medicalGray-900">Contact Us</h1>
+            <p className="mt-2 text-medicalGray-600 text-lg">
               Get in touch with our team
             </p>
           </div>
@@ -74,13 +74,13 @@ const Contact = () => {
                 <Card>
                   <CardContent className="p-6">
                     <div className="flex items-start space-x-4">
-                      <div className="bg-medical-50 p-3 rounded-full">
-                        <Mail className="h-6 w-6 text-medical-600" />
+                      <div className="medical-icon-bg">
+                        <Mail className="h-6 w-6 text-medicalBlue-600" />
                       </div>
                       <div>
                         <h3 className="font-medium text-lg mb-1">Email Us</h3>
                         <p className="text-gray-600 mb-2">We'll respond within 24 hours</p>
-                        <a href="mailto:info@docspot-connect.com" className="text-medical-600 hover:underline">
+                        <a href="mailto:info@docspot-connect.com" className="text-medicalBlue-600 hover:underline">
                           info@docspot-connect.com
                         </a>
                       </div>
@@ -91,13 +91,13 @@ const Contact = () => {
                 <Card>
                   <CardContent className="p-6">
                     <div className="flex items-start space-x-4">
-                      <div className="bg-medical-50 p-3 rounded-full">
-                        <Phone className="h-6 w-6 text-medical-600" />
+                      <div className="medical-icon-bg">
+                        <Phone className="h-6 w-6 text-medicalBlue-600" />
                       </div>
                       <div>
                         <h3 className="font-medium text-lg mb-1">Call Us</h3>
                         <p className="text-gray-600 mb-2">Mon-Fri from 9am to 6pm</p>
-                        <a href="tel:+15551234567" className="text-medical-600 hover:underline">
+                        <a href="tel:+15551234567" className="text-medicalBlue-600 hover:underline">
                           +1 (555) 123-4567
                         </a>
                       </div>
@@ -108,13 +108,13 @@ const Contact = () => {
                 <Card>
                   <CardContent className="p-6">
                     <div className="flex items-start space-x-4">
-                      <div className="bg-medical-50 p-3 rounded-full">
-                        <MapPin className="h-6 w-6 text-medical-600" />
+                      <div className="medical-icon-bg">
+                        <MapPin className="h-6 w-6 text-medicalBlue-600" />
                       </div>
                       <div>
                         <h3 className="font-medium text-lg mb-1">Main Office</h3>
                         <p className="text-gray-600 mb-2">Visit our headquarters</p>
-                        <address className="text-medical-600 not-italic">
+                        <address className="text-medicalBlue-600 not-italic">
                           123 Health Avenue, Medical District<br />
                           New York, NY 10001
                         </address>
@@ -126,13 +126,13 @@ const Contact = () => {
                 <Card>
                   <CardContent className="p-6">
                     <div className="flex items-start space-x-4">
-                      <div className="bg-medical-50 p-3 rounded-full">
-                        <Clock className="h-6 w-6 text-medical-600" />
+                      <div className="medical-icon-bg">
+                        <Clock className="h-6 w-6 text-medicalBlue-600" />
                       </div>
                       <div>
                         <h3 className="font-medium text-lg mb-1">Working Hours</h3>
                         <p className="text-gray-600 mb-2">When you can reach us</p>
-                        <div className="space-y-1 text-medical-600">
+                        <div className="space-y-1 text-medicalBlue-600">
                           <p>Monday - Friday: 9:00 AM - 6:00 PM</p>
                           <p>Saturday: 10:00 AM - 4:00 PM</p>
                           <p>Sunday: Closed</p>
@@ -187,7 +187,7 @@ const Contact = () => {
                     
                     <Button 
                       type="submit" 
-                      className="w-full bg-medical-600 hover:bg-medical-700"
+                      className="w-full"
                       disabled={isSubmitting}
                     >
                       {isSubmitting ? 'Sending...' : 'Send Message'}

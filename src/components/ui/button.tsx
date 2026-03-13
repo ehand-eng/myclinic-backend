@@ -9,14 +9,15 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-gradient-to-r from-medicalBlue-600 to-medicalBlue-700 text-white hover:from-medicalBlue-700 hover:to-medicalBlue-800 shadow-lg hover:shadow-xl",
+        default:
+          "bg-medicalBlue-600 text-white hover:bg-medicalBlue-700 shadow-sm hover:shadow-md",
         destructive:
-          "bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 shadow-lg hover:shadow-xl",
+          "bg-red-500 text-white hover:bg-red-600 shadow-sm hover:shadow-md",
         outline:
-          "border-2 border-medicalBlue-600 bg-transparent text-medicalBlue-600 hover:bg-medicalBlue-600 hover:text-white shadow-md hover:shadow-lg",
+          "border border-medicalBlue-500 bg-transparent text-medicalBlue-600 hover:bg-medicalBlue-50 shadow-none",
         secondary:
-          "bg-gradient-to-r from-medicalGray-100 to-medicalGray-200 text-medicalGray-800 hover:from-medicalGray-200 hover:to-medicalGray-300 shadow-md hover:shadow-lg",
-        ghost: "hover:bg-medicalBlue-50 hover:text-medicalBlue-700",
+          "bg-medicalGray-100 text-medicalGray-800 hover:bg-medicalGray-200 shadow-none",
+        ghost: "hover:bg-medicalBlue-50 hover:text-medicalBlue-700 shadow-none",
         link: "text-medicalBlue-600 underline-offset-4 hover:underline hover:text-medicalBlue-700",
       },
       size: {

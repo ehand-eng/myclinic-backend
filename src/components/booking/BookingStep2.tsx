@@ -159,55 +159,55 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
   return (
     <>
       {nextAppointment && selectedDate && (
-        <Card className="mb-6 border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg hover:shadow-xl transition-all duration-300">
+        <Card className="mb-6 border border-[#1977cc]/20 bg-gradient-to-r from-[#f1f7fd] to-blue-50 shadow-md hover:shadow-lg transition-all duration-300">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-3">
-                <div className="bg-blue-500 p-3 rounded-full">
+                <div className="bg-[#1977cc] p-3 rounded-full">
                   <Calendar className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-xl text-blue-800">Appointment Summary</h3>
-                  <p className="text-sm text-blue-600">Your appointment details</p>
+                  <h3 className="font-bold text-xl text-medilab-heading font-poppins">Appointment Summary</h3>
+                  <p className="text-sm text-[#1977cc]">Your appointment details</p>
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="flex items-center space-x-3">
-                <div className="bg-green-100 p-2 rounded-lg">
-                  <Calendar className="h-5 w-5 text-green-600" />
+                <div className="bg-[#1977cc]/10 p-2 rounded-lg">
+                  <Calendar className="h-5 w-5 text-[#1977cc]" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Appointment Date</p>
-                  <p className="font-bold text-lg text-green-700">{format(selectedDate, 'PPP')}</p>
+                  <p className="text-sm text-medilab-body">Appointment Date</p>
+                  <p className="font-bold text-lg text-medilab-heading">{format(selectedDate, 'PPP')}</p>
                 </div>
               </div>
 
               <div className="flex items-center space-x-3">
-                <div className="bg-orange-100 p-2 rounded-lg">
-                  <User className="h-5 w-5 text-orange-600" />
+                <div className="bg-[#2c4964]/10 p-2 rounded-lg">
+                  <User className="h-5 w-5 text-[#2c4964]" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Appointment Number</p>
-                  <p className="font-bold text-lg text-orange-700">#{nextAppointment.appointmentNumber}</p>
+                  <p className="text-sm text-medilab-body">Appointment Number</p>
+                  <p className="font-bold text-lg text-medilab-heading">#{nextAppointment.appointmentNumber}</p>
                 </div>
               </div>
 
               <div className="flex items-center space-x-3">
-                <div className="bg-purple-100 p-2 rounded-lg">
-                  <Clock className="h-5 w-5 text-purple-600" />
+                <div className="bg-[#1977cc]/10 p-2 rounded-lg">
+                  <Clock className="h-5 w-5 text-[#1977cc]" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Estimated Time</p>
-                  <p className="font-bold text-lg text-purple-700">{nextAppointment.estimatedTime}</p>
+                  <p className="text-sm text-medilab-body">Estimated Time</p>
+                  <p className="font-bold text-lg text-[#1977cc]">{nextAppointment.estimatedTime}</p>
                 </div>
               </div>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-blue-200">
-              <div className="flex items-center justify-center space-x-2 text-blue-700">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+            <div className="mt-6 pt-4 border-t border-[#1977cc]/20">
+              <div className="flex items-center justify-center space-x-2 text-[#1977cc]">
+                <div className="w-2 h-2 bg-[#1977cc] rounded-full animate-pulse"></div>
                 <span className="text-sm font-medium">Ready for final confirmation</span>
               </div>
             </div>
@@ -215,27 +215,27 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
         </Card>
       )}
 
-      <Card className="mb-6 border-2 border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50 shadow-lg hover:shadow-xl transition-all duration-300">
+      <Card className="mb-6 border border-[#1977cc]/20 bg-gradient-to-r from-[#f1f7fd] to-blue-50 shadow-md hover:shadow-lg transition-all duration-300">
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
-              <div className="bg-emerald-500 p-3 rounded-full">
+              <div className="bg-[#1977cc] p-3 rounded-full">
                 <Receipt className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h3 className="font-bold text-xl text-emerald-800">Fee Breakdown</h3>
-                <p className="text-sm text-emerald-600">Complete payment details</p>
+                <h3 className="font-bold text-xl text-medilab-heading font-poppins">Fee Breakdown</h3>
+                <p className="text-sm text-[#1977cc]">Complete payment details</p>
               </div>
             </div>
-            <div className="bg-emerald-100 px-4 py-2 rounded-full">
-              <span className="text-sm font-semibold text-emerald-800">Transparent Pricing</span>
+            <div className="bg-[#1977cc]/10 px-4 py-2 rounded-full">
+              <span className="text-sm font-semibold text-[#1977cc]">Transparent Pricing</span>
             </div>
           </div>
 
           {feesLoading && (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
-              <span className="ml-3 text-emerald-600 font-medium">Loading fees...</span>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1977cc]"></div>
+              <span className="ml-3 text-[#1977cc] font-medium">Loading fees...</span>
             </div>
           )}
 
@@ -253,57 +253,57 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
           {fees && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white p-4 rounded-lg border border-green-200 shadow-sm">
+                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                   <div className="flex items-center space-x-3">
-                    <div className="bg-blue-100 p-2 rounded-lg">
-                      <User className="h-5 w-5 text-blue-600" />
+                    <div className="bg-[#1977cc]/10 p-2 rounded-lg">
+                      <User className="h-5 w-5 text-[#1977cc]" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-gray-600">Doctor Fee</p>
-                      <p className="font-bold text-lg text-blue-700">Rs {fees.doctorFee}</p>
+                      <p className="text-sm text-medilab-body">Doctor Fee</p>
+                      <p className="font-bold text-lg text-medilab-heading">Rs {fees.doctorFee}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white p-4 rounded-lg border border-green-200 shadow-sm">
+                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                   <div className="flex items-center space-x-3">
-                    <div className="bg-orange-100 p-2 rounded-lg">
-                      <Building className="h-5 w-5 text-orange-600" />
+                    <div className="bg-[#2c4964]/10 p-2 rounded-lg">
+                      <Building className="h-5 w-5 text-[#2c4964]" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-gray-600">Dispensary Fee</p>
-                      <p className="font-bold text-lg text-orange-700">Rs {fees.dispensaryFee}</p>
+                      <p className="text-sm text-medilab-body">Dispensary Fee</p>
+                      <p className="font-bold text-lg text-medilab-heading">Rs {fees.dispensaryFee}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white p-4 rounded-lg border border-green-200 shadow-sm">
+                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                   <div className="flex items-center space-x-3">
-                    <div className="bg-purple-100 p-2 rounded-lg">
-                      <DollarSign className="h-5 w-5 text-purple-600" />
+                    <div className="bg-[#1977cc]/10 p-2 rounded-lg">
+                      <DollarSign className="h-5 w-5 text-[#1977cc]" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-gray-600">Booking Commission</p>
-                      <p className="font-bold text-lg text-purple-700">Rs {fees.bookingCommission}</p>
+                      <p className="text-sm text-medilab-body">Booking Commission</p>
+                      <p className="font-bold text-lg text-medilab-heading">Rs {fees.bookingCommission}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-gradient-to-r from-emerald-100 to-green-100 p-6 rounded-lg border-2 border-emerald-300">
+              <div className="bg-gradient-to-r from-[#1977cc]/10 to-[#1977cc]/5 p-6 rounded-lg border-2 border-[#1977cc]/30">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="bg-emerald-500 p-3 rounded-full">
+                    <div className="bg-[#1977cc] p-3 rounded-full">
                       <Receipt className="h-6 w-6 text-white" />
                     </div>
                     <div>
-                      <p className="text-lg font-semibold text-emerald-800">Total Amount</p>
-                      <p className="text-sm text-emerald-600">Inclusive of all charges</p>
+                      <p className="text-lg font-semibold text-medilab-heading">Total Amount</p>
+                      <p className="text-sm text-[#1977cc]">Inclusive of all charges</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-3xl font-bold text-emerald-800">Rs {fees.totalFee}</p>
-                    <p className="text-sm text-emerald-600">One-time payment</p>
+                    <p className="text-3xl font-bold text-[#1977cc]">Rs {fees.totalFee}</p>
+                    <p className="text-sm text-medilab-body">One-time payment</p>
                   </div>
                 </div>
               </div>
@@ -366,12 +366,12 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
 
         <div className="pt-6 space-y-4">
           {/* Payment Options Info */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-            <h4 className="font-semibold text-blue-800 mb-2 flex items-center">
+          <div className="bg-gradient-to-r from-[#f1f7fd] to-blue-50 p-4 rounded-lg border border-[#1977cc]/20">
+            <h4 className="font-semibold text-medilab-heading mb-2 flex items-center font-poppins">
               <CreditCard className="h-5 w-5 mr-2" />
               Choose Payment Method
             </h4>
-            <p className="text-sm text-blue-600">
+            <p className="text-sm text-[#1977cc]">
               You can pay online now or pay at the clinic during your visit.
             </p>
           </div>
@@ -391,7 +391,7 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
                   }
                 }}
                 disabled={isPayOnlineLoading || isLoading || !name || !phone || !fees || !!validationErrors.name || !!validationErrors.phone || !!validationErrors.email}
-                className="flex-1 order-1 sm:order-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+                className="flex-1 order-1 sm:order-2 bg-[#1977cc] hover:bg-[#3291e6] text-white rounded-full"
               >
                 {isPayOnlineLoading ? (
                   <>
@@ -416,7 +416,7 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
               }}
               disabled={isLoading || isPayOnlineLoading || !name || !phone || !fees || !!validationErrors.name || !!validationErrors.phone || !!validationErrors.email}
               variant="outline"
-              className="flex-1 order-2 sm:order-3 border-medical-600 text-medical-600 hover:bg-medical-50"
+              className="flex-1 order-2 sm:order-3 border-[#1977cc] text-[#1977cc] hover:bg-[#f1f7fd] rounded-full"
             >
               {isLoading ? (
                 <>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle,CardDescription,CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -101,10 +101,12 @@ const AdminDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [bookingsTableLoading, setBookingsTableLoading] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
   const [statsRange, setStatsRange] = useState<DashboardRange>('last_month');
   const [recentBookingsPage, setRecentBookingsPage] = useState(1);
   const recentBookingsLimit = 10;
+  const prevRangeRef = useRef<DashboardRange>(statsRange);
 
   // Define navigation tabs with icons and visibility logic
   const getNavigationTabs = () => [
@@ -202,7 +204,14 @@ const AdminDashboard = () => {
     const token = localStorage.getItem('auth_token');
     if (!token) return;
     let cancelled = false;
-    setStatsLoading(true);
+    const isRangeChange = prevRangeRef.current !== statsRange;
+    prevRangeRef.current = statsRange;
+    // Only show full loading on initial load or range change, not pagination
+    if (isRangeChange || !dashboardStats) {
+      setStatsLoading(true);
+    } else {
+      setBookingsTableLoading(true);
+    }
     setStatsError(null);
     DashboardService.getStats({
       range: statsRange,
@@ -216,7 +225,10 @@ const AdminDashboard = () => {
         if (!cancelled) setStatsError(err?.response?.data?.message || err?.message || 'Failed to load dashboard stats');
       })
       .finally(() => {
-        if (!cancelled) setStatsLoading(false);
+        if (!cancelled) {
+          setStatsLoading(false);
+          setBookingsTableLoading(false);
+        }
       });
     return () => { cancelled = true; };
   }, [statsRange, recentBookingsPage]);
@@ -512,7 +524,15 @@ return (
                     : 'Latest appointments'}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="relative">
+                {bookingsTableLoading && (
+                  <div className="absolute inset-0 bg-white/70 z-10 flex items-center justify-center rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-5 w-5 animate-spin text-medicalBlue-600" />
+                      <span className="text-sm text-medicalGray-600">Loading bookings...</span>
+                    </div>
+                  </div>
+                )}
                 {(dashboardStats.recentBookingsTotal ?? 0) === 0 && dashboardStats.recentBookings.length === 0 ? (
                   <p className="text-center text-medicalGray-500 py-8">No bookings in selected period</p>
                 ) : (

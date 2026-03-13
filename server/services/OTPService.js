@@ -209,7 +209,7 @@ class OTPService {
       const otp = this.generateOTP();
       const formattedNumber = this.formatSriLankanNumber(phoneNumber);
 
-      const message = `Your DocSpot Connect verification code is: ${otp}. This code will expire in 5 minutes.`;
+      const message = `Your MyClinic Connect verification code is: ${otp}. This code will expire in 5 minutes.`;
 
       const params = {
         PhoneNumber: formattedNumber,
@@ -217,7 +217,7 @@ class OTPService {
         MessageAttributes: {
           'AWS.SNS.SMS.SenderID': {
             DataType: 'String',
-            StringValue: 'DocSpot'
+            StringValue: 'MyClinic'
           },
           'AWS.SNS.SMS.SMSType': {
             DataType: 'String',
@@ -254,13 +254,13 @@ class OTPService {
       const otp = this.generateOTP();
 
       const params = {
-        Source: process.env.FROM_EMAIL || 'noreply@docspotconnect.com',
+        Source: process.env.FROM_EMAIL || 'noreply@myclinicconnect.com',
         Destination: {
           ToAddresses: [email]
         },
         Message: {
           Subject: {
-            Data: 'DocSpot Connect - Verification Code',
+            Data: 'MyClinic Connect - Verification Code',
             Charset: 'UTF-8'
           },
           Body: {
@@ -269,7 +269,7 @@ class OTPService {
               Charset: 'UTF-8'
             },
             Text: {
-              Data: `Your DocSpot Connect verification code is: ${otp}. This code will expire in 5 minutes.`,
+              Data: `Your MyClinic Connect verification code is: ${otp}. This code will expire in 5 minutes.`,
               Charset: 'UTF-8'
             }
           }
@@ -306,7 +306,7 @@ class OTPService {
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>DocSpot Connect - Verification Code</title>
+        <title>MyClinic Connect - Verification Code</title>
         <style>
           body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -365,13 +365,13 @@ class OTPService {
       <body>
         <div class="container">
           <div class="header">
-            <div class="logo">DocSpot Connect</div>
+            <div class="logo">MyClinic Connect</div>
             <h1>Verification Code</h1>
           </div>
           
           <p>Hello,</p>
           
-          <p>Thank you for using DocSpot Connect. Please use the following verification code to complete your registration:</p>
+          <p>Thank you for using MyClinic Connect. Please use the following verification code to complete your registration:</p>
           
           <div class="otp-code">${otp}</div>
           
@@ -382,11 +382,11 @@ class OTPService {
           <p>If you didn't request this verification code, please ignore this email.</p>
           
           <p>Best regards,<br>
-          The DocSpot Connect Team</p>
+          The MyClinic Connect Team</p>
           
           <div class="footer">
             <p>This is an automated message. Please do not reply to this email.</p>
-            <p>&copy; 2024 DocSpot Connect. All rights reserved.</p>
+            <p>&copy; 2024 MyClinic Connect. All rights reserved.</p>
           </div>
         </div>
       </body>

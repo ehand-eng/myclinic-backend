@@ -31,12 +31,16 @@ router.get('/stats', validateCustomJwt, async (req, res) => {
     const role = (user?.role || '').toLowerCase().replace(/\s+/g, '-');
     let dispensaryIds = [];
 
+    console.log('[Dashboard] User:', user?.id, 'Role:', role, 'Raw dispensaryIds:', user?.dispensaryIds);
+
     if (role === 'super-admin') {
       const all = await Dispensary.find({}, '_id');
       dispensaryIds = all.map((d) => d._id.toString());
     } else {
       dispensaryIds = normalizeDispensaryIds(user?.dispensaryIds);
+      console.log('[Dashboard] Normalized dispensaryIds:', dispensaryIds);
       if (isDispensaryScopedRole(user?.role) && dispensaryIds.length === 0) {
+        console.log('[Dashboard] No dispensaryIds for scoped role, returning empty stats');
         return res.json({
           totalDispensaries: 0,
           totalDoctors: 0,
@@ -58,6 +62,8 @@ router.get('/stats', validateCustomJwt, async (req, res) => {
         });
       }
     }
+
+    console.log('[Dashboard] Final dispensaryIds for query:', dispensaryIds);
 
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
@@ -194,6 +200,27 @@ router.get('/stats', validateCustomJwt, async (req, res) => {
     const completedThisMonth = statusAgg.find((g) => g._id === 'completed')?.count || 0;
     const weekBookings = periodBookings;
     const monthBookings = periodBookings;
+
+    console.log('[Dashboard] Response summary:', {
+      totalDispensaries,
+      totalDoctors,
+      todayBookings,
+      periodBookings,
+      completedThisMonth,
+      recentBookingsTotal,
+      recentBookingsCount: recentBookingsList.length,
+      byDispensaryCount: byDispensaryAgg.length,
+    });
+    if (recentBookingsList.length > 0) {
+      console.log('[Dashboard] Sample recent booking dispensaryIds:', recentBookingsList.slice(0, 3).map(b => ({
+        _id: b._id,
+        dispensaryId: b.dispensaryId?._id || b.dispensaryId,
+        dispensaryName: b.dispensaryId?.name,
+        patientName: b.patientName,
+        status: b.status,
+        bookingDate: b.bookingDate,
+      })));
+    }
 
     res.json({
       totalDispensaries,

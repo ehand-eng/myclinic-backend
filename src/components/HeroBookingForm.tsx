@@ -54,10 +54,9 @@ const HeroBookingForm = () => {
     setSelectedDoctor(doctorId);
     setSelectedDispensary('');
     setSelectedDispensaryData(null);
-    setSelectedDate(undefined); // clear date since allowed range may change
+    setSelectedDate(undefined);
     setDispensaries([]);
 
-    // Store the full doctor object for bookingVisibleDays
     const doctorObj = doctors.find(d => d.id === doctorId) || null;
     setSelectedDoctorData(doctorObj);
 
@@ -68,7 +67,6 @@ const HeroBookingForm = () => {
       const doctorDispensaries = await DispensaryService.getDispensariesByDoctorId(doctorId);
       setDispensaries(doctorDispensaries);
 
-      // Auto-select if the doctor has exactly one dispensary
       if (doctorDispensaries.length === 1) {
         setSelectedDispensary(doctorDispensaries[0].id);
         setSelectedDispensaryData(doctorDispensaries[0]);
@@ -83,7 +81,7 @@ const HeroBookingForm = () => {
   // Handle dispensary selection
   const handleDispensaryChange = (dispensaryId: string) => {
     setSelectedDispensary(dispensaryId);
-    setSelectedDate(undefined); // clear date since allowed range may change
+    setSelectedDate(undefined);
     const dispObj = dispensaries.find(d => d.id === dispensaryId) || null;
     setSelectedDispensaryData(dispObj);
   };
@@ -96,7 +94,7 @@ const HeroBookingForm = () => {
     if (doctorDays && dispensaryDays) return Math.min(doctorDays, dispensaryDays);
     if (doctorDays) return doctorDays;
     if (dispensaryDays) return dispensaryDays;
-    return 30; // default
+    return 30;
   })();
 
   const handleSubmit = () => {
@@ -111,129 +109,128 @@ const HeroBookingForm = () => {
   const isFormValid = selectedDoctor && selectedDispensary && selectedDate;
 
   return (
-    <div className="w-full max-w-4xl mx-auto">
-      <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6 md:p-8 border border-white/20 hover:shadow-3xl transition-all duration-300">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-          {/* Doctor Selection — always visible */}
-          <div className="space-y-2">
-            <Label htmlFor="hero-doctor" className="text-gray-900 text-sm font-semibold">
-              Choose a Doctor
-            </Label>
-            <Select
-              value={selectedDoctor}
-              onValueChange={handleDoctorChange}
-              disabled={isLoading}
-            >
-              <SelectTrigger
-                id="hero-doctor"
-                className="w-full h-12 bg-white/90 border-white/30 text-gray-900 placeholder:text-gray-500 hover:bg-white focus:bg-white shadow-lg"
-              >
-                <SelectValue placeholder="Select Doctor" />
-              </SelectTrigger>
-              <SelectContent>
-                {doctors.map((doctor) => (
-                  <SelectItem key={doctor.id} value={doctor.id}>
-                    {doctor.name} - {doctor.specialization}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Dispensary Selection — enabled only after doctor is selected */}
-          <div className="space-y-2">
-            <Label htmlFor="hero-dispensary" className="text-gray-900 text-sm font-semibold">
-              Choose a Dispensary
-            </Label>
-            <Select
-              value={selectedDispensary}
-              onValueChange={handleDispensaryChange}
-              disabled={!selectedDoctor || isLoadingDispensaries}
-            >
-              <SelectTrigger
-                id="hero-dispensary"
-                className="w-full h-12 bg-white/90 border-white/30 text-gray-900 placeholder:text-gray-500 hover:bg-white focus:bg-white shadow-lg"
-              >
-                <SelectValue
-                  placeholder={
-                    !selectedDoctor
-                      ? 'Select a doctor'
-                      : isLoadingDispensaries
-                        ? 'Loading dispensaries...'
-                        : 'Select Dispensary'
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {dispensaries.map((dispensary) => (
-                  <SelectItem key={dispensary.id} value={dispensary.id}>
-                    {dispensary.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Date Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="hero-date" className="text-gray-900 text-sm font-semibold">
-              Select Date
-            </Label>
-            <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  id="hero-date"
-                  variant="outline"
-                  className={cn(
-                    "w-full h-12 bg-white/90 border-white/30 text-gray-900 hover:bg-white focus:bg-white hover:text-gray-900 focus:text-gray-900 justify-start text-left font-normal shadow-lg",
-                    !selectedDate && "text-gray-500"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {selectedDate ? format(selectedDate, 'MMM dd, yyyy') : 'Select Date'}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(date) => {
-                    setSelectedDate(date);
-                    setDatePickerOpen(false);
-                  }}
-                  disabled={(date) => {
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    return date < today || date > addDays(today, maxBookingDays);
-                  }}
-                  initialFocus
-                  className="rounded-xl border border-medicalGreen-200 shadow-lg"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-        </div>
-
-        {/* Submit Button */}
-        <div className="mt-6 flex justify-center">
-          <Button
-            onClick={handleSubmit}
-            disabled={!isFormValid || isLoading}
-            className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white text-lg px-8 py-3 shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+    <div className="w-full max-w-5xl mx-auto">
+      {/* Medilab-style 3-column form grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+        {/* Doctor Selection */}
+        <div className="space-y-2">
+          <Label htmlFor="hero-doctor" className="text-medilab-heading text-sm font-semibold font-poppins">
+            Select Doctor
+          </Label>
+          <Select
+            value={selectedDoctor}
+            onValueChange={handleDoctorChange}
+            disabled={isLoading}
           >
-            {isLoading ? (
-              <div className="flex items-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                <span>Loading...</span>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-2">
-                <Search className="h-5 w-5" />
-                <span>Find Appointments</span>
-              </div>
-            )}
-          </Button>
+            <SelectTrigger
+              id="hero-doctor"
+              className="w-full h-12 bg-white border-gray-200 text-medilab-body rounded-md shadow-none focus:border-medilab-primary focus:ring-medilab-primary"
+            >
+              <SelectValue placeholder={isLoading ? "Loading doctors..." : "Select Doctor"} />
+            </SelectTrigger>
+            <SelectContent>
+              {doctors.map((doctor) => (
+                <SelectItem key={doctor.id} value={doctor.id}>
+                  {doctor.name} - {doctor.specialization}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+
+        {/* Dispensary Selection */}
+        <div className="space-y-2">
+          <Label htmlFor="hero-dispensary" className="text-medilab-heading text-sm font-semibold font-poppins">
+            Select Dispensary
+          </Label>
+          <Select
+            value={selectedDispensary}
+            onValueChange={handleDispensaryChange}
+            disabled={!selectedDoctor || isLoadingDispensaries}
+          >
+            <SelectTrigger
+              id="hero-dispensary"
+              className="w-full h-12 bg-white border-gray-200 text-medilab-body rounded-md shadow-none focus:border-medilab-primary focus:ring-medilab-primary"
+            >
+              <SelectValue
+                placeholder={
+                  !selectedDoctor
+                    ? 'Select a doctor first'
+                    : isLoadingDispensaries
+                      ? 'Loading dispensaries...'
+                      : 'Select Dispensary'
+                }
+              />
+            </SelectTrigger>
+            <SelectContent>
+              {dispensaries.map((dispensary) => (
+                <SelectItem key={dispensary.id} value={dispensary.id}>
+                  {dispensary.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Date Selection */}
+        <div className="space-y-2">
+          <Label htmlFor="hero-date" className="text-medilab-heading text-sm font-semibold font-poppins">
+            Appointment Date
+          </Label>
+          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                id="hero-date"
+                variant="outline"
+                className={cn(
+                  "w-full h-12 bg-white border-gray-200 text-medilab-body justify-start text-left font-normal rounded-md shadow-none hover:bg-white focus:border-medilab-primary",
+                  !selectedDate && "text-gray-400",
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4 text-gray-400" />
+                {selectedDate ? format(selectedDate, 'MMM dd, yyyy') : 'dd/mm/yyyy'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => {
+                  setSelectedDate(date);
+                  setDatePickerOpen(false);
+                }}
+                disabled={(date) => {
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  return date < today || date > addDays(today, maxBookingDays);
+                }}
+                initialFocus
+                className="rounded-md border shadow-sm"
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
+
+      {/* Submit Button */}
+      <div className="mt-8 flex justify-center">
+        <button
+          onClick={handleSubmit}
+          disabled={!isFormValid || isLoading}
+          className="medilab-btn text-base px-10 py-3 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+        >
+          {isLoading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+              <span>Loading...</span>
+            </>
+          ) : (
+            <>
+              <Search className="h-5 w-5" />
+              <span>Find Appointments</span>
+            </>
+          )}
+        </button>
       </div>
     </div>
   );

@@ -17,16 +17,13 @@ const AboutUs = () => {
 
       <main className="flex-grow">
         {/* Hero Section */}
-        <div className="bg-gradient-to-br from-medicalBlue-600 via-medicalBlue-700 to-medicalTeal-700 text-white py-20">
+        <div className="bg-medicalBlue-50 border-b border-medicalBlue-100 py-16">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto text-center">
-              <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
-                About
-                <span className="block text-transparent bg-gradient-to-r from-white to-medicalTeal-200 bg-clip-text">
-                  MyClinic
-                </span>
+              <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight text-medicalGray-900">
+                About MyClinic
               </h1>
-              <p className="text-xl md:text-2xl mb-8 text-blue-100 max-w-3xl mx-auto leading-relaxed">
+              <p className="text-xl md:text-2xl mb-8 text-medicalGray-700 max-w-3xl mx-auto leading-relaxed">
                 Empowering healthcare accessibility through innovative technology solutions
                 designed for modern medical practices.
               </p>
@@ -35,7 +32,7 @@ const AboutUs = () => {
         </div>
 
         {/* Mission Section */}
-        <div className="py-16 bg-gradient-to-br from-medicalBlue-50 via-white to-medicalTeal-50">
+        <div className="py-16 bg-white">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto text-center">
               <h2 className="text-3xl md:text-4xl font-bold medical-text-gradient mb-8">
@@ -49,7 +46,7 @@ const AboutUs = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
                 <Card className="text-center p-6 hover:shadow-lg transition-shadow">
                   <CardContent className="pt-6">
-                    <div className="medical-icon-bg mx-auto mb-4">
+                    <div className="medical-icon-bg mx-auto mb-4 flex items-center justify-center rounded-full w-16 h-16">
                       <Heart className="h-8 w-8 text-medicalBlue-600" />
                     </div>
                     <h3 className="font-bold text-xl text-medicalGray-800 mb-3">Patient-First</h3>
@@ -61,7 +58,7 @@ const AboutUs = () => {
 
                 <Card className="text-center p-6 hover:shadow-lg transition-shadow">
                   <CardContent className="pt-6">
-                    <div className="medical-icon-bg mx-auto mb-4">
+                    <div className="medical-icon-bg mx-auto mb-4 flex items-center justify-center rounded-full w-16 h-16">
                       <Shield className="h-8 w-8 text-medicalTeal-600" />
                     </div>
                     <h3 className="font-bold text-xl text-medicalGray-800 mb-3">Secure & Reliable</h3>
@@ -73,7 +70,7 @@ const AboutUs = () => {
 
                 <Card className="text-center p-6 hover:shadow-lg transition-shadow">
                   <CardContent className="pt-6">
-                    <div className="medical-icon-bg mx-auto mb-4">
+                    <div className="medical-icon-bg mx-auto mb-4 flex items-center justify-center rounded-full w-16 h-16">
                       <Award className="h-8 w-8 text-medicalGreen-600" />
                     </div>
                     <h3 className="font-bold text-xl text-medicalGray-800 mb-3">Innovation</h3>
@@ -97,7 +94,7 @@ const AboutUs = () => {
                     Our Story
                   </h2>
                   <p className="text-lg text-medicalGray-600 leading-relaxed mb-6">
-                    Founded in 2023, DocSpot Connect emerged from a simple observation:
+                    Founded in 2023, MyClinic Connect emerged from a simple observation:
                     small medical dispensaries were struggling with outdated appointment systems
                     that created barriers between patients and healthcare providers.
                   </p>
@@ -144,7 +141,7 @@ const AboutUs = () => {
         </div>
 
         {/* Values Section */}
-        <div className="py-16 bg-gradient-to-br from-medicalTeal-50 via-white to-medicalBlue-50">
+        <div className="py-16 bg-medicalBlue-50/40">
           <div className="container mx-auto px-4">
             <div className="max-w-6xl mx-auto">
               <div className="text-center mb-12">
@@ -152,14 +149,14 @@ const AboutUs = () => {
                   Our Values
                 </h2>
                 <p className="text-lg text-medicalGray-600 max-w-3xl mx-auto">
-                  The principles that guide everything we do at DocSpot Connect
+                  The principles that guide everything we do at MyClinic Connect
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <Card className="text-center p-6 hover:scale-105 transition-transform">
                   <CardContent className="pt-6">
-                    <div className="medical-icon-bg mx-auto mb-4">
+                    <div className="medical-icon-bg mx-auto mb-4 flex items-center justify-center rounded-full w-16 h-16">
                       <Users className="h-8 w-8 text-medicalBlue-600" />
                     </div>
                     <h3 className="font-bold text-lg text-medicalGray-800 mb-3">Community</h3>
@@ -171,7 +168,7 @@ const AboutUs = () => {
 
                 <Card className="text-center p-6 hover:scale-105 transition-transform">
                   <CardContent className="pt-6">
-                    <div className="medical-icon-bg mx-auto mb-4">
+                    <div className="medical-icon-bg mx-auto mb-4 flex items-center justify-center rounded-full w-16 h-16">
                       <Clock className="h-8 w-8 text-medicalTeal-600" />
                     </div>
                     <h3 className="font-bold text-lg text-medicalGray-800 mb-3">Efficiency</h3>
@@ -183,7 +180,7 @@ const AboutUs = () => {
 
                 <Card className="text-center p-6 hover:scale-105 transition-transform">
                   <CardContent className="pt-6">
-                    <div className="medical-icon-bg mx-auto mb-4">
+                    <div className="medical-icon-bg mx-auto mb-4 flex items-center justify-center rounded-full w-16 h-16">
                       <Calendar className="h-8 w-8 text-medicalGreen-600" />
                     </div>
                     <h3 className="font-bold text-lg text-medicalGray-800 mb-3">Accessibility</h3>
@@ -195,7 +192,7 @@ const AboutUs = () => {
 
                 <Card className="text-center p-6 hover:scale-105 transition-transform">
                   <CardContent className="pt-6">
-                    <div className="medical-icon-bg mx-auto mb-4">
+                    <div className="medical-icon-bg mx-auto mb-4 flex items-center justify-center rounded-full w-16 h-16">
                       <Shield className="h-8 w-8 text-medicalBlue-600" />
                     </div>
                     <h3 className="font-bold text-lg text-medicalGray-800 mb-3">Trust</h3>
@@ -210,23 +207,27 @@ const AboutUs = () => {
         </div>
 
         {/* CTA Section */}
-        <div className="py-16 bg-gradient-to-br from-medicalBlue-600 via-medicalBlue-700 to-medicalTeal-700 text-white">
+        <div className="py-16 bg-medicalBlue-50 border-t border-medicalBlue-100">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto text-center">
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">
+              <h2 className="text-3xl md:text-4xl font-bold mb-6 text-medicalGray-900">
                 Ready to Transform Your Practice?
               </h2>
-              <p className="text-xl mb-8 text-blue-100">
-                Join the growing community of dispensaries using DocSpot Connect
+              <p className="text-xl mb-8 text-medicalGray-700">
+                Join the growing community of dispensaries using MyClinic Connect
                 to provide better patient experiences.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button asChild size="lg" className="bg-white text-medicalBlue-700 hover:bg-gray-100 text-lg px-8 py-4">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mt-4">
+                <Button
+                  asChild
+                  size="lg"
+                  className="text-lg px-8 py-4"
+                >
                   <Link to="/booking">
-                    Start Booking Today
+                    Book a Doctor
                   </Link>
                 </Button>
-                <Button asChild size="lg" variant="outline" className="border-2 border-white bg-transparent hover:bg-white text-white hover:text-medicalBlue-700 text-lg px-8 py-4">
+                <Button asChild size="lg" variant="outline" className="text-lg px-8 py-4">
                   <Link to="/contact">
                     Contact Our Team
                   </Link>
