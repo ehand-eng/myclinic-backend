@@ -7,6 +7,7 @@ import {
     Doctor,
     TimeSlotConfig,
     Session,
+    DoctorSession,
     AbsentTimeSlot,
     DoctorDispensaryFee,
     Booking,
@@ -20,6 +21,7 @@ import {
 // ============ Auth Services ============
 export const authService = {
     login: async (email: string, password: string): Promise<AuthResponse> => {
+        console.log('Auth service login ' + API_ENDPOINTS.LOGIN);
         const response = await apiClient.post<AuthResponse>(API_ENDPOINTS.LOGIN, {
             email,
             password,
@@ -147,6 +149,16 @@ export const timeSlotService = {
 
     deleteAbsent: async (id: string): Promise<void> => {
         await apiClient.delete(`${API_ENDPOINTS.TIMESLOTS_ABSENT}/${id}`);
+    },
+
+    getSessionsByDispensary: async (
+        dispensaryId: string,
+        date: string
+    ): Promise<{ sessions: DoctorSession[] }> => {
+        const response = await apiClient.get<{ sessions: DoctorSession[] }>(
+            `${API_ENDPOINTS.TIMESLOTS_SESSIONS_BY_DISPENSARY}/${dispensaryId}/${date}`
+        );
+        return response.data;
     },
 };
 

@@ -94,6 +94,7 @@ const Login = () => {
   };
 
   const handleMobileLogin = async (e: React.FormEvent) => {
+    console.log('Mobile login');
     e.preventDefault();
 
     if (!loginData.otp) {

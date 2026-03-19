@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const TimeSlotConfig = require('../models/TimeSlotConfig');
 const AbsentTimeSlot = require('../models/AbsentTimeSlot');
+const Doctor = require('../models/Doctor');
+const DoctorDispensary = require('../models/DoctorDispensary');
+const Booking = require('../models/Booking');
 const mongoose = require('mongoose');
 const { validateJwt, requireRole, ROLES } = require('../middleware/authMiddleware');
 
@@ -642,6 +645,121 @@ router.delete('/fees/:timeSlotId', requireRole([ROLES.SUPER_ADMIN, ROLES.hospita
   } catch (error) {
     console.error('Error resetting time slot fees:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get all sessions across all doctors for a dispensary on a given date
+// Returns session info + booking stats per session
+router.get('/sessions-by-dispensary/:dispensaryId/:date', async (req, res) => {
+  try {
+    const { dispensaryId, date } = req.params;
+
+    // Parse date
+    const [year, month, day] = date.split('-').map(Number);
+    const bookingDate = new Date(year, month - 1, day);
+    const dayOfWeek = bookingDate.getDay();
+
+    const startOfDay = new Date(bookingDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(bookingDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Find all doctors linked to this dispensary
+    const doctorLinks = await DoctorDispensary.find({ dispensaryId }).lean();
+    const doctorIds = [...new Set(doctorLinks.map(dl => dl.doctorId.toString()))];
+
+    if (doctorIds.length === 0) {
+      return res.status(200).json({ sessions: [] });
+    }
+
+    // Get doctors info
+    const doctors = await Doctor.find({ _id: { $in: doctorIds } })
+      .select('name specialization')
+      .lean();
+    const doctorMap = {};
+    doctors.forEach(d => { doctorMap[d._id.toString()] = d; });
+
+    // Get all time slot configs for these doctors at this dispensary for this day
+    const timeSlots = await TimeSlotConfig.find({
+      doctorId: { $in: doctorIds },
+      dispensaryId,
+      dayOfWeek
+    }).lean();
+
+    // Get all absent/modified slots for these doctors on this date
+    const absentSlots = await AbsentTimeSlot.find({
+      doctorId: { $in: doctorIds },
+      dispensaryId,
+      date: { $gte: startOfDay, $lte: endOfDay }
+    }).lean();
+    const absentMap = {};
+    absentSlots.forEach(a => { absentMap[a.doctorId.toString()] = a; });
+
+    // Get all bookings for this dispensary on this date
+    const allBookings = await Booking.find({
+      dispensaryId,
+      bookingDate: { $gte: startOfDay, $lte: endOfDay },
+    }).select('doctorId timeSlotConfigId status').lean();
+
+    // Build sessions array
+    const sessions = [];
+
+    for (const ts of timeSlots) {
+      const doctorIdStr = ts.doctorId.toString();
+      const doctor = doctorMap[doctorIdStr];
+      if (!doctor) continue;
+
+      const absent = absentMap[doctorIdStr];
+
+      // Skip if completely absent
+      if (absent && !absent.isModifiedSession) continue;
+
+      let startTime = ts.startTime;
+      let endTime = ts.endTime;
+      let isModified = false;
+
+      if (absent && absent.isModifiedSession) {
+        startTime = absent.startTime || ts.startTime;
+        endTime = absent.endTime || ts.endTime;
+        isModified = true;
+      }
+
+      // Count bookings for this specific session
+      const sessionBookings = allBookings.filter(
+        b => b.doctorId.toString() === doctorIdStr &&
+          b.timeSlotConfigId && b.timeSlotConfigId.toString() === ts._id.toString()
+      );
+
+      const bookingStats = {
+        total: sessionBookings.length,
+        checkedIn: sessionBookings.filter(b => b.status === 'checked_in').length,
+        scheduled: sessionBookings.filter(b => b.status === 'scheduled').length,
+        cancelled: sessionBookings.filter(b => b.status === 'cancelled').length,
+        completed: sessionBookings.filter(b => b.status === 'completed').length,
+      };
+
+      sessions.push({
+        doctorId: doctorIdStr,
+        doctorName: doctor.name,
+        specialization: doctor.specialization || '',
+        startTime,
+        endTime,
+        timeSlotConfigId: ts._id.toString(),
+        isModified,
+        bookingStats
+      });
+    }
+
+    // Sort by doctor name then start time
+    sessions.sort((a, b) => {
+      if (a.doctorName !== b.doctorName) return a.doctorName.localeCompare(b.doctorName);
+      return a.startTime.localeCompare(b.startTime);
+    });
+
+    res.status(200).json({ sessions });
+  } catch (error) {
+    console.error('Error getting sessions by dispensary:', error);
+    res.status(500).json({ message: 'Error fetching sessions', error: error.message });
   }
 });
 

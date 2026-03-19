@@ -39,9 +39,11 @@ const LoginScreen: React.FC = () => {
     };
 
     const handleLogin = async () => {
+        console.log('Attempting login for:1111 :', email.trim().toLowerCase());
         if (!validate()) return;
 
         try {
+            console.log('Attempting login for:', email.trim().toLowerCase());
             await login(email.trim().toLowerCase(), password);
         } catch (error: any) {
             const message = error.response?.data?.message || 'Login failed. Please try again.';
@@ -63,7 +65,7 @@ const LoginScreen: React.FC = () => {
                         <Text style={styles.logoText}>MC</Text>
                     </View>
                     <Text style={styles.appName}>MyClinic Admin</Text>
-                    <Text style={styles.tagline}>Dispensary Management Made Easy</Text>
+                    <Text style={styles.tagline}>Dispensary Management Made Easy !!!!</Text>
                 </View>
 
                 <View style={styles.formCard}>
@@ -91,7 +93,7 @@ const LoginScreen: React.FC = () => {
                     />
 
                     <Button
-                        title="Sign In"
+                        title="Sign Innn"
                         onPress={handleLogin}
                         loading={isLoading}
                         style={styles.loginButton}

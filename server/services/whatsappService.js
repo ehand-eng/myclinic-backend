@@ -5,14 +5,13 @@ const TimeSlotConfig = require('../models/TimeSlotConfig');
 const AbsentTimeSlot = require('../models/AbsentTimeSlot');
 const Booking = require('../models/Booking');
 const DoctorDispensary = require('../models/DoctorDispensary');
+const { t, formatDate, formatDateWithDay, to12Hr, formatTimeRange } = require('./whatsappTranslations');
 
 // ─────────────────────────────────────────────────────────────
 // In-memory session store — maps phone number → conversation state
 // For production, replace with Redis or MongoDB collection
 // ─────────────────────────────────────────────────────────────
 const sessions = new Map();
-
-// Session timeout: clear stale sessions after 30 minutes
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
 function getSession(phone) {
@@ -30,7 +29,7 @@ function clearSession(phone) {
     sessions.delete(phone);
 }
 
-// Periodically clean up stale sessions (every 10 minutes)
+// Clean stale sessions every 10 minutes
 setInterval(() => {
     const now = Date.now();
     for (const [phone, session] of sessions.entries()) {
@@ -72,10 +71,7 @@ async function sendMessage(to, payload) {
 }
 
 async function sendText(to, text) {
-    return sendMessage(to, {
-        type: 'text',
-        text: { body: text }
-    });
+    return sendMessage(to, { type: 'text', text: { body: text } });
 }
 
 async function sendList(to, headerText, bodyText, buttonText, sections) {
@@ -85,10 +81,7 @@ async function sendList(to, headerText, bodyText, buttonText, sections) {
             type: 'list',
             header: { type: 'text', text: headerText },
             body: { text: bodyText },
-            action: {
-                button: buttonText,
-                sections
-            }
+            action: { button: buttonText, sections }
         }
     });
 }
@@ -102,7 +95,7 @@ async function sendButtons(to, bodyText, buttons) {
             action: {
                 buttons: buttons.map(b => ({
                     type: 'reply',
-                    reply: { id: b.id, title: b.title.substring(0, 20) } // WhatsApp max 20 chars
+                    reply: { id: b.id, title: b.title.substring(0, 20) }
                 }))
             }
         }
@@ -110,14 +103,21 @@ async function sendButtons(to, bodyText, buttons) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Main message handler — routes to the correct step
+// Helper: get session language (default English)
+// ─────────────────────────────────────────────────────────────
+function lang(session) {
+    return session.data.lang || 'en';
+}
+
+// ─────────────────────────────────────────────────────────────
+// Main message handler
 // ─────────────────────────────────────────────────────────────
 
 async function handleIncomingMessage(message, metadata) {
-    const from = message.from; // Patient's phone number (e.g. "94762199100")
+    const from = message.from;
     const session = getSession(from);
+    const l = lang(session);
 
-    // Extract user input based on message type
     let userInput = '';
     let selectedId = '';
 
@@ -132,12 +132,11 @@ async function handleIncomingMessage(message, metadata) {
             userInput = message.interactive.button_reply.title;
         }
     } else {
-        // Ignore unsupported message types (images, stickers, etc.)
-        await sendText(from, '⚠️ Please send a text message or select from the options provided.');
+        await sendText(from, t(l, 'unsupported_message'));
         return;
     }
 
-    // Handle global commands at any point
+    // Global commands
     const lowerInput = userInput.toLowerCase();
     if (lowerInput === 'cancel' || lowerInput === 'restart' || lowerInput === 'menu') {
         clearSession(from);
@@ -146,25 +145,24 @@ async function handleIncomingMessage(message, metadata) {
         return;
     }
 
-    console.log(`📩 WhatsApp [${from}] step=${session.step} input="${userInput}" id="${selectedId}"`);
+    console.log(`📩 WhatsApp [${from}] step=${session.step} lang=${l} input="${userInput}" id="${selectedId}"`);
 
-    // ─── Conversation State Machine ───
     try {
         switch (session.step) {
             case 'WELCOME':
                 await handleWelcome(from, session);
                 break;
+            case 'SELECT_LANGUAGE':
+                await handleLanguageSelection(from, session, selectedId);
+                break;
             case 'SELECT_DOCTOR':
-                await handleDoctorSelection(from, session, selectedId, userInput);
+                await handleDoctorSelection(from, session, selectedId);
                 break;
             case 'SELECT_DISPENSARY':
                 await handleDispensarySelection(from, session, selectedId);
                 break;
-            case 'SELECT_DATE':
-                await handleDateSelection(from, session, userInput);
-                break;
-            case 'SELECT_TIMESLOT':
-                await handleTimeSlotSelection(from, session, selectedId);
+            case 'SELECT_APPOINTMENT':
+                await handleAppointmentSelection(from, session, selectedId);
                 break;
             case 'ENTER_NAME':
                 await handleNameEntry(from, session, userInput);
@@ -185,20 +183,54 @@ async function handleIncomingMessage(message, metadata) {
         }
     } catch (error) {
         console.error(`❌ WhatsApp flow error [${from}]:`, error);
-        await sendText(from, '😔 Something went wrong. Please type *menu* to start over.');
+        await sendText(from, t(lang(session), 'error_generic'));
         clearSession(from);
     }
 }
 
 // ─────────────────────────────────────────────────────────────
-// Step Handlers
+// Step 1: Welcome — show language selection
 // ─────────────────────────────────────────────────────────────
 
 async function handleWelcome(from, session) {
+    session.step = 'SELECT_LANGUAGE';
+
+    await sendList(from,
+        '🏥 MyClinic',
+        'Welcome to MyClinic! 👋\nMyClinic වෙත සාදරයෙන් පිළිගනිමු!\nMyClinic க்கு வரவேற்கிறோம்!\n\nPlease select your language.\nකරුණාකර ඔබේ භාෂාව තෝරන්න.\nஉங்கள் மொழியைத் தேர்வு செய்யவும்.',
+        'Select Language',
+        [{
+            title: 'Language / භාෂාව / மொழி',
+            rows: [
+                { id: 'lang_si', title: 'සිංහල', description: 'Sinhala' },
+                { id: 'lang_en', title: 'English', description: 'English' },
+                { id: 'lang_ta', title: 'தமிழ்', description: 'Tamil' }
+            ]
+        }]
+    );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Step 2: Language selected → show doctor list
+// ─────────────────────────────────────────────────────────────
+
+async function handleLanguageSelection(from, session, selectedId) {
+    const langMap = { lang_si: 'si', lang_en: 'en', lang_ta: 'ta' };
+    const selectedLang = langMap[selectedId];
+
+    if (!selectedLang) {
+        await sendText(from, 'Please select a language from the list above.');
+        return;
+    }
+
+    session.data.lang = selectedLang;
+    const l = selectedLang;
+
+    // Load doctors
     const doctors = await Doctor.find().select('name specialization').limit(10).lean();
 
     if (doctors.length === 0) {
-        await sendText(from, '😔 No doctors are currently available. Please try again later.');
+        await sendText(from, t(l, 'no_doctors'));
         clearSession(from);
         return;
     }
@@ -213,16 +245,22 @@ async function handleWelcome(from, session) {
     }));
 
     await sendList(from,
-        '🏥 MyClinic Booking',
-        'Welcome to MyClinic! 👋\n\nPlease select a doctor to book an appointment.\n\nType *cancel* at any time to start over.',
-        'View Doctors',
-        [{ title: 'Available Doctors', rows }]
+        t(l, 'select_doctor_header'),
+        t(l, 'select_doctor_body') + t(l, 'cancel_hint'),
+        t(l, 'view_doctors_btn'),
+        [{ title: t(l, 'doctors_section_title'), rows }]
     );
 }
 
-async function handleDoctorSelection(from, session, selectedId, userInput) {
+// ─────────────────────────────────────────────────────────────
+// Step 3: Doctor selected → show dispensaries (or auto-select)
+// ─────────────────────────────────────────────────────────────
+
+async function handleDoctorSelection(from, session, selectedId) {
+    const l = lang(session);
+
     if (!selectedId || !selectedId.startsWith('doc_')) {
-        await sendText(from, '⚠️ Please select a doctor from the list above. Tap *View Doctors* to see the options.');
+        await sendText(from, t(l, 'invalid_doctor'));
         return;
     }
 
@@ -230,7 +268,7 @@ async function handleDoctorSelection(from, session, selectedId, userInput) {
     const doctor = await Doctor.findById(doctorId).select('name specialization').lean();
 
     if (!doctor) {
-        await sendText(from, '⚠️ Doctor not found. Please try again.');
+        await sendText(from, t(l, 'doctor_not_found'));
         return;
     }
 
@@ -238,30 +276,18 @@ async function handleDoctorSelection(from, session, selectedId, userInput) {
     session.data.doctorName = doctor.name;
     session.data.doctorSpecialization = doctor.specialization;
 
-    // Find dispensaries for this doctor
-    const dispensaries = await Dispensary.find({ doctors: doctorId })
-        .select('name address')
-        .lean();
+    const dispensaries = await Dispensary.find({ doctors: doctorId }).select('name address').lean();
 
     if (dispensaries.length === 0) {
-        await sendText(from, `😔 No dispensaries found for Dr. ${doctor.name}. Type *menu* to try a different doctor.`);
+        await sendText(from, t(l, 'no_dispensaries'));
         return;
     }
 
-    // Auto-select if only one dispensary
+    // Auto-select if single dispensary → go to appointment slots
     if (dispensaries.length === 1) {
         session.data.dispensaryId = dispensaries[0]._id.toString();
         session.data.dispensaryName = dispensaries[0].name;
-        session.step = 'SELECT_DATE';
-
-        await sendText(from,
-            `✅ *Dr. ${doctor.name}* selected\n` +
-            `📍 Dispensary: *${dispensaries[0].name}*\n` +
-            `${dispensaries[0].address ? `📌 ${dispensaries[0].address}\n` : ''}` +
-            `\n📅 Please enter your preferred date:\n\n` +
-            `• Type *today* or *tomorrow*\n` +
-            `• Or enter a date like *2025-03-15*`
-        );
+        await showAvailableAppointments(from, session);
         return;
     }
 
@@ -274,16 +300,22 @@ async function handleDoctorSelection(from, session, selectedId, userInput) {
     }));
 
     await sendList(from,
-        '📍 Select Dispensary',
-        `Dr. ${doctor.name} is available at ${dispensaries.length} locations. Please select one.`,
-        'View Locations',
-        [{ title: 'Dispensaries', rows }]
+        t(l, 'select_dispensary_header'),
+        t(l, 'select_dispensary_body'),
+        t(l, 'view_locations_btn'),
+        [{ title: t(l, 'dispensaries_section_title'), rows }]
     );
 }
 
+// ─────────────────────────────────────────────────────────────
+// Step 4: Dispensary selected → show appointment slots
+// ─────────────────────────────────────────────────────────────
+
 async function handleDispensarySelection(from, session, selectedId) {
+    const l = lang(session);
+
     if (!selectedId || !selectedId.startsWith('disp_')) {
-        await sendText(from, '⚠️ Please select a dispensary from the list above.');
+        await sendText(from, t(l, 'invalid_dispensary'));
         return;
     }
 
@@ -291,217 +323,252 @@ async function handleDispensarySelection(from, session, selectedId) {
     const dispensary = await Dispensary.findById(dispensaryId).select('name address').lean();
 
     if (!dispensary) {
-        await sendText(from, '⚠️ Dispensary not found. Please try again.');
+        await sendText(from, t(l, 'invalid_dispensary'));
         return;
     }
 
     session.data.dispensaryId = dispensaryId;
     session.data.dispensaryName = dispensary.name;
-    session.step = 'SELECT_DATE';
-
-    await sendText(from,
-        `✅ *${dispensary.name}* selected\n` +
-        `${dispensary.address ? `📌 ${dispensary.address}\n` : ''}` +
-        `\n📅 Please enter your preferred date:\n\n` +
-        `• Type *today* or *tomorrow*\n` +
-        `• Or enter a date like *2025-03-15*`
-    );
+    await showAvailableAppointments(from, session);
 }
 
-async function handleDateSelection(from, session, userInput) {
-    // Parse date input
-    let bookingDate;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+// ─────────────────────────────────────────────────────────────
+// Combined Appointment Slot Scanner
+// Scans across all dates within bookingVisibleDays and returns
+// up to 10 available "date + session + next appointment#" slots
+// ─────────────────────────────────────────────────────────────
 
-    const lowerInput = userInput.toLowerCase();
-    if (lowerInput === 'today') {
-        bookingDate = new Date(today);
-    } else if (lowerInput === 'tomorrow') {
-        bookingDate = new Date(today);
-        bookingDate.setDate(bookingDate.getDate() + 1);
-    } else {
-        // Try parsing YYYY-MM-DD or other formats
-        bookingDate = new Date(userInput);
-    }
+async function showAvailableAppointments(from, session) {
+    const l = lang(session);
+    const { doctorId, dispensaryId } = session.data;
 
-    if (isNaN(bookingDate.getTime())) {
-        await sendText(from, '⚠️ Could not understand that date. Please enter in *YYYY-MM-DD* format (e.g. *2025-03-15*), or type *today* / *tomorrow*.');
-        return;
-    }
-
-    if (bookingDate < today) {
-        await sendText(from, '⚠️ Cannot book in the past. Please enter a *future date*.');
-        return;
-    }
-
-    // Check bookingVisibleDays limit
-    const doctor = await Doctor.findById(session.data.doctorId).select('bookingVisibleDays').lean();
-    const dispensary = await Dispensary.findById(session.data.dispensaryId).select('bookingVisibleDays').lean();
+    // Determine max days to scan
+    const doctor = await Doctor.findById(doctorId).select('bookingVisibleDays').lean();
+    const dispensary = await Dispensary.findById(dispensaryId).select('bookingVisibleDays').lean();
 
     const doctorDays = doctor?.bookingVisibleDays;
     const dispensaryDays = dispensary?.bookingVisibleDays;
-    let maxDays = 30; // default
+    let maxDays = 30;
     if (doctorDays && dispensaryDays) maxDays = Math.min(doctorDays, dispensaryDays);
     else if (doctorDays) maxDays = doctorDays;
     else if (dispensaryDays) maxDays = dispensaryDays;
 
-    const maxDate = new Date(today);
-    maxDate.setDate(maxDate.getDate() + maxDays);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    if (bookingDate > maxDate) {
-        await sendText(from, `⚠️ Bookings are only available up to *${maxDays} days* in advance. Please choose an earlier date.`);
-        return;
-    }
-
-    session.data.bookingDate = bookingDate;
-    const dayOfWeek = bookingDate.getDay();
-    const { doctorId, dispensaryId } = session.data;
-
-    // Check for absence on this date
-    const startOfDay = new Date(bookingDate); startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(bookingDate); endOfDay.setHours(23, 59, 59, 999);
-
-    const absentSlot = await AbsentTimeSlot.findOne({
-        doctorId, dispensaryId,
-        date: { $gte: startOfDay, $lte: endOfDay }
-    }).lean();
-
-    if (absentSlot && !absentSlot.isModifiedSession) {
-        await sendText(from, `😔 Doctor is not available on *${bookingDate.toDateString()}*. Please try another date.`);
-        return;
-    }
-
-    // Find time slot configurations for this day
-    const timeSlots = await TimeSlotConfig.find({ doctorId, dispensaryId, dayOfWeek }).lean();
-
-    if (timeSlots.length === 0) {
-        await sendText(from, `😔 No sessions available on *${bookingDate.toDateString()}* (${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek]}). Please try another date.`);
-        return;
-    }
-
-    // Check availability for each slot
     const availableSlots = [];
-    for (const ts of timeSlots) {
-        let maxPatients = ts.maxPatients;
+    const MAX_SLOTS = 10; // WhatsApp list row limit
 
-        // If modified session, use modified maxPatients
-        if (absentSlot && absentSlot.isModifiedSession) {
-            maxPatients = absentSlot.maxPatients || ts.maxPatients;
-        }
+    // Scan each day within range
+    for (let dayOffset = 0; dayOffset < maxDays && availableSlots.length < MAX_SLOTS; dayOffset++) {
+        const currentDate = new Date(today);
+        currentDate.setDate(today.getDate() + dayOffset);
+        const dayOfWeek = currentDate.getDay();
 
-        const existingCount = await Booking.countDocuments({
+        const startOfDay = new Date(currentDate); startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(currentDate); endOfDay.setHours(23, 59, 59, 999);
+
+        // Check if doctor is absent on this date
+        const absentSlot = await AbsentTimeSlot.findOne({
             doctorId, dispensaryId,
-            bookingDate: { $gte: startOfDay, $lte: endOfDay },
-            status: { $ne: 'cancelled' },
-            timeSlotConfigId: ts._id
-        });
+            date: { $gte: startOfDay, $lte: endOfDay }
+        }).lean();
 
-        const remaining = maxPatients - existingCount;
-        if (remaining > 0) {
+        if (absentSlot && !absentSlot.isModifiedSession) continue; // Skip absent days
+
+        // Get time slot configs for this day of week
+        const timeSlots = await TimeSlotConfig.find({ doctorId, dispensaryId, dayOfWeek }).lean();
+        if (timeSlots.length === 0) continue;
+
+        for (const ts of timeSlots) {
+            if (availableSlots.length >= MAX_SLOTS) break;
+
+            let maxPatients = ts.maxPatients;
+            let startTime = ts.startTime;
+            let minutesPerPatient = ts.minutesPerPatient || 15;
+
+            // Use modified session params if applicable
+            if (absentSlot && absentSlot.isModifiedSession) {
+                maxPatients = absentSlot.maxPatients || ts.maxPatients;
+                startTime = absentSlot.startTime || ts.startTime;
+                minutesPerPatient = absentSlot.minutesPerPatient || ts.minutesPerPatient || 15;
+            }
+
+            // Count existing bookings for this session
+            const existingBookings = await Booking.find({
+                doctorId, dispensaryId,
+                bookingDate: { $gte: startOfDay, $lte: endOfDay },
+                status: { $ne: 'cancelled' },
+                timeSlotConfigId: ts._id
+            }).select('appointmentNumber').lean();
+
+            const bookedCount = existingBookings.length;
+            if (bookedCount >= maxPatients) continue; // Fully booked
+
+            // Find next appointment number
+            const bookedNums = new Set(existingBookings.map(b => b.appointmentNumber));
+            let nextNum = 1;
+            while (bookedNums.has(nextNum) && nextNum <= maxPatients) nextNum++;
+
+            // Calculate estimated time for this appointment number
+            // Same formula as /available API: startTime + (appointmentNumber - 1) * minutesPerPatient
+            const [sH, sM] = startTime.split(':').map(Number);
+            const apptOffset = (nextNum - 1) * minutesPerPatient;
+            const apptDate = new Date(currentDate);
+            apptDate.setHours(sH, sM + apptOffset, 0, 0);
+            const estHH = String(apptDate.getHours()).padStart(2, '0');
+            const estMM = String(apptDate.getMinutes()).padStart(2, '0');
+            const estimatedTime = `${estHH}:${estMM}`;
+
+            // Calculate time slot range (e.g. "18:20-18:40")
+            const apptEndDate = new Date(apptDate);
+            apptEndDate.setMinutes(apptEndDate.getMinutes() + minutesPerPatient);
+            const endHH = String(apptEndDate.getHours()).padStart(2, '0');
+            const endMM = String(apptEndDate.getMinutes()).padStart(2, '0');
+            const slotTimeSlot = `${estHH}:${estMM}-${endHH}:${endMM}`;
+
             availableSlots.push({
-                ...ts,
-                remaining,
-                maxPatients
+                date: new Date(currentDate),
+                timeSlotConfigId: ts._id.toString(),
+                startTime,
+                endTime: ts.endTime,
+                maxPatients,
+                minutesPerPatient,
+                nextAppointmentNumber: nextNum,
+                remaining: maxPatients - bookedCount,
+                estimatedTime,
+                slotTimeSlot
             });
         }
     }
 
     if (availableSlots.length === 0) {
-        await sendText(from, `😔 All appointments on *${bookingDate.toDateString()}* are fully booked. Please try another date.`);
+        await sendText(from, t(l, 'no_appointments'));
         return;
     }
 
-    // Auto-select if only one time slot
-    if (availableSlots.length === 1) {
-        const slot = availableSlots[0];
-        session.data.timeSlotConfigId = slot._id.toString();
-        session.data.timeSlotLabel = `${slot.startTime} - ${slot.endTime}`;
-        session.step = 'ENTER_NAME';
-
-        await sendText(from,
-            `✅ Date: *${bookingDate.toDateString()}*\n` +
-            `🕐 Session: *${slot.startTime} - ${slot.endTime}*\n` +
-            `📊 ${slot.remaining} of ${slot.maxPatients} slots available\n\n` +
-            `👤 Please enter the *patient name*:`
-        );
-        return;
-    }
-
+    // Store slots in session for lookup on selection
     session.data.availableSlots = availableSlots;
-    session.step = 'SELECT_TIMESLOT';
+    session.step = 'SELECT_APPOINTMENT';
 
-    const rows = availableSlots.map(ts => ({
-        id: `ts_${ts._id}`,
-        title: `${ts.startTime} - ${ts.endTime}`,
-        description: `${ts.remaining} of ${ts.maxPatients} slots left`
-    }));
+    // Build list rows: "14 March – 6:20 PM – #05"
+    const rows = availableSlots.map((slot, idx) => {
+        const dateStr = formatDate(slot.date, l);
+        const timeStr = to12Hr(slot.estimatedTime);
+        const apptLabel = `#${String(slot.nextAppointmentNumber).padStart(2, '0')}`;
+
+        return {
+            id: `appt_${idx}`,
+            title: `${dateStr} – ${timeStr}`.substring(0, 24),
+            description: `${t(l, 'next_appointment')} ${apptLabel} (${slot.slotTimeSlot})`.substring(0, 72)
+        };
+    });
 
     await sendList(from,
-        '🕐 Select Time Slot',
-        `Available sessions on *${bookingDate.toDateString()}*:`,
-        'View Slots',
-        [{ title: 'Time Slots', rows }]
+        t(l, 'select_appointment_header'),
+        `👨‍⚕️ *${session.data.doctorName}*\n📍 *${session.data.dispensaryName}*\n\n${t(l, 'select_appointment_body')}`,
+        t(l, 'view_appointments_btn'),
+        [{ title: t(l, 'appointments_section_title'), rows }]
     );
 }
 
-async function handleTimeSlotSelection(from, session, selectedId) {
-    if (!selectedId || !selectedId.startsWith('ts_')) {
-        await sendText(from, '⚠️ Please select a time slot from the list above.');
+// ─────────────────────────────────────────────────────────────
+// Step 5: Appointment selected → enter patient name
+// ─────────────────────────────────────────────────────────────
+
+async function handleAppointmentSelection(from, session, selectedId) {
+    const l = lang(session);
+
+    if (!selectedId || !selectedId.startsWith('appt_')) {
+        await sendText(from, t(l, 'invalid_appointment'));
         return;
     }
 
-    const tsId = selectedId.replace('ts_', '');
-    const slot = (session.data.availableSlots || []).find(s => s._id.toString() === tsId);
+    const idx = parseInt(selectedId.replace('appt_', ''), 10);
+    const slot = (session.data.availableSlots || [])[idx];
 
-    session.data.timeSlotConfigId = tsId;
-    session.data.timeSlotLabel = slot ? `${slot.startTime} - ${slot.endTime}` : 'Selected';
+    if (!slot) {
+        await sendText(from, t(l, 'invalid_appointment'));
+        return;
+    }
+
+    // Store selected slot data
+    session.data.bookingDate = slot.date;
+    session.data.timeSlotConfigId = slot.timeSlotConfigId;
+    session.data.startTime = slot.startTime;
+    session.data.endTime = slot.endTime;
+    session.data.maxPatients = slot.maxPatients;
+    session.data.minutesPerPatient = slot.minutesPerPatient;
+    session.data.nextAppointmentNumber = slot.nextAppointmentNumber;
+    session.data.estimatedTime = slot.estimatedTime;
+    session.data.slotTimeSlot = slot.slotTimeSlot;
+    session.data.timeSlotLabel = formatTimeRange(slot.startTime, slot.endTime);
+
     session.step = 'ENTER_NAME';
 
-    await sendText(from, '👤 Please enter the *patient name*:');
+    const dateStr = formatDateWithDay(slot.date, l);
+    const timeStr = to12Hr(slot.estimatedTime);
+
+    await sendText(from,
+        `✅ ${t(l, 'date_label')}: *${dateStr}*\n` +
+        `🕐 ${t(l, 'time_label')}: *${timeStr}*\n` +
+        `📌 ${t(l, 'appointment_label')}: *#${String(slot.nextAppointmentNumber).padStart(2, '0')}*\n` +
+        `🔖 ${slot.slotTimeSlot}\n\n` +
+        t(l, 'enter_name')
+    );
 }
 
+// ─────────────────────────────────────────────────────────────
+// Step 6: Enter patient name
+// ─────────────────────────────────────────────────────────────
+
 async function handleNameEntry(from, session, userInput) {
+    const l = lang(session);
+
     if (!userInput || userInput.length < 2) {
-        await sendText(from, '⚠️ Please enter a valid name (at least 2 characters).');
+        await sendText(from, t(l, 'invalid_name'));
         return;
     }
 
     session.data.patientName = userInput;
     session.step = 'ENTER_PHONE';
 
-    // Offer to use the WhatsApp number
     const formattedPhone = from.startsWith('94') ? `0${from.substring(2)}` : from;
 
     await sendButtons(from,
-        `📱 Use your WhatsApp number (*${formattedPhone}*) as contact?`,
+        `📱 ${t(l, 'use_wa_phone')}\n\n*${formattedPhone}*`,
         [
-            { id: 'use_wa_phone', title: 'Yes, use this' },
-            { id: 'enter_phone', title: 'Enter different' }
+            { id: 'use_wa_phone', title: t(l, 'yes_use_this') },
+            { id: 'enter_phone', title: t(l, 'enter_different') }
         ]
     );
 }
 
+// ─────────────────────────────────────────────────────────────
+// Step 7: Phone number selection
+// ─────────────────────────────────────────────────────────────
+
 async function handlePhoneEntry(from, session, userInput, selectedId) {
+    const l = lang(session);
+
     if (selectedId === 'use_wa_phone') {
         session.data.patientPhone = from;
         session.step = 'CONFIRM_BOOKING';
         await showBookingSummary(from, session);
     } else if (selectedId === 'enter_phone') {
         session.step = 'ENTER_PHONE_MANUAL';
-        await sendText(from, '📱 Please enter the contact phone number (e.g. *0762199100*):');
+        await sendText(from, t(l, 'enter_phone_manual'));
     } else {
-        // Unexpected input
-        await sendText(from, '⚠️ Please tap one of the buttons above.');
+        await sendText(from, t(l, 'tap_button'));
     }
 }
 
 async function handleManualPhoneEntry(from, session, userInput) {
+    const l = lang(session);
     const cleanPhone = userInput.replace(/[\s\-()]/g, '');
 
-    // Validate Sri Lankan phone number
     if (!/^(\+94|0)?7\d{8}$/.test(cleanPhone)) {
-        await sendText(from, '⚠️ Invalid phone number format. Please enter like: *0762199100* or *+94762199100*');
+        await sendText(from, t(l, 'invalid_phone'));
         return;
     }
 
@@ -510,48 +577,64 @@ async function handleManualPhoneEntry(from, session, userInput) {
     await showBookingSummary(from, session);
 }
 
-async function showBookingSummary(from, session) {
-    const { doctorName, doctorSpecialization, dispensaryName, bookingDate, timeSlotLabel, patientName, patientPhone } = session.data;
+// ─────────────────────────────────────────────────────────────
+// Step 8: Show booking summary for confirmation
+// ─────────────────────────────────────────────────────────────
 
-    const formattedPhone = patientPhone.startsWith('94') ? `0${patientPhone.substring(2)}` : patientPhone;
+async function showBookingSummary(from, session) {
+    const l = lang(session);
+    const d = session.data;
+    const formattedPhone = d.patientPhone.startsWith('94') ? `0${d.patientPhone.substring(2)}` : d.patientPhone;
+    const dateStr = formatDateWithDay(d.bookingDate, l);
+    const timeStr = to12Hr(d.estimatedTime || d.startTime);
+    const apptNum = `#${String(d.nextAppointmentNumber).padStart(2, '0')}`;
 
     const summary = [
-        '📋 *Booking Summary*',
+        t(l, 'booking_summary'),
         '',
-        `👨‍⚕️ Doctor: *${doctorName}* (${doctorSpecialization || 'General'})`,
-        `📍 Dispensary: *${dispensaryName}*`,
-        `📅 Date: *${new Date(bookingDate).toDateString()}*`,
-        `🕐 Session: *${timeSlotLabel}*`,
-        `👤 Patient: *${patientName}*`,
-        `📱 Phone: *${formattedPhone}*`,
+        `👨‍⚕️ ${t(l, 'doctor_label')}: *${d.doctorName}* (${d.doctorSpecialization || ''})`,
+        `📍 ${t(l, 'dispensary_label')}: *${d.dispensaryName}*`,
+        `📅 ${t(l, 'date_label')}: *${dateStr}*`,
+        `🕐 ${t(l, 'time_label')}: *${timeStr}*`,
+        `🔖 ${d.slotTimeSlot || ''}`,
+        `📌 ${t(l, 'appointment_label')}: *${apptNum}*`,
+        `👤 ${t(l, 'patient_label')}: *${d.patientName}*`,
+        `📱 ${t(l, 'phone_label')}: *${formattedPhone}*`,
         '',
-        'Would you like to confirm this booking?'
+        t(l, 'confirm_question')
     ].join('\n');
 
     await sendButtons(from, summary, [
-        { id: 'confirm_booking', title: '✅ Confirm' },
-        { id: 'cancel_booking', title: '❌ Cancel' }
+        { id: 'confirm_booking', title: t(l, 'confirm_btn') },
+        { id: 'cancel_booking', title: t(l, 'cancel_btn') }
     ]);
 }
 
+// ─────────────────────────────────────────────────────────────
+// Step 9: Confirmation → create booking
+// ─────────────────────────────────────────────────────────────
+
 async function handleConfirmation(from, session, selectedId) {
+    const l = lang(session);
+
     if (selectedId === 'cancel_booking') {
         clearSession(from);
-        await sendText(from, '❌ Booking cancelled. Type *menu* to start a new booking.');
+        await sendText(from, t(l, 'booking_cancelled'));
         return;
     }
 
     if (selectedId !== 'confirm_booking') {
-        await sendText(from, '⚠️ Please tap *Confirm* or *Cancel*.');
+        await sendText(from, t(l, 'tap_confirm_or_cancel'));
         return;
     }
 
-    const { doctorId, dispensaryId, bookingDate, patientName, patientPhone, timeSlotConfigId } = session.data;
+    const d = session.data;
+    const { doctorId, dispensaryId, bookingDate, patientName, patientPhone, timeSlotConfigId } = d;
 
-    // Fetch the time slot config
+    // Fetch time slot config
     const timeSlotConfig = await TimeSlotConfig.findById(timeSlotConfigId).lean();
     if (!timeSlotConfig) {
-        await sendText(from, '😔 Time slot is no longer available. Type *menu* to start over.');
+        await sendText(from, t(l, 'slot_unavailable'));
         clearSession(from);
         return;
     }
@@ -565,19 +648,17 @@ async function handleConfirmation(from, session, selectedId) {
         date: { $gte: startOfDay, $lte: endOfDay }
     }).lean();
 
-    let startTime, maxPatients, minutesPerPatient;
+    let startTime = d.startTime || timeSlotConfig.startTime;
+    let maxPatients = d.maxPatients || timeSlotConfig.maxPatients;
+    let minutesPerPatient = d.minutesPerPatient || timeSlotConfig.minutesPerPatient || 15;
 
     if (absentSlot && absentSlot.isModifiedSession) {
-        startTime = absentSlot.startTime;
-        maxPatients = absentSlot.maxPatients || timeSlotConfig.maxPatients;
-        minutesPerPatient = absentSlot.minutesPerPatient || timeSlotConfig.minutesPerPatient || 15;
-    } else {
-        startTime = timeSlotConfig.startTime;
-        maxPatients = timeSlotConfig.maxPatients;
-        minutesPerPatient = timeSlotConfig.minutesPerPatient || 15;
+        startTime = absentSlot.startTime || startTime;
+        maxPatients = absentSlot.maxPatients || maxPatients;
+        minutesPerPatient = absentSlot.minutesPerPatient || minutesPerPatient;
     }
 
-    // Check availability again (race condition protection)
+    // Race condition check — re-verify availability
     const existingBookings = await Booking.find({
         doctorId, dispensaryId,
         bookingDate: { $gte: startOfDay, $lte: endOfDay },
@@ -585,17 +666,15 @@ async function handleConfirmation(from, session, selectedId) {
     }).lean();
 
     if (existingBookings.length >= maxPatients) {
-        await sendText(from, '😔 Sorry, all appointments are now booked for this date. Type *menu* to try another date.');
+        await sendText(from, t(l, 'slots_full'));
         clearSession(from);
         return;
     }
 
-    // Find next available appointment number
+    // Find next available appointment number (recalculate for accuracy)
     const bookedNums = new Set(existingBookings.map(b => b.appointmentNumber));
     let nextNum = 1;
-    while (bookedNums.has(nextNum) && nextNum <= maxPatients) {
-        nextNum++;
-    }
+    while (bookedNums.has(nextNum) && nextNum <= maxPatients) nextNum++;
 
     // Calculate estimated time
     const [startH, startM] = startTime.split(':').map(Number);
@@ -643,7 +722,6 @@ async function handleConfirmation(from, session, selectedId) {
         appointmentNumber: nextNum,
         estimatedTime,
         status: 'scheduled',
-        symptoms: undefined,
         isPaid: false,
         isPatientVisited: false,
         patientName,
@@ -661,24 +739,26 @@ async function handleConfirmation(from, session, selectedId) {
     });
 
     await booking.save();
-    console.log(`✅ WhatsApp booking created: ${transactionId} for ${patientName}`);
+    console.log(`✅ WhatsApp booking created: ${transactionId} for ${patientName} [${l}]`);
 
-    // Send confirmation
-    const feeText = fees.totalFee ? `\n💰 Fee: *Rs. ${fees.totalFee}*` : '';
+    // Send localized confirmation
+    const dateStr = formatDateWithDay(bookingDate, l);
+    const feeText = fees.totalFee ? `\n💰 ${t(l, 'fee_label')}: *Rs. ${fees.totalFee}*` : '';
+
     const confirmation = [
-        '✅ *Booking Confirmed!*',
+        t(l, 'booking_confirmed'),
         '',
-        `🎫 Reference: *${transactionId}*`,
-        `📌 Appointment #*${nextNum}*`,
-        `👨‍⚕️ Dr. *${session.data.doctorName}*`,
-        `📍 *${session.data.dispensaryName}*`,
-        `📅 *${new Date(bookingDate).toDateString()}*`,
-        `🕐 Estimated Time: *${estimatedTime}*`,
+        `🎫 ${t(l, 'reference_label')}: *${transactionId}*`,
+        `📌 ${t(l, 'appointment_label')}: *#${String(nextNum).padStart(2, '0')}*`,
+        `👨‍⚕️ ${t(l, 'doctor_label')}: *${d.doctorName}*`,
+        `📍 ${t(l, 'dispensary_label')}: *${d.dispensaryName}*`,
+        `📅 ${t(l, 'date_label')}: *${dateStr}*`,
+        `🕐 ${t(l, 'estimated_time_label')}: *${to12Hr(estimatedTime)}*`,
         feeText,
         '',
-        'Thank you for booking with MyClinic! 🙏',
+        t(l, 'thank_you'),
         '',
-        'Type *menu* to make another booking.'
+        t(l, 'type_menu')
     ].join('\n');
 
     await sendText(from, confirmation);

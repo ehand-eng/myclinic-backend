@@ -63,6 +63,24 @@ export interface Session {
     isModified: boolean;
 }
 
+export interface DoctorSessionBookingStats {
+    total: number;
+    checkedIn: number;
+    scheduled: number;
+    cancelled: number;
+    completed: number;
+}
+
+export interface DoctorSession {
+    doctorId: string;
+    doctorName: string;
+    specialization: string;
+    startTime: string;
+    endTime: string;
+    timeSlotConfigId: string;
+    isModified: boolean;
+    bookingStats: DoctorSessionBookingStats;
+}
 export interface AbsentTimeSlot {
     _id: string;
     doctorId: string;
@@ -136,6 +154,7 @@ export interface DailyBookingsReport {
     checkedIn: number;
     cancelled: number;
     noShow: number;
+    scheduled: number;
     totalAmount: number;
     totalCommission: number;
     bookings: ReportBooking[];

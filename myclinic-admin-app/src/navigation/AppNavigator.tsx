@@ -11,6 +11,7 @@ import DispensarySelectScreen from '../screens/auth/DispensarySelectScreen';
 
 // Dashboard Screen
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
+import OngoingNumberScreen from '../screens/dashboard/OngoingNumberScreen';
 
 // Doctor Screens
 import DoctorsListScreen from '../screens/doctors/DoctorsListScreen';
@@ -47,6 +48,7 @@ export type RootStackParamList = {
 
     // Main
     Dashboard: undefined;
+    OngoingNumber: undefined;
 
     // Doctors
     DoctorsList: undefined;
@@ -176,6 +178,13 @@ const MainStack = () => (
             name="CheckInSession"
             component={CheckInSessionScreen}
             options={{ title: 'Check-In' }}
+        />
+
+        {/* Ongoing Number */}
+        <Stack.Screen
+            name="OngoingNumber"
+            component={OngoingNumberScreen}
+            options={{ title: 'Ongoing Number' }}
         />
 
         {/* Reports */}

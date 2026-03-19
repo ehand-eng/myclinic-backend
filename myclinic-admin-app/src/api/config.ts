@@ -1,6 +1,6 @@
 // API Configuration
 // Change this to your backend server URL
-export const API_BASE_URL = 'http://localhost:5001'; // Update with your server IP
+export const API_BASE_URL = 'http://192.168.1.9:5001'; // Your Mac's local network IP
 
 // For iOS simulator use: 'http://localhost:5001'
 // For Android emulator use: 'http://10.0.2.2:5000'
@@ -8,7 +8,7 @@ export const API_BASE_URL = 'http://localhost:5001'; // Update with your server 
 
 export const API_ENDPOINTS = {
     // Auth
-    LOGIN: '/api/custom-auth/login',
+    LOGIN: '/api/custom-auth/login-admin',
     ME: '/api/custom-auth/me',
 
     // Dispensaries
@@ -22,6 +22,7 @@ export const API_ENDPOINTS = {
     // Time Slots
     TIMESLOTS_CONFIG: '/api/timeslots/config',
     TIMESLOTS_SESSIONS: '/api/timeslots/sessions',
+    TIMESLOTS_SESSIONS_BY_DISPENSARY: '/api/timeslots/sessions-by-dispensary',
     TIMESLOTS_ABSENT: '/api/timeslots/absent',
 
     // Doctor-Dispensary Fees

@@ -7,13 +7,14 @@ import {
     TouchableOpacity,
     RefreshControl,
     Alert,
+    ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import { Card, LoadingSpinner } from '../../components';
-import { doctorService, bookingService, reportService } from '../../api/services';
-import { Doctor, DailyBookingsReport } from '../../types';
+import { doctorService, timeSlotService } from '../../api/services';
+import { Doctor, DoctorSession } from '../../types';
 import { colors, spacing, fontSizes, borderRadius, shadows, commonStyles } from '../../styles/theme';
 import { format } from 'date-fns';
 
@@ -23,9 +24,7 @@ const DashboardScreen: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [doctors, setDoctors] = useState<Doctor[]>([]);
-    const [todayReport, setTodayReport] = useState<DailyBookingsReport | null>(null);
-
-    const [ongoingCount, setOngoingCount] = useState(0);
+    const [sessions, setSessions] = useState<DoctorSession[]>([]);
 
     const loadDashboardData = useCallback(async () => {
         if (!selectedDispensary) return;
@@ -33,19 +32,15 @@ const DashboardScreen: React.FC = () => {
         try {
             const today = format(new Date(), 'yyyy-MM-dd');
 
-            const [doctorList, report] = await Promise.all([
+            const [doctorList, sessionResult] = await Promise.all([
                 doctorService.getByDispensary(selectedDispensary._id),
-                reportService.getDailyBookings({
-                    date: today,
-                    dispensaryId: selectedDispensary._id,
-                }).catch(() => null),
+                timeSlotService
+                    .getSessionsByDispensary(selectedDispensary._id, today)
+                    .catch(() => ({ sessions: [] })),
             ]);
 
             setDoctors(doctorList);
-            setTodayReport(report);
-            if (report) {
-                setOngoingCount(report.checkedIn || 0);
-            }
+            setSessions(sessionResult.sessions);
         } catch (error) {
             console.error('Error loading dashboard:', error);
         } finally {
@@ -71,11 +66,28 @@ const DashboardScreen: React.FC = () => {
                 style: 'destructive',
                 onPress: async () => {
                     await logout();
-                    // Navigation will automatically switch to AuthStack via AppNavigator
                 },
             },
         ]);
     };
+
+    const formatTime = (time: string) => {
+        const [h, m] = time.split(':').map(Number);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const hour = h % 12 || 12;
+        return `${hour}:${m.toString().padStart(2, '0')} ${ampm}`;
+    };
+
+    // Compute aggregate totals across all sessions
+    const totals = sessions.reduce(
+        (acc, s) => ({
+            total: acc.total + s.bookingStats.total,
+            checkedIn: acc.checkedIn + s.bookingStats.checkedIn,
+            scheduled: acc.scheduled + s.bookingStats.scheduled,
+            cancelled: acc.cancelled + s.bookingStats.cancelled,
+        }),
+        { total: 0, checkedIn: 0, scheduled: 0, cancelled: 0 }
+    );
 
     if (isLoading) {
         return <LoadingSpinner message="Loading dashboard..." />;
@@ -115,6 +127,14 @@ const DashboardScreen: React.FC = () => {
             screen: 'CheckInSession',
         },
         {
+            id: 'ongoing',
+            title: 'Ongoing Number',
+            subtitle: 'Live counter',
+            icon: 'speedometer',
+            color: '#f97316',
+            screen: 'OngoingNumber',
+        },
+        {
             id: 'reports',
             title: 'Reports',
             subtitle: 'View reports',
@@ -143,65 +163,127 @@ const DashboardScreen: React.FC = () => {
                     </TouchableOpacity>
                 </View>
 
-                {/* Today's Summary */}
-                {todayReport && (
-                    <Card title="Today's Summary" subtitle={format(new Date(), 'EEEE, MMM d, yyyy')}>
-                        {/* Highlighted Ongoing Number with Controls */}
-                        <View style={[styles.highlightBox, { backgroundColor: colors.primary }]}>
-                            <Text style={styles.highlightLabel}>Ongoing Number</Text>
-                            <View style={styles.highlightControls}>
-                                <TouchableOpacity
-                                    style={styles.controlBtn}
-                                    onPress={() => setOngoingCount(prev => Math.max(0, prev - 1))}
-                                >
-                                    <Ionicons name="remove-circle-outline" size={40} color="rgba(255,255,255,0.8)" />
-                                </TouchableOpacity>
-
-                                <Text style={styles.highlightNumber}>
-                                    {ongoingCount || 0}
-                                </Text>
-
-                                <TouchableOpacity
-                                    style={styles.controlBtn}
-                                    onPress={() => setOngoingCount(prev => (prev || 0) + 1)}
-                                >
-                                    <Ionicons name="add-circle-outline" size={40} color="white" />
-                                </TouchableOpacity>
-                            </View>
-                            <View style={styles.resetContainer}>
-                                <TouchableOpacity onPress={() => setOngoingCount(0)}>
-                                    <Text style={styles.resetText}>Reset Counter</Text>
-                                </TouchableOpacity>
-                            </View>
+                {/* Today's Summary Header */}
+                <Card title="" subtitle="">
+                    <View style={styles.summaryHeader}>
+                        <View>
+                            <Text style={styles.summaryTitle}>Today's Summary</Text>
+                            <Text style={styles.summarySubtitle}>
+                                {format(new Date(), 'EEEE, MMM d, yyyy')}
+                            </Text>
                         </View>
+                        <TouchableOpacity
+                            onPress={handleRefresh}
+                            style={[styles.refreshBtn, isRefreshing && styles.refreshBtnActive]}
+                            disabled={isRefreshing}
+                        >
+                            {isRefreshing ? (
+                                <ActivityIndicator size="small" color={colors.primary} />
+                            ) : (
+                                <Ionicons name="refresh" size={22} color={colors.primary} />
+                            )}
+                        </TouchableOpacity>
+                    </View>
 
-                        <View style={styles.statsGrid}>
-                            <View style={[styles.statBox, { backgroundColor: colors.info + '20' }]}>
-                                <Text style={[styles.statNumber, { color: colors.info }]}>
-                                    {todayReport.total}
-                                </Text>
-                                <Text style={styles.statLabel}>Total</Text>
-                            </View>
-                            <View style={[styles.statBox, { backgroundColor: colors.success + '20' }]}>
-                                <Text style={[styles.statNumber, { color: colors.success }]}>
-                                    {todayReport.completed}
-                                </Text>
-                                <Text style={styles.statLabel}>Completed</Text>
-                            </View>
-                            <View style={[styles.statBox, { backgroundColor: colors.warning + '20' }]}>
-                                <Text style={[styles.statNumber, { color: colors.warning }]}>
-                                    {todayReport.total - todayReport.completed - todayReport.cancelled}
-                                </Text>
-                                <Text style={styles.statLabel}>Pending</Text>
-                            </View>
-                            <View style={[styles.statBox, { backgroundColor: colors.error + '20' }]}>
-                                <Text style={[styles.statNumber, { color: colors.error }]}>
-                                    {todayReport.cancelled}
-                                </Text>
-                                <Text style={styles.statLabel}>Cancelled</Text>
-                            </View>
+                    {/* Aggregate totals row */}
+                    <View style={[styles.statsGrid, isRefreshing && { opacity: 0.4 }]}>
+                        <View style={[styles.statBox, { backgroundColor: colors.info + '20' }]}>
+                            <Text style={[styles.statNumber, { color: colors.info }]}>
+                                {totals.total}
+                            </Text>
+                            <Text style={styles.statLabel}>Total</Text>
                         </View>
-                    </Card>
+                        <View style={[styles.statBox, { backgroundColor: colors.success + '20' }]}>
+                            <Text style={[styles.statNumber, { color: colors.success }]}>
+                                {totals.checkedIn}
+                            </Text>
+                            <Text style={styles.statLabel}>Checked-In</Text>
+                        </View>
+                        <View style={[styles.statBox, { backgroundColor: colors.warning + '20' }]}>
+                            <Text style={[styles.statNumber, { color: colors.warning }]}>
+                                {totals.scheduled}
+                            </Text>
+                            <Text style={styles.statLabel}>Scheduled</Text>
+                        </View>
+                        <View style={[styles.statBox, { backgroundColor: colors.error + '20' }]}>
+                            <Text style={[styles.statNumber, { color: colors.error }]}>
+                                {totals.cancelled}
+                            </Text>
+                            <Text style={styles.statLabel}>Cancelled</Text>
+                        </View>
+                    </View>
+                    {isRefreshing && (
+                        <View style={styles.refreshingOverlay}>
+                            <ActivityIndicator size="small" color={colors.primary} />
+                            <Text style={styles.refreshingText}>Updating...</Text>
+                        </View>
+                    )}
+                </Card>
+
+                {/* Session-wise breakdown */}
+                {sessions.length > 0 && (
+                    <>
+                        <Text style={styles.sectionTitle}>Sessions</Text>
+                        {sessions.map((session, idx) => (
+                            <View
+                                key={`${session.doctorId}-${session.startTime}-${idx}`}
+                                style={styles.sessionCard}
+                            >
+                                <View style={styles.sessionHeader}>
+                                    <View style={styles.sessionIconWrap}>
+                                        <Ionicons name="medical" size={20} color={colors.primary} />
+                                    </View>
+                                    <View style={styles.sessionInfo}>
+                                        <Text style={styles.sessionDoctor}>
+                                            {session.doctorName}
+                                        </Text>
+                                        <Text style={styles.sessionTime}>
+                                            {formatTime(session.startTime)} - {formatTime(session.endTime)}
+                                            {session.specialization ? ` • ${session.specialization}` : ''}
+                                        </Text>
+                                    </View>
+                                    {session.isModified && (
+                                        <View style={styles.modifiedBadge}>
+                                            <Text style={styles.modifiedText}>Modified</Text>
+                                        </View>
+                                    )}
+                                </View>
+                                <View style={styles.sessionStats}>
+                                    <View style={styles.sessionStatItem}>
+                                        <Text style={[styles.sessionStatNum, { color: colors.info }]}>
+                                            {session.bookingStats.total}
+                                        </Text>
+                                        <Text style={styles.sessionStatLabel}>Total</Text>
+                                    </View>
+                                    <View style={styles.sessionStatItem}>
+                                        <Text style={[styles.sessionStatNum, { color: colors.success }]}>
+                                            {session.bookingStats.checkedIn}
+                                        </Text>
+                                        <Text style={styles.sessionStatLabel}>Checked-In</Text>
+                                    </View>
+                                    <View style={styles.sessionStatItem}>
+                                        <Text style={[styles.sessionStatNum, { color: colors.warning }]}>
+                                            {session.bookingStats.scheduled}
+                                        </Text>
+                                        <Text style={styles.sessionStatLabel}>Scheduled</Text>
+                                    </View>
+                                    <View style={styles.sessionStatItem}>
+                                        <Text style={[styles.sessionStatNum, { color: colors.error }]}>
+                                            {session.bookingStats.cancelled}
+                                        </Text>
+                                        <Text style={styles.sessionStatLabel}>Cancelled</Text>
+                                    </View>
+                                </View>
+                            </View>
+                        ))}
+                    </>
+                )}
+
+                {sessions.length === 0 && !isLoading && (
+                    <View style={styles.noSessions}>
+                        <Ionicons name="calendar-outline" size={40} color={colors.textSecondary} />
+                        <Text style={styles.noSessionsText}>No sessions scheduled for today</Text>
+                    </View>
                 )}
 
                 {/* Quick Actions */}
@@ -250,56 +332,50 @@ const styles = StyleSheet.create({
     logoutBtn: {
         padding: spacing.sm,
     },
+    summaryHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: spacing.md,
+    },
+    summaryTitle: {
+        fontSize: fontSizes.lg,
+        fontWeight: '600',
+        color: colors.text,
+    },
+    summarySubtitle: {
+        fontSize: fontSizes.sm,
+        color: colors.textSecondary,
+        marginTop: 2,
+    },
+    refreshBtn: {
+        padding: spacing.sm,
+        borderRadius: borderRadius.md,
+        backgroundColor: colors.primary + '15',
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    refreshBtnActive: {
+        backgroundColor: colors.primary + '25',
+    },
+    refreshingOverlay: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: spacing.sm,
+    },
+    refreshingText: {
+        fontSize: fontSizes.sm,
+        color: colors.primary,
+        marginLeft: spacing.sm,
+        fontWeight: '500',
+    },
     statsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         marginHorizontal: -spacing.xs,
-    },
-    highlightBox: {
-        width: '100%',
-        padding: spacing.lg,
-        borderRadius: borderRadius.md,
-        marginBottom: spacing.md,
-        alignItems: 'center',
-        justifyContent: 'center',
-        ...shadows.sm,
-    },
-    highlightNumber: {
-        fontSize: 48,
-        fontWeight: 'bold',
-        color: '#FFFFFF',
-        marginHorizontal: spacing.lg,
-    },
-    highlightLabel: {
-        fontSize: fontSizes.lg,
-        fontWeight: '600',
-        color: '#FFFFFF',
-        marginBottom: spacing.sm,
-        opacity: 0.9,
-    },
-    highlightControls: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    controlBtn: {
-        padding: spacing.xs,
-    },
-    subLabel: {
-        fontSize: fontSizes.sm,
-        color: '#FFFFFF',
-        opacity: 0.8,
-        marginTop: spacing.sm,
-    },
-    resetContainer: {
-        marginTop: spacing.sm,
-        padding: spacing.xs,
-    },
-    resetText: {
-        fontSize: fontSizes.sm,
-        color: '#FFFFFF',
-        opacity: 0.7,
-        textDecorationLine: 'underline',
     },
     statBox: {
         width: '48%',
@@ -325,6 +401,80 @@ const styles = StyleSheet.create({
         marginTop: spacing.md,
         marginBottom: spacing.md,
     },
+    // Session cards
+    sessionCard: {
+        backgroundColor: colors.surface,
+        borderRadius: borderRadius.lg,
+        padding: spacing.md,
+        marginBottom: spacing.sm,
+        ...shadows.sm,
+    },
+    sessionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: spacing.sm,
+    },
+    sessionIconWrap: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: colors.primary + '15',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: spacing.sm,
+    },
+    sessionInfo: {
+        flex: 1,
+    },
+    sessionDoctor: {
+        fontSize: fontSizes.md,
+        fontWeight: '600',
+        color: colors.text,
+    },
+    sessionTime: {
+        fontSize: fontSizes.sm,
+        color: colors.textSecondary,
+    },
+    modifiedBadge: {
+        backgroundColor: colors.warning + '20',
+        paddingHorizontal: spacing.sm,
+        paddingVertical: 2,
+        borderRadius: borderRadius.sm,
+    },
+    modifiedText: {
+        fontSize: fontSizes.xs,
+        color: colors.warning,
+        fontWeight: '600',
+    },
+    sessionStats: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        backgroundColor: colors.background,
+        borderRadius: borderRadius.md,
+        paddingVertical: spacing.sm,
+    },
+    sessionStatItem: {
+        alignItems: 'center',
+    },
+    sessionStatNum: {
+        fontSize: fontSizes.lg,
+        fontWeight: 'bold',
+    },
+    sessionStatLabel: {
+        fontSize: fontSizes.xs,
+        color: colors.textSecondary,
+        marginTop: 2,
+    },
+    noSessions: {
+        alignItems: 'center',
+        paddingVertical: spacing.xl,
+    },
+    noSessionsText: {
+        fontSize: fontSizes.md,
+        color: colors.textSecondary,
+        marginTop: spacing.sm,
+    },
+    // Menu grid
     menuGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',

@@ -139,6 +139,7 @@ router.post('/login', async (req, res) => {
     }
 
     const roleName = user.role ? user.role.name : 'online';
+    console.log('Role name:', roleName);
     if (isAdminRole(roleName)) {
       return res.status(403).json({
         code: 'USE_ADMIN_PORTAL',
@@ -181,6 +182,7 @@ router.post('/login', async (req, res) => {
 // Admin login endpoint - for ADMIN users only (rejects regular user credentials)
 router.post('/login-admin', async (req, res) => {
   try {
+    console.log('Admin login attempt:', req.body);
     const { email, password } = req.body;
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
@@ -250,7 +252,7 @@ router.get('/me', async (req, res) => {
 
     const decoded = jwt.verify(token, JWT_SECRET);
     const user = await User.findById(decoded.userId).populate('role');
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -273,7 +275,7 @@ router.get('/me', async (req, res) => {
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({ message: 'Token expired' });
     }
-    
+
     console.error('Get user profile error:', error);
     res.status(500).json({ message: 'Server error' });
   }

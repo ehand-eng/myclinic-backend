@@ -445,6 +445,7 @@ router.get('/daily-bookings', validateJwt, roleMiddleware.requireRole(['super-ad
     }
 
     let { date, dispensaryId, doctorId, timeSlot } = req.query;
+    console.log("Report query:", { date, dispensaryId, doctorId, timeSlot });
     if (!date) return res.status(400).json({ message: 'date is required' });
 
     // Get allowed dispensaries for this user
@@ -515,13 +516,14 @@ router.get('/daily-bookings', validateJwt, roleMiddleware.requireRole(['super-ad
         if (booking.fees.bookingCommission) totalCommission += booking.fees.bookingCommission;
       }
     });
-
+    console.log("Daily bookings report bookings:", bookings);
     const summary = {
       total: bookings.length,
       completed: bookings.filter(b => b.status === 'completed').length,
       checkedIn: bookings.filter(b => b.status === 'checked_in').length,
       cancelled: bookings.filter(b => b.status === 'cancelled').length,
       noShow: bookings.filter(b => b.status === 'no_show').length,
+      scheduled: bookings.filter(b => b.status === 'scheduled').length,
       totalAmount,
       totalCommission,
       bookings: bookings.map(booking => ({
@@ -541,7 +543,7 @@ router.get('/daily-bookings', validateJwt, roleMiddleware.requireRole(['super-ad
         fees: booking.fees // Include fees in individual items if needed
       }))
     };
-
+    console.log("Daily bookings report summary:", summary);
     res.status(200).json(summary);
   } catch (error) {
     console.error('Daily bookings report error:', error);
