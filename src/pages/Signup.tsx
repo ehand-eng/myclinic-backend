@@ -235,7 +235,8 @@ const Signup = () => {
         const signupData = {
           name: formData.name,
           email: formData.email,
-          password: formData.password
+          password: formData.password,
+          nationality: formData.nationality
         };
         response = await axios.post(`${API_URL}/custom-auth/register`, signupData);
       }

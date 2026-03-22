@@ -16,6 +16,10 @@ import { useToast } from '@/hooks/use-toast';
 import { DoctorService, DispensaryService } from '@/api/services';
 import { Doctor, Dispensary } from '@/api/models';
 import { Calendar } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const ViewDoctor = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +28,7 @@ const ViewDoctor = () => {
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [dispensaries, setDispensaries] = useState<Dispensary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchDoctor = async () => {
@@ -56,25 +61,29 @@ const ViewDoctor = () => {
     fetchDoctor();
   }, [id, toast]);
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!id) return;
+    setDeleteDialogOpen(true);
+  };
 
-    if (window.confirm('Are you sure you want to delete this doctor?')) {
-      try {
-        await DoctorService.deleteDoctor(id);
-        toast({
-          title: 'Success',
-          description: 'Doctor deleted successfully',
-        });
-        navigate('/admin/doctors');
-      } catch (error) {
-        console.error('Error deleting doctor:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to delete doctor',
-          variant: 'destructive',
-        });
-      }
+  const confirmDelete = async () => {
+    if (!id) return;
+    setDeleteDialogOpen(false);
+
+    try {
+      await DoctorService.deleteDoctor(id);
+      toast({
+        title: 'Success',
+        description: 'Doctor deleted successfully',
+      });
+      navigate('/admin/doctors');
+    } catch (error) {
+      console.error('Error deleting doctor:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete doctor',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -219,7 +228,7 @@ const ViewDoctor = () => {
                               </Button>
                               <Button
                                 size="sm"
-                                onClick={() => navigate(`/doctor/${doctor.id}/dispensary/${dispensary.id}/time-slots`)}
+                                onClick={() => navigate(`/admin/doctor/${doctor.id}/dispensary/${dispensary.id}/time-slots`)}
                                 className="bg-medical-600 hover:bg-medical-700"
                               >
                                 <Calendar className="mr-2 h-4 w-4" />
@@ -238,6 +247,23 @@ const ViewDoctor = () => {
         </div>
       </main>
       <AdminFooter />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Doctor</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this doctor? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

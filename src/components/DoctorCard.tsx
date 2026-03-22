@@ -22,10 +22,10 @@ const DoctorCard = ({ doctor }: DoctorCardProps) => {
       </div>
       <CardHeader className="pb-3">
         <div className="flex flex-col space-y-2">
-          <h3 className="font-bold text-xl text-medicalGray-800 group-hover:text-medicalBlue-600 transition-colors">
+          <h3 className="font-bold text-xl text-medicalGray-800 group-hover:text-medicalBlue-500 transition-colors">
             {doctor.name}
           </h3>
-          <Badge variant="outline" className="text-xs self-start bg-medicalBlue-50 text-medicalBlue-700 border-medicalBlue-200">
+          <Badge variant="outline" className="text-xs self-start bg-medicalBlue-50 text-medicalBlue-600 border-medicalBlue-200">
             {doctor.specialization}
           </Badge>
         </div>

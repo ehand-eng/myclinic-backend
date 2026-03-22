@@ -34,7 +34,7 @@ const PASSWORD_RULE_MESSAGE =
 // Register endpoint
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, role, dispensaryIds = [] } = req.body;
+    const { name, email, password, role, dispensaryIds = [], nationality } = req.body;
 
     // Validation
     if (!name || !email || !password) {
@@ -73,6 +73,7 @@ router.post('/register', async (req, res) => {
       name,
       email,
       passwordHash,
+      nationality: nationality || 'other',
       role: roleDoc ? roleDoc._id : null, // null for online users
       dispensaryIds: dispensaryIds,
       isActive: true,

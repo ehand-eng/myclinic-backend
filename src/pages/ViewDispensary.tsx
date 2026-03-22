@@ -17,6 +17,10 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Edit, Trash2, MapPin, CalendarDays } from 'lucide-react';
 import { canManageDispensaries } from '@/lib/roleUtils';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const ViewDispensary = () => {
   const { id } = useParams<{ id: string }>();
@@ -25,6 +29,7 @@ const ViewDispensary = () => {
   const [dispensary, setDispensary] = useState<Dispensary | null>(null);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const userStr = typeof window !== 'undefined' ? localStorage.getItem('current_user') : null;
   const currentUser = userStr ? JSON.parse(userStr) : null;
@@ -58,10 +63,14 @@ const ViewDispensary = () => {
     fetchDispensaryData();
   }, [id, toast]);
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!id) return;
+    setDeleteDialogOpen(true);
+  };
 
-    if (!window.confirm('Are you sure you want to delete this dispensary?')) return;
+  const confirmDelete = async () => {
+    if (!id) return;
+    setDeleteDialogOpen(false);
 
     try {
       await DispensaryService.deleteDispensary(id);
@@ -203,7 +212,7 @@ const ViewDispensary = () => {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => navigate(`/doctor/${doctor.id}/dispensary/${dispensary.id}/time-slots`)}
+                                  onClick={() => navigate(`/admin/doctor/${doctor.id}/dispensary/${dispensary.id}/time-slots`)}
                                 >
                                   <CalendarDays className="h-4 w-4 mr-1" />
                                   Manage Slots
@@ -230,6 +239,23 @@ const ViewDispensary = () => {
         </div> {/* ✅ This div was missing — closes the container */}
       </main>
       <AdminFooter />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Dispensary</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this dispensary? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

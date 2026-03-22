@@ -88,7 +88,7 @@ const AdminTimeSlots = () => {
       return;
     }
 
-    navigate(`/doctor/${selectedDoctor}/dispensary/${selectedDispensary}/time-slots`);
+    navigate(`/admin/doctor/${selectedDoctor}/dispensary/${selectedDispensary}/time-slots`);
   };
 
   return (

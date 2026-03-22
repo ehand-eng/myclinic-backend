@@ -92,17 +92,17 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-medicalGray-900 via-medicalBlue-900 to-medicalTeal-900">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-medicalBlue-500 via-medicalBlue-600 to-medicalBlue-800">
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="flex justify-center mb-8">
             <div className="flex items-center gap-2 text-white">
-              <Building2 className="h-10 w-10 text-medicalBlue-400" />
+              <Building2 className="h-10 w-10 text-white" />
               <span className="text-2xl font-bold">Admin Portal</span>
             </div>
           </div>
 
-          <Card className="border-medicalBlue-800/50 bg-white/95 shadow-xl">
+          <Card className="border-white/20 bg-white/95 shadow-xl">
             <CardHeader>
               <CardTitle className="text-xl text-center">Sign in</CardTitle>
               <CardDescription className="text-center">
@@ -155,7 +155,7 @@ const AdminLogin = () => {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-medicalBlue-800 hover:bg-medicalBlue-900 text-white"
+                  className="w-full bg-medicalBlue-500 hover:bg-medicalBlue-600 text-white"
                 >
                   {isLoading ? 'Signing in...' : 'Sign in'}
                 </Button>
@@ -163,7 +163,7 @@ const AdminLogin = () => {
 
               <p className="text-center text-sm text-gray-500 mt-4">
                 Not an admin?{' '}
-                <Link to="/login" className="text-medicalBlue-600 hover:underline font-medium">
+                <Link to="/login" className="text-medicalBlue-500 hover:underline font-medium">
                   Use regular login
                 </Link>
               </p>

@@ -1,8 +1,5 @@
-import axios from 'axios';
 import api from '../../lib/axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
-console.log("API_URL", import.meta.env.VITE_API_URL);
 export interface AvailableTimeSlot {
   appointmentNumber: number;
   timeSlot: string;
@@ -275,7 +272,7 @@ export const TimeSlotService = {
       console.log("Formatted date:", formattedDate);
       // const formattedDate = date.toISOString().split('T')[0];
       const response = await api.get(
-        `${API_URL}/timeslots/available/${doctorId}/${dispensaryId}/${formattedDate}`
+        `/timeslots/available/${doctorId}/${dispensaryId}/${formattedDate}`
       );
       
       return response.data;
@@ -314,9 +311,9 @@ export const TimeSlotService = {
     totalAvailableDays: number;
   }> => {
     try {
-            const response = await api.get(
-        `${API_URL}/timeslots/next-available/${doctorId}/${dispensaryId}`,
-              );
+      const response = await api.get(
+        `/timeslots/next-available/${doctorId}/${dispensaryId}`
+      );
       
       return response.data;
     } catch (error) {
@@ -328,9 +325,9 @@ export const TimeSlotService = {
   // Get fees for a time slot
   getTimeSlotFees: async (timeSlotId: string): Promise<TimeSlotFees> => {
     try {
-            const response = await api.get(
-        `${API_URL}/timeslots/fees/${timeSlotId}`,
-              );
+      const response = await api.get(
+        `/timeslots/fees/${timeSlotId}`
+      );
       return response.data;
     } catch (error) {
       console.error('Error fetching time slot fees:', error);
@@ -389,7 +386,7 @@ export const TimeSlotService = {
   getDoctorDispensaryFees: async (dispensaryId: string): Promise<DoctorDispensaryFee[]> => {
     try {
       const response = await api.get(
-        `${API_URL}/doctor-dispensaries/fees/${dispensaryId}`
+        `/doctor-dispensaries/fees/${dispensaryId}`
       );
       
       return response.data.map((fee: any) => ({

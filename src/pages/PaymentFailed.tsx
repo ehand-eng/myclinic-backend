@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { XCircle, RefreshCw, Wallet, Home, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
 
 interface BookingDetails {
     _id: string;
@@ -19,6 +20,7 @@ const PaymentFailed: React.FC = () => {
     const { bookingId } = useParams<{ bookingId: string }>();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const { toast } = useToast();
     const [booking, setBooking] = useState<BookingDetails | null>(null);
     const [loading, setLoading] = useState(true);
     const [retrying, setRetrying] = useState(false);
@@ -75,7 +77,11 @@ const PaymentFailed: React.FC = () => {
             throw new Error('Failed to initiate payment');
         } catch (err) {
             console.error('Error retrying payment:', err);
-            alert('Failed to initiate payment. Please try again.');
+            toast({
+                title: 'Payment Error',
+                description: 'Failed to initiate payment. Please try again.',
+                variant: 'destructive'
+            });
         } finally {
             setRetrying(false);
         }

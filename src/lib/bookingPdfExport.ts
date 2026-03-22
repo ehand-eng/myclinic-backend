@@ -30,247 +30,428 @@ interface BookingSummaryData {
   bookedBy?: string;
 }
 
-// Helper function to draw a simple table with proper text wrapping
-const drawSimpleTable = (doc: jsPDF, startX: number, startY: number, data: string[][], columnWidths: number[], lightBlue: number[]) => {
-  const baseRowHeight = 6; // Base row height
-  
-  // Draw data rows directly (no header row)
+// ── Color palette ──────────────────────────────────────────────
+const COLORS = {
+  brand:      { r: 25,  g: 119, b: 204 },   // #1977cc
+  brandDark:  { r: 18,  g: 85,  b: 148 },   // darker shade
+  brandLight: { r: 232, g: 243, b: 252 },   // very light blue tint
+  brandMist:  { r: 241, g: 247, b: 253 },   // near-white blue
+  dark:       { r: 30,  g: 41,  b: 59  },   // slate-800
+  body:       { r: 71,  g: 85,  b: 105 },   // slate-500
+  muted:      { r: 148, g: 163, b: 184 },   // slate-400
+  border:     { r: 226, g: 232, b: 240 },   // slate-200
+  white:      { r: 255, g: 255, b: 255 },
+  success:    { r: 22,  g: 163, b: 74  },   // green-600
+  successBg:  { r: 240, g: 253, b: 244 },   // green-50
+};
+
+type RGB = { r: number; g: number; b: number };
+const setFill  = (doc: jsPDF, c: RGB) => doc.setFillColor(c.r, c.g, c.b);
+const setText  = (doc: jsPDF, c: RGB) => doc.setTextColor(c.r, c.g, c.b);
+const setDraw  = (doc: jsPDF, c: RGB) => doc.setDrawColor(c.r, c.g, c.b);
+
+// ── Rounded rectangle helper ───────────────────────────────────
+const roundedRect = (
+  doc: jsPDF, x: number, y: number, w: number, h: number,
+  r: number, style: 'S' | 'F' | 'FD' = 'F'
+) => {
+  doc.roundedRect(x, y, w, h, r, r, style);
+};
+
+// ── Text wrapping helper ───────────────────────────────────────
+const wrapText = (doc: jsPDF, text: string, maxWidth: number): string[] => {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let currentLine = '';
+
+  for (const word of words) {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    if (doc.getTextWidth(testLine) > maxWidth && currentLine) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = testLine;
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+  return lines;
+};
+
+// ── Section heading ────────────────────────────────────────────
+const drawSectionHeading = (
+  doc: jsPDF, label: string, y: number, margin: number
+): number => {
+  // Accent bar
+  setFill(doc, COLORS.brand);
+  doc.rect(margin, y, 3, 10, 'F');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  setText(doc, COLORS.dark);
+  doc.text(label.toUpperCase(), margin + 7, y + 7);
+
+  // Thin rule across content width
+  setDraw(doc, COLORS.border);
+  doc.setLineWidth(0.3);
+  doc.line(margin, y + 13, 210 - margin, y + 13);
+
+  return y + 17;
+};
+
+// ── Key-value row drawing ──────────────────────────────────────
+const drawInfoRow = (
+  doc: jsPDF, label: string, value: string,
+  x: number, y: number, labelWidth: number, valueWidth: number,
+  isAlternate: boolean
+): number => {
+  const lineHeight = 5;
+  const valueLines = wrapText(doc, value, valueWidth - 4);
+  const rowHeight = Math.max(8, valueLines.length * lineHeight + 3);
+
+  // Alternating background
+  if (isAlternate) {
+    setFill(doc, COLORS.brandMist);
+    roundedRect(doc, x, y, labelWidth + valueWidth, rowHeight, 1, 'F');
+  }
+
+  // Label
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  let currentY = startY;
-  
-  for (let i = 0; i < data.length; i++) {
-    let currentX = startX;
-    let maxLinesInRow = 1; // Track maximum lines needed in this row
-    
-    // First pass: calculate how many lines each cell needs
-    const cellLines = data[i].map((text, index) => {
-      const maxWidth = columnWidths[index] - 2;
-      const textWidth = doc.getTextWidth(text);
-      
-      if (textWidth > maxWidth) {
-        // Calculate how many lines this text will need
-        const words = text.split(' ');
-        let line = '';
-        let linesCount = 1;
-        
-        for (const word of words) {
-          const testLine = line + (line ? ' ' : '') + word;
-          const testWidth = doc.getTextWidth(testLine);
-          
-          if (testWidth > maxWidth) {
-            if (line) {
-              line = word;
-              linesCount++;
-            }
-          } else {
-            line = testLine;
-          }
-        }
-        return linesCount;
-      }
-      return 1;
-    });
-    
-    maxLinesInRow = Math.max(...cellLines);
-    const rowHeight = baseRowHeight + (maxLinesInRow - 1) * 6; // More generous height for wrapped content
-    
-    // Second pass: draw the cells and text
-    data[i].forEach((text, index) => {
-      // Draw cell border
-      doc.setDrawColor(lightBlue[0], lightBlue[1], lightBlue[2]);
-      doc.setLineWidth(0.3);
-      doc.rect(currentX, currentY, columnWidths[index], rowHeight);
-      
-      // Draw text - make first column bold (field names)
-      if (index === 0) {
-        doc.setFont('helvetica', 'bold');
-      } else {
-        doc.setFont('helvetica', 'normal');
-      }
-      
-      // Handle text wrapping
-      const maxWidth = columnWidths[index] - 2;
-      const textWidth = doc.getTextWidth(text);
-      
-      if (textWidth > maxWidth) {
-        // Split long text into multiple lines
-        const words = text.split(' ');
-        let line = '';
-        let lineY = currentY + 3;
-        
-        for (const word of words) {
-          const testLine = line + (line ? ' ' : '') + word;
-          const testWidth = doc.getTextWidth(testLine);
-          
-          if (testWidth > maxWidth) {
-            if (line) {
-              doc.text(line, currentX + 1, lineY);
-              line = word;
-              lineY += 6; // Line spacing to match row height calculation
-            }
-          } else {
-            line = testLine;
-          }
-        }
-        if (line) {
-          doc.text(line, currentX + 1, lineY);
-        }
-      } else {
-        // Center text vertically in single-line cells
-        doc.text(text, currentX + 1, currentY + 4);
-      }
-      
-      currentX += columnWidths[index];
-    });
-    
-    currentY += rowHeight;
-  }
-  
+  setText(doc, COLORS.body);
+  doc.text(label, x + 4, y + 5.5);
+
+  // Value
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  setText(doc, COLORS.dark);
+  valueLines.forEach((line, i) => {
+    doc.text(line, x + labelWidth + 4, y + 5.5 + i * lineHeight);
+  });
+
+  return y + rowHeight;
+};
+
+// ── Info table (draws a group of key-value rows) ───────────────
+const drawInfoTable = (
+  doc: jsPDF, rows: [string, string][], x: number, y: number,
+  labelWidth: number, valueWidth: number
+): number => {
+  let currentY = y;
+  rows.forEach((row, i) => {
+    currentY = drawInfoRow(doc, row[0], row[1], x, currentY, labelWidth, valueWidth, i % 2 === 0);
+  });
   return currentY;
 };
 
+// ── Draw footer on current page ────────────────────────────────
+const drawFooter = (doc: jsPDF) => {
+  const pageWidth = doc.internal.pageSize.width;
+  const pageHeight = doc.internal.pageSize.height;
+
+  setFill(doc, COLORS.brand);
+  doc.rect(0, pageHeight - 18, pageWidth, 0.6, 'F');
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.5);
+  setText(doc, COLORS.muted);
+  doc.text(
+    'Thank you for choosing MyClinic Connect',
+    pageWidth / 2, pageHeight - 12,
+    { align: 'center' }
+  );
+  doc.text(
+    `Generated on ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })} at ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`,
+    pageWidth / 2, pageHeight - 8,
+    { align: 'center' }
+  );
+};
+
+// ── Main export ────────────────────────────────────────────────
 export const exportBookingSummaryToPDF = (bookingData: BookingSummaryData) => {
   try {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
-    const margin = 10; // Reduced from 20
-    const contentWidth = pageWidth - (margin * 2);
-    const baseRowHeight = 6; // Define baseRowHeight in main scope
-    
-    let yPos = margin;
-    
-    // Compact header with logo placeholder
-    doc.setFillColor(66, 139, 202);
-    doc.rect(0, 0, pageWidth, 20, 'F'); // Reduced from 30
-    
-    // Logo placeholder
-    doc.setFillColor(255, 255, 255);
-    doc.rect(margin, 2, 15, 15, 'F'); // Smaller logo
-    doc.setFontSize(6); // Smaller font
-    doc.setTextColor(66, 139, 202);
-    doc.text('LOGO', margin + 7.5, 11, { align: 'center' });
-    
-    // Company name
-    doc.setFontSize(10); // Reduced from 14
+    const margin = 16;
+    const contentWidth = pageWidth - margin * 2;
+    const labelW = 48;
+    const valueW = contentWidth - labelW;
+
+    // Reserve space for footer — content must stay above this line
+    const footerZone = 22;
+    const maxY = pageHeight - footerZone;
+
+    // Page-break helper: if the next block won't fit, add a page
+    const ensureSpace = (needed: number) => {
+      if (y + needed > maxY) {
+        drawFooter(doc);
+        doc.addPage();
+        y = margin;
+      }
+    };
+
+    let y = 0;
+
+    // ═══════════════════════════════════════════════════════════
+    // HEADER BAND
+    // ═══════════════════════════════════════════════════════════
+
+    setFill(doc, COLORS.brandDark);
+    doc.rect(0, 0, pageWidth, 36, 'F');
+    setFill(doc, COLORS.brand);
+    doc.rect(0, 0, pageWidth, 32, 'F');
+
+    // Subtle decorative circle
+    doc.setGState(doc.GState({ opacity: 0.08 }));
+    setFill(doc, COLORS.white);
+    doc.circle(pageWidth - 20, 16, 28, 'F');
+    doc.setGState(doc.GState({ opacity: 1 }));
+
+    // Logo mark — stylized cross in a rounded square
+    setFill(doc, COLORS.white);
+    roundedRect(doc, margin, 8, 16, 16, 3, 'F');
+    setFill(doc, COLORS.brand);
+    doc.rect(margin + 4, 14.5, 8, 3, 'F');
+    doc.rect(margin + 6.5, 11.5, 3, 9, 'F');
+
+    // Brand name
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(255, 255, 255);
-    doc.text('MyClinic Connect', margin + 20, 12);
-    
-    yPos = 30; // Reduced from 45
-    
-    // Title
-    doc.setFontSize(12); // Reduced from 16
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0);
-    doc.text('BOOKING CONFIRMATION', pageWidth / 2, yPos, { align: 'center' });
-    yPos += 8; // Reduced from 15
-    
-    // Booking Reference
-    doc.setFontSize(8); // Reduced from 10
+    doc.setFontSize(14);
+    setText(doc, COLORS.white);
+    doc.text('MyClinic Connect', margin + 20, 18);
+
+    // Tagline
     doc.setFont('helvetica', 'normal');
-    doc.text(`Booking Reference: ${bookingData.transactionId}`, margin, yPos);
-    yPos += 10; // Reduced from 20
-    
-    // Light blue color for borders
-    const lightBlue = [173, 216, 230]; // Light blue color
-    
-    // Appointment Details Table
-    doc.setFontSize(9); // Reduced from 12
+    doc.setFontSize(7);
+    doc.setGState(doc.GState({ opacity: 0.8 }));
+    setText(doc, COLORS.white);
+    doc.text('Your Health, Our Priority', margin + 20, 23);
+    doc.setGState(doc.GState({ opacity: 1 }));
+
+    y = 42;
+
+    // ═══════════════════════════════════════════════════════════
+    // CONFIRMATION BADGE + REFERENCE
+    // ═══════════════════════════════════════════════════════════
+
+    setFill(doc, COLORS.successBg);
+    roundedRect(doc, pageWidth / 2 - 30, y - 2, 60, 9, 4, 'F');
     doc.setFont('helvetica', 'bold');
-    doc.text('APPOINTMENT DETAILS', margin, yPos);
-    yPos += 5; // Reduced from 8
-    
-    const appointmentData = [
-      ['Date', bookingData.bookingDate.toLocaleDateString()],
-      ['Time Slot', bookingData.timeSlot],
-      ['Appointment Number', `#${bookingData.appointmentNumber}`],
-      ['Estimated Time', bookingData.estimatedTime],
-      ['Status', bookingData.status.toUpperCase()]
+    doc.setFontSize(7);
+    setText(doc, COLORS.success);
+    doc.text('CONFIRMED', pageWidth / 2, y + 4, { align: 'center' });
+
+    y += 12;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(15);
+    setText(doc, COLORS.dark);
+    doc.text('Booking Confirmation', pageWidth / 2, y, { align: 'center' });
+    y += 6;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    setText(doc, COLORS.muted);
+    doc.text(`Reference: ${bookingData.transactionId}`, pageWidth / 2, y, { align: 'center' });
+    y += 3;
+
+    // Decorative divider
+    setDraw(doc, COLORS.brand);
+    doc.setLineWidth(0.8);
+    doc.line(pageWidth / 2 - 16, y, pageWidth / 2 + 16, y);
+    y += 8;
+
+    // ═══════════════════════════════════════════════════════════
+    // APPOINTMENT QUICK-GLANCE CARDS
+    // ═══════════════════════════════════════════════════════════
+
+    const cardGap = 4;
+    const cardW = (contentWidth - cardGap * 3) / 4;
+    const cardH = 20;
+    const cardY = y;
+
+    const quickCards: { label: string; value: string; highlight?: boolean }[] = [
+      { label: 'Date', value: bookingData.bookingDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) },
+      { label: 'Time Slot', value: bookingData.timeSlot },
+      { label: 'Queue No.', value: `#${bookingData.appointmentNumber}`, highlight: true },
+      { label: 'Est. Time', value: bookingData.estimatedTime },
     ];
-    
-    yPos = drawSimpleTable(doc, margin, yPos, appointmentData, [50, 90], lightBlue) + 8; // Proper spacing
-    
-    // Patient Information Table
-    doc.setFontSize(9); // Reduced from 12
-    doc.setFont('helvetica', 'bold');
-    doc.text('PATIENT INFORMATION', margin, yPos);
-    yPos += 6; // Proper spacing after heading
-    
-    const patientData = [
+
+    quickCards.forEach((card, i) => {
+      const cx = margin + i * (cardW + cardGap);
+
+      if (card.highlight) {
+        setFill(doc, COLORS.brand);
+        roundedRect(doc, cx, cardY, cardW, cardH, 3, 'F');
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6.5);
+        setText(doc, { r: 200, g: 225, b: 255 });
+        doc.text(card.label.toUpperCase(), cx + cardW / 2, cardY + 6.5, { align: 'center' });
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        setText(doc, COLORS.white);
+        doc.text(card.value, cx + cardW / 2, cardY + 14.5, { align: 'center' });
+      } else {
+        setFill(doc, COLORS.brandLight);
+        roundedRect(doc, cx, cardY, cardW, cardH, 3, 'F');
+        setFill(doc, COLORS.brand);
+        doc.rect(cx + 4, cardY, cardW - 8, 1, 'F');
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6.5);
+        setText(doc, COLORS.body);
+        doc.text(card.label.toUpperCase(), cx + cardW / 2, cardY + 6.5, { align: 'center' });
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        setText(doc, COLORS.dark);
+        doc.text(card.value, cx + cardW / 2, cardY + 14.5, { align: 'center' });
+      }
+    });
+
+    y = cardY + cardH + 10;
+
+    // ═══════════════════════════════════════════════════════════
+    // PATIENT INFORMATION
+    // ═══════════════════════════════════════════════════════════
+
+    ensureSpace(40);
+    y = drawSectionHeading(doc, 'Patient Information', y, margin);
+
+    const patientRows: [string, string][] = [
       ['Full Name', bookingData.patient.name],
-      ['Phone Number', bookingData.patient.phone],
-      ...(bookingData.patient.email ? [['Email', bookingData.patient.email]] : [])
+      ['Phone', bookingData.patient.phone],
     ];
-    
-    yPos = drawSimpleTable(doc, margin, yPos, patientData, [50, 90], lightBlue) + 8; // Proper spacing
-    
-    // Healthcare Provider Table
-    doc.setFontSize(9); // Reduced from 12
-    doc.setFont('helvetica', 'bold');
-    doc.text('HEALTHCARE PROVIDER', margin, yPos);
-    yPos += 6; // Proper spacing after heading
-    
-    const providerData = [
-      ['Doctor Name', bookingData.doctor.name],
+    if (bookingData.patient.email) {
+      patientRows.push(['Email', bookingData.patient.email]);
+    }
+    y = drawInfoTable(doc, patientRows, margin, y, labelW, valueW) + 8;
+
+    // ═══════════════════════════════════════════════════════════
+    // HEALTHCARE PROVIDER
+    // ═══════════════════════════════════════════════════════════
+
+    ensureSpace(50);
+    y = drawSectionHeading(doc, 'Healthcare Provider', y, margin);
+
+    const providerRows: [string, string][] = [
+      ['Doctor', bookingData.doctor.name],
       ['Specialization', bookingData.doctor.specialization],
       ['Dispensary', bookingData.dispensary.name],
-      ['Address', bookingData.dispensary.address]
+      ['Address', bookingData.dispensary.address],
     ];
-    
-    yPos = drawSimpleTable(doc, margin, yPos, providerData, [50, 90], lightBlue) + 8; // Same width as other tables
-    
-    // Fee Breakdown Table
+    y = drawInfoTable(doc, providerRows, margin, y, labelW, valueW) + 8;
+
+    // ═══════════════════════════════════════════════════════════
+    // FEE BREAKDOWN
+    // ═══════════════════════════════════════════════════════════
+
     if (bookingData.fees) {
-      doc.setFontSize(9); // Reduced from 12
-      doc.setFont('helvetica', 'bold');
-      doc.text('FEE BREAKDOWN', margin, yPos);
-      yPos += 6; // Proper spacing after heading
-      
-      const feeData = [
-        ['Doctor Fee', `Rs ${bookingData.fees.doctorFee}`],
-        ['Dispensary Fee', `Rs ${bookingData.fees.dispensaryFee}`],
-        ['Booking Commission', `Rs ${bookingData.fees.bookingCommission}`],
-        ['TOTAL AMOUNT', `Rs ${bookingData.fees.totalAmount}`]
+      // Fee section needs ~65mm (heading + 3 rows + separator + total card)
+      ensureSpace(65);
+      y = drawSectionHeading(doc, 'Fee Breakdown', y, margin);
+
+      const formatFee = (n: number) => `Rs ${n.toFixed(2)}`;
+
+      const feeItems: [string, number][] = [
+        ['Doctor Fee', bookingData.fees.doctorFee],
+        ['Dispensary Fee', bookingData.fees.dispensaryFee],
+        ['Booking Commission', bookingData.fees.bookingCommission],
       ];
-      
-      yPos = drawSimpleTable(doc, margin, yPos, feeData, [70, 70], lightBlue) + 8; // Proper spacing
-      
-      // Highlight the total amount row - calculate the position of the last row
-      const lastRowHeight = baseRowHeight; // Assuming single line for total amount
-      const totalRowY = yPos - 8 - lastRowHeight;
-      
-      // Draw highlight background
-      doc.setFillColor(240, 248, 255);
-      doc.rect(margin, totalRowY, 140, lastRowHeight, 'F');
-      
-      // Redraw borders for the highlighted row
-      doc.setDrawColor(lightBlue[0], lightBlue[1], lightBlue[2]);
+
+      feeItems.forEach((item, i) => {
+        const isAlt = i % 2 === 0;
+        if (isAlt) {
+          setFill(doc, COLORS.brandMist);
+          roundedRect(doc, margin, y, contentWidth, 8, 1, 'F');
+        }
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        setText(doc, COLORS.body);
+        doc.text(item[0], margin + 4, y + 5.5);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        setText(doc, COLORS.dark);
+        doc.text(formatFee(item[1]), margin + contentWidth - 4, y + 5.5, { align: 'right' });
+
+        y += 8;
+      });
+
+      // Separator line before total
+      y += 2;
+      setDraw(doc, COLORS.border);
       doc.setLineWidth(0.3);
-      doc.rect(margin, totalRowY, 70, lastRowHeight);
-      doc.rect(margin + 70, totalRowY, 70, lastRowHeight);
-      
-      // Redraw the total amount text in green
-      doc.setFontSize(8);
+      doc.line(margin, y, margin + contentWidth, y);
+      y += 4;
+
+      // Total amount — prominent card
+      setFill(doc, COLORS.brand);
+      roundedRect(doc, margin, y, contentWidth, 14, 3, 'F');
+
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(0, 100, 0);
-      doc.text('TOTAL AMOUNT', margin + 1, totalRowY + 4);
-      doc.text(`Rs ${bookingData.fees.totalAmount}`, margin + 71, totalRowY + 4);
+      doc.setFontSize(9);
+      setText(doc, { r: 200, g: 225, b: 255 });
+      doc.text('TOTAL AMOUNT', margin + 6, y + 9);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      setText(doc, COLORS.white);
+      doc.text(formatFee(bookingData.fees.totalAmount), margin + contentWidth - 6, y + 9.5, { align: 'right' });
+
+      y += 20;
     }
-    
-    // Compact footer
-    const footerY = pageHeight - 10; // Reduced from 20
-    doc.setFontSize(6); // Reduced from 8
+
+    // ═══════════════════════════════════════════════════════════
+    // BOOKING META (Booked by info)
+    // ═══════════════════════════════════════════════════════════
+
+    if (bookingData.bookedBy || bookingData.bookedUser) {
+      ensureSpace(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      setText(doc, COLORS.muted);
+
+      const metaParts: string[] = [];
+      if (bookingData.bookedUser) metaParts.push(`Booked by: ${bookingData.bookedUser}`);
+      if (bookingData.bookedBy) metaParts.push(`Method: ${bookingData.bookedBy}`);
+      doc.text(metaParts.join('   |   '), margin, y);
+      y += 6;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // IMPORTANT NOTES BOX
+    // ═══════════════════════════════════════════════════════════
+
+    ensureSpace(24);
+
+    setFill(doc, COLORS.brandLight);
+    roundedRect(doc, margin, y, contentWidth, 20, 3, 'F');
+    setDraw(doc, { r: 191, g: 219, b: 243 });
+    doc.setLineWidth(0.3);
+    roundedRect(doc, margin, y, contentWidth, 20, 3, 'S');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    setText(doc, COLORS.brand);
+    doc.text('IMPORTANT', margin + 5, y + 6);
+
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(128, 128, 128);
-    doc.text('Thank you for choosing MyClinic Connect', pageWidth / 2, footerY, { align: 'center' });
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, pageWidth / 2, footerY + 4, { align: 'center' }); // Reduced spacing
-    
-    // Save the PDF
+    doc.setFontSize(7);
+    setText(doc, COLORS.body);
+    doc.text('Please arrive 10 minutes before your estimated appointment time.', margin + 5, y + 12);
+    doc.text('Bring this confirmation and a valid photo ID to your appointment.', margin + 5, y + 17);
+
+    // ═══════════════════════════════════════════════════════════
+    // FOOTER (on final page)
+    // ═══════════════════════════════════════════════════════════
+
+    drawFooter(doc);
+
+    // ── Save ───────────────────────────────────────────────────
     const fileName = `Booking_Confirmation_${bookingData.transactionId}.pdf`;
     doc.save(fileName);
-    
+
   } catch (error) {
     console.error('Error generating PDF:', error);
     throw new Error('Failed to generate PDF: ' + (error as Error).message);

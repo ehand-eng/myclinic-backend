@@ -9,6 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle, Trash2, Save, Edit } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const DAYS_OF_WEEK = [
   { value: '0', label: 'Sunday' },
@@ -28,6 +32,8 @@ interface TimeSlotSchedulerProps {
 const TimeSlotScheduler = ({ doctorId, dispensaryId }: TimeSlotSchedulerProps) => {
   const { toast } = useToast();
   const [timeSlots, setTimeSlots] = useState<TimeSlotConfig[]>([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [slotToDelete, setSlotToDelete] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [editMode, setEditMode] = useState<string | null>(null);
   
@@ -119,19 +125,24 @@ const TimeSlotScheduler = ({ doctorId, dispensaryId }: TimeSlotSchedulerProps) =
     }
   };
   
-  const handleDeleteTimeSlot = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this time slot?')) return;
-    
+  const handleDeleteTimeSlot = (id: string) => {
+    setSlotToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteTimeSlot = async () => {
+    if (!slotToDelete) return;
+    setDeleteDialogOpen(false);
+
     try {
-      await TimeSlotService.deleteTimeSlotConfig(id);
-      
+      await TimeSlotService.deleteTimeSlotConfig(slotToDelete);
+
       toast({
         title: 'Success',
         description: 'Time slot deleted successfully'
       });
-      
-      // Remove from local state
-      setTimeSlots(prev => prev.filter(slot => slot.id !== id));
+
+      setTimeSlots(prev => prev.filter(slot => slot.id !== slotToDelete));
     } catch (error) {
       console.error('Error deleting time slot:', error);
       toast({
@@ -139,6 +150,8 @@ const TimeSlotScheduler = ({ doctorId, dispensaryId }: TimeSlotSchedulerProps) =
         description: 'Failed to delete time slot',
         variant: 'destructive'
       });
+    } finally {
+      setSlotToDelete(null);
     }
   };
   
@@ -345,6 +358,23 @@ const TimeSlotScheduler = ({ doctorId, dispensaryId }: TimeSlotSchedulerProps) =
           </div>
         )}
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Time Slot</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this time slot? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteTimeSlot} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

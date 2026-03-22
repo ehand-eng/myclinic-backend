@@ -47,7 +47,7 @@ const AboutUs = () => {
                 <Card className="text-center p-6 hover:shadow-lg transition-shadow">
                   <CardContent className="pt-6">
                     <div className="medical-icon-bg mx-auto mb-4 flex items-center justify-center rounded-full w-16 h-16">
-                      <Heart className="h-8 w-8 text-medicalBlue-600" />
+                      <Heart className="h-8 w-8 text-medicalBlue-500" />
                     </div>
                     <h3 className="font-bold text-xl text-medicalGray-800 mb-3">Patient-First</h3>
                     <p className="text-medicalGray-600">
@@ -112,7 +112,7 @@ const AboutUs = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <Card className="p-6 text-center">
                     <CardContent className="pt-6">
-                      <div className="text-3xl font-bold text-medicalBlue-600 mb-2">50+</div>
+                      <div className="text-3xl font-bold text-medicalBlue-500 mb-2">50+</div>
                       <div className="text-medicalGray-600">Dispensaries</div>
                     </CardContent>
                   </Card>
@@ -130,7 +130,7 @@ const AboutUs = () => {
                   </Card>
                   <Card className="p-6 text-center">
                     <CardContent className="pt-6">
-                      <div className="text-3xl font-bold text-medicalBlue-600 mb-2">99.9%</div>
+                      <div className="text-3xl font-bold text-medicalBlue-500 mb-2">99.9%</div>
                       <div className="text-medicalGray-600">Uptime</div>
                     </CardContent>
                   </Card>
@@ -157,7 +157,7 @@ const AboutUs = () => {
                 <Card className="text-center p-6 hover:scale-105 transition-transform">
                   <CardContent className="pt-6">
                     <div className="medical-icon-bg mx-auto mb-4 flex items-center justify-center rounded-full w-16 h-16">
-                      <Users className="h-8 w-8 text-medicalBlue-600" />
+                      <Users className="h-8 w-8 text-medicalBlue-500" />
                     </div>
                     <h3 className="font-bold text-lg text-medicalGray-800 mb-3">Community</h3>
                     <p className="text-medicalGray-600 text-sm">
@@ -193,7 +193,7 @@ const AboutUs = () => {
                 <Card className="text-center p-6 hover:scale-105 transition-transform">
                   <CardContent className="pt-6">
                     <div className="medical-icon-bg mx-auto mb-4 flex items-center justify-center rounded-full w-16 h-16">
-                      <Shield className="h-8 w-8 text-medicalBlue-600" />
+                      <Shield className="h-8 w-8 text-medicalBlue-500" />
                     </div>
                     <h3 className="font-bold text-lg text-medicalGray-800 mb-3">Trust</h3>
                     <p className="text-medicalGray-600 text-sm">

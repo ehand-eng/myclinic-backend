@@ -1,7 +1,4 @@
-import axios from 'axios';
 import api from '../../lib/axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 export interface User {
   _id: string;
@@ -52,9 +49,7 @@ export const UserDispensaryService = {
   // Get all users with their dispensary assignments
   getAllUsers: async (): Promise<UserWithDispensaryInfo[]> => {
     try {
-            const response = await api.get(`/auth/users`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get(`/auth/users`);
       
       // The server returns the complete structure with dispensaryAssignments
       return response.data.map((user: any) => ({
@@ -73,9 +68,7 @@ export const UserDispensaryService = {
   // Get all dispensaries
   getAllDispensaries: async (): Promise<Dispensary[]> => {
     try {
-            const response = await api.get(`/dispensaries`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get(`/dispensaries`);
       return response.data.map((dispensary: any) => ({
         ...dispensary,
         createdAt: new Date(dispensary.createdAt),
@@ -90,9 +83,7 @@ export const UserDispensaryService = {
   // Get users by dispensary
   getUsersByDispensary: async (dispensaryId: string): Promise<UserWithDispensaryInfo[]> => {
     try {
-            const response = await api.get(`/user-dispensary/dispensary/${dispensaryId}/users`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get(`/user-dispensary/dispensary/${dispensaryId}/users`);
       return response.data.map((user: any) => ({
         ...user,
         lastLogin: new Date(user.lastLogin),
@@ -108,9 +99,7 @@ export const UserDispensaryService = {
   // Get all user-dispensary assignments
   getAllAssignments: async (): Promise<UserDispensaryAssignment[]> => {
     try {
-            const response = await api.get(`/user-dispensary/assignments`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get(`/user-dispensary/assignments`);
       return response.data;
     } catch (error) {
       console.error('Error fetching assignments:', error);
@@ -168,12 +157,9 @@ export const UserDispensaryService = {
   // Remove user from dispensary
   removeUserFromDispensary: async (userId: string, dispensaryId: string): Promise<UserWithDispensaryInfo> => {
     try {
-            const response = await api.delete(
+      const response = await api.delete(
         `/user-dispensary/unassign`,
-        {
-          data: { userId, dispensaryId },
-          headers: { Authorization: `Bearer ${token}` }
-        }
+        { data: { userId, dispensaryId } }
       );
       return {
         ...response.data.user,
