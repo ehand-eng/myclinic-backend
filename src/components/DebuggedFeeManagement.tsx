@@ -6,6 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'react-toastify';
 import { Pencil, Trash2, Plus, AlertCircle, Loader2 } from 'lucide-react';
@@ -58,6 +62,8 @@ const DebuggedFeeManagement: React.FC = () => {
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [feeToDelete, setFeeToDelete] = useState<string | null>(null);
 
   // Loading states for specific operations
   const [loadingDoctors, setLoadingDoctors] = useState(false);
@@ -370,41 +376,45 @@ const DebuggedFeeManagement: React.FC = () => {
     }
   };
 
-  const handleDeleteFee = async (feeId: string) => {
-    console.log('🔄 Attempting to delete fee:', feeId);
-    
+  const handleDeleteFee = (feeId: string) => {
+    console.log('Attempting to delete fee:', feeId);
+
     if (!selectedDoctorId) {
       toast.error('Invalid delete request');
       return;
     }
-    
-    if (!confirm('Are you sure you want to delete this fee configuration?')) {
-      return;
-    }
+    setFeeToDelete(feeId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteFee = async () => {
+    if (!feeToDelete || !selectedDoctorId) return;
+    setDeleteDialogOpen(false);
 
     try {
       setLoading(true);
-      
-      console.log(`📡 Sending delete request for fee ${feeId}`);
-      
-      const response = await fetch(`${API_BASE_URL}/api/doctor-dispensaries/fees/${selectedDoctorId}/${feeId}`, {
+
+      console.log(`Sending delete request for fee ${feeToDelete}`);
+
+      const response = await fetch(`${API_BASE_URL}/api/doctor-dispensaries/fees/${selectedDoctorId}/${feeToDelete}`, {
         method: 'DELETE',
       });
 
       const result = await response.json();
-      console.log('📡 Delete fee response:', result);
+      console.log('Delete fee response:', result);
 
       if (!response.ok) {
         throw new Error(result.message || 'Failed to delete fee');
       }
 
       toast.success('Fee configuration deleted successfully');
-      await fetchFeesForDoctor(selectedDoctorId); // Refresh fees list
+      await fetchFeesForDoctor(selectedDoctorId);
     } catch (error: any) {
-      console.error('❌ Error deleting fee:', error);
+      console.error('Error deleting fee:', error);
       toast.error(error.message || 'Failed to delete fee configuration');
     } finally {
       setLoading(false);
+      setFeeToDelete(null);
     }
   };
 
@@ -783,6 +793,23 @@ const DebuggedFeeManagement: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Fee Configuration</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this fee configuration? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteFee} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -23,9 +23,10 @@ const Index = () => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const allDoctors = await DoctorService.getAllDoctors(true);
-        const allDispensaries = await DispensaryService.getAllDispensaries();
-        
+        const [allDoctors, allDispensaries] = await Promise.all([
+          DoctorService.getAllDoctors(true),
+          DispensaryService.getAllDispensaries(),
+        ]);
         setDoctors(allDoctors);
         setDispensaries(allDispensaries);
       } catch (error) {

@@ -32,7 +32,7 @@ const MobileHome = () => {
           <CardContent>
             <p className="text-gray-600 mb-4">View your health records and vitals</p>
             <Button 
-              onClick={() => navigate('/dashboard')} 
+              onClick={() => navigate('/')}
               className="w-full bg-blue-600 hover:bg-blue-700"
             >
               Open Dashboard
@@ -68,7 +68,7 @@ const MobileHome = () => {
           <CardContent>
             <p className="text-gray-600 mb-4">Manage your medical appointments</p>
             <Button 
-              onClick={() => navigate('/appointments')} 
+              onClick={() => navigate('/booking')}
               className="w-full bg-purple-600 hover:bg-purple-700"
             >
               View Appointments

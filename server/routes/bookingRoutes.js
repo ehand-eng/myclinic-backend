@@ -179,10 +179,12 @@ router.get('/my', validateCustomJwt, async (req, res) => {
       patientPhone: booking.patientPhone,
       patientEmail: booking.patientEmail,
       doctor: {
+        _id: booking.doctorId?._id,
         name: booking.doctorId?.name || 'Unknown',
         specialization: booking.doctorId?.specialization || 'Unknown'
       },
       dispensary: {
+        _id: booking.dispensaryId?._id,
         name: booking.dispensaryId?.name || 'Unknown',
         address: booking.dispensaryId?.address || 'Unknown'
       },
@@ -276,6 +278,85 @@ router.get('/doctor/:doctorId/dispensary/:dispensaryId/date/:date', async (req, 
   } catch (error) {
     console.error('Error getting bookings by date:', error);
     res.status(500).json({ message: 'Error fetching bookings', error: error.message });
+  }
+});
+
+// Get available slots for a doctor/dispensary on a date (for amendment flow)
+router.get('/available-slots/:doctorId/:dispensaryId/:date', async (req, res) => {
+  try {
+    const { doctorId, dispensaryId, date } = req.params;
+    const { excludeBookingId } = req.query;
+
+    const parsedDate = new Date(date + 'T00:00:00');
+    const dayOfWeek = parsedDate.getDay();
+
+    const timeSlotConfig = await TimeSlotConfig.findOne({ doctorId, dispensaryId, dayOfWeek });
+    if (!timeSlotConfig) {
+      return res.json({ available: false, message: 'No session configured for this day', slots: [] });
+    }
+
+    const startOfDay = new Date(parsedDate); startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(parsedDate); endOfDay.setHours(23, 59, 59, 999);
+
+    const absentSlot = await AbsentTimeSlot.findOne({
+      doctorId, dispensaryId, date: { $gte: startOfDay, $lte: endOfDay }
+    });
+
+    if (absentSlot && !absentSlot.isModifiedSession) {
+      return res.json({ available: false, message: 'Doctor is not available on this date', slots: [] });
+    }
+
+    let startTime, maxPatients, minutesPerPatient;
+    if (absentSlot && absentSlot.isModifiedSession) {
+      startTime = absentSlot.startTime;
+      maxPatients = absentSlot.maxPatients || timeSlotConfig.maxPatients;
+      minutesPerPatient = absentSlot.minutesPerPatient || timeSlotConfig.minutesPerPatient;
+    } else {
+      startTime = timeSlotConfig.startTime;
+      maxPatients = timeSlotConfig.maxPatients;
+      minutesPerPatient = timeSlotConfig.minutesPerPatient || 15;
+    }
+
+    const query = {
+      doctorId, dispensaryId,
+      bookingDate: { $gte: startOfDay, $lte: endOfDay },
+      status: { $ne: 'cancelled' }
+    };
+    if (excludeBookingId) query._id = { $ne: excludeBookingId };
+
+    const existingBookings = await Booking.find(query);
+    const bookedNumbers = new Set(existingBookings.map(b => b.appointmentNumber));
+
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const slots = [];
+
+    for (let i = 1; i <= maxPatients; i++) {
+      if (!bookedNumbers.has(i)) {
+        const offset = (i - 1) * minutesPerPatient;
+        const slotDate = new Date(parsedDate);
+        slotDate.setHours(startHour, startMinute + offset, 0, 0);
+        const endSlotDate = new Date(slotDate);
+        endSlotDate.setMinutes(endSlotDate.getMinutes() + minutesPerPatient);
+
+        const fmt = (d) => `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+        slots.push({
+          appointmentNumber: i,
+          estimatedTime: fmt(slotDate),
+          timeSlot: `${fmt(slotDate)}-${fmt(endSlotDate)}`
+        });
+      }
+    }
+
+    res.json({
+      available: slots.length > 0,
+      totalSlots: maxPatients,
+      bookedSlots: bookedNumbers.size,
+      availableSlots: slots.length,
+      slots
+    });
+  } catch (error) {
+    console.error('Error fetching available slots:', error);
+    res.status(500).json({ message: 'Error fetching available slots', error: error.message });
   }
 });
 
@@ -930,6 +1011,133 @@ router.get('/summary/:transactionId', async (req, res) => {
   } catch (error) {
     console.error('Error getting booking summary:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// User self-service amend: change date/time only (same doctor/dispensary)
+router.patch('/:id/user-amend', validateCustomJwt, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newDate, appointmentNumber: requestedNumber } = req.body;
+
+    if (!newDate) {
+      return res.status(400).json({ message: 'newDate is required' });
+    }
+
+    const existingBooking = await Booking.findById(id);
+    if (!existingBooking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    // Verify ownership
+    const userId = req.user.userId || req.user.id;
+    if (existingBooking.patientEmail !== req.user.email &&
+        existingBooking.bookedUser !== userId &&
+        existingBooking.bookedUser !== req.user.email) {
+      return res.status(403).json({ message: 'Not authorized to amend this booking' });
+    }
+
+    if (existingBooking.status !== 'scheduled') {
+      return res.status(400).json({ message: 'Only scheduled bookings can be amended' });
+    }
+
+    // 24-hour check based on current appointment time
+    const [estH, estM] = existingBooking.estimatedTime.split(':').map(Number);
+    const apptDateTime = new Date(existingBooking.bookingDate);
+    apptDateTime.setHours(estH, estM, 0, 0);
+    if (apptDateTime.getTime() - Date.now() < 24 * 60 * 60 * 1000) {
+      return res.status(400).json({ message: 'Cannot amend booking within 24 hours of appointment' });
+    }
+
+    // Use same doctor/dispensary
+    const doctorId = existingBooking.doctorId;
+    const dispensaryId = existingBooking.dispensaryId;
+
+    const parsedDate = new Date(newDate);
+    const dayOfWeek = parsedDate.getDay();
+
+    const timeSlotConfig = await TimeSlotConfig.findOne({ doctorId, dispensaryId, dayOfWeek });
+    if (!timeSlotConfig) {
+      return res.status(400).json({ message: 'Doctor has no session on the selected day' });
+    }
+
+    const startOfDay = new Date(parsedDate); startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(parsedDate); endOfDay.setHours(23, 59, 59, 999);
+
+    const absentSlot = await AbsentTimeSlot.findOne({
+      doctorId, dispensaryId, date: { $gte: startOfDay, $lte: endOfDay }
+    });
+
+    if (absentSlot && !absentSlot.isModifiedSession) {
+      return res.status(400).json({ message: 'Doctor is not available on the selected date' });
+    }
+
+    let startTime, maxPatients, minutesPerPatient;
+    if (absentSlot && absentSlot.isModifiedSession) {
+      startTime = absentSlot.startTime;
+      maxPatients = absentSlot.maxPatients || timeSlotConfig.maxPatients;
+      minutesPerPatient = absentSlot.minutesPerPatient || timeSlotConfig.minutesPerPatient;
+    } else {
+      startTime = timeSlotConfig.startTime;
+      maxPatients = timeSlotConfig.maxPatients;
+      minutesPerPatient = timeSlotConfig.minutesPerPatient || 15;
+    }
+
+    const existingBookings = await Booking.find({
+      _id: { $ne: id },
+      doctorId, dispensaryId,
+      bookingDate: { $gte: startOfDay, $lte: endOfDay },
+      status: { $ne: 'cancelled' }
+    }).sort({ appointmentNumber: 1 });
+
+    if (existingBookings.length >= maxPatients) {
+      return res.status(400).json({ message: 'All appointments for the selected date are booked' });
+    }
+
+    const bookedNumbers = new Set(existingBookings.map(b => b.appointmentNumber));
+
+    // Use requested appointment number if provided and available, otherwise next available
+    let nextNumber;
+    if (requestedNumber && !bookedNumbers.has(requestedNumber) && requestedNumber <= maxPatients) {
+      nextNumber = requestedNumber;
+    } else {
+      nextNumber = 1;
+      while (bookedNumbers.has(nextNumber) && nextNumber <= maxPatients) nextNumber++;
+    }
+
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const appointmentOffset = (nextNumber - 1) * minutesPerPatient;
+    const appointmentDateTime = new Date(parsedDate);
+    appointmentDateTime.setHours(startHour, startMinute, 0, 0);
+    appointmentDateTime.setMinutes(appointmentDateTime.getMinutes() + appointmentOffset);
+
+    const estimatedHours = appointmentDateTime.getHours().toString().padStart(2, '0');
+    const estimatedMinutes = appointmentDateTime.getMinutes().toString().padStart(2, '0');
+    const estimatedTime = `${estimatedHours}:${estimatedMinutes}`;
+
+    const endOfAppointment = new Date(appointmentDateTime);
+    endOfAppointment.setMinutes(endOfAppointment.getMinutes() + minutesPerPatient);
+    const endHours = endOfAppointment.getHours().toString().padStart(2, '0');
+    const endMinutes = endOfAppointment.getMinutes().toString().padStart(2, '0');
+    const timeSlot = `${estimatedHours}:${estimatedMinutes}-${endHours}:${endMinutes}`;
+
+    const updatedBooking = await Booking.findByIdAndUpdate(id, {
+      bookingDate: parsedDate,
+      timeSlot,
+      appointmentNumber: nextNumber,
+      estimatedTime
+    }, { new: true, runValidators: true })
+      .populate('doctorId', 'name specialization')
+      .populate('dispensaryId', 'name address');
+
+    if (!updatedBooking) {
+      return res.status(500).json({ message: 'Failed to update booking' });
+    }
+
+    res.status(200).json({ message: 'Booking amended successfully', booking: updatedBooking });
+  } catch (error) {
+    console.error('Error amending booking:', error);
+    res.status(500).json({ message: 'Error amending booking', error: error.message });
   }
 });
 

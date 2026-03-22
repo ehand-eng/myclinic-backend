@@ -121,15 +121,15 @@ html {
   }
   
   .medical-button {
-    @apply bg-medicalBlue-600 hover:bg-medicalBlue-700 text-white font-medium px-6 py-3 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md;
+    @apply bg-medicalBlue-500 hover:bg-medicalBlue-600 text-white font-medium px-6 py-3 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md;
   }
-  
+
   .medical-button-outline {
-    @apply border border-medicalBlue-500 text-medicalBlue-600 hover:bg-medicalBlue-50 font-medium px-6 py-3 rounded-lg transition-colors duration-200;
+    @apply border border-medicalBlue-500 text-medicalBlue-500 hover:bg-medicalBlue-50 font-medium px-6 py-3 rounded-lg transition-colors duration-200;
   }
-  
+
   .medical-text-gradient {
-    @apply text-medicalBlue-700;
+    @apply text-medicalBlue-500;
   }
   
   .medical-icon-bg {

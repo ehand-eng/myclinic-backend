@@ -47,8 +47,7 @@ export const DispensaryService = {
       '/dispensaries/by-ids',
       { ids }
     );
-    console.log(response.data);
-    if (!response.data) return null;
+    if (!response.data) return [];
       
     return response.data.map((dispensary: any) => ({
       ...dispensary,

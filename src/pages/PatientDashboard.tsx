@@ -2,7 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Heart, Activity, Thermometer, Scale } from 'lucide-react';
+import { ArrowLeft, Heart, Activity, Thermometer, Scale, Calendar } from 'lucide-react';
 
 const PatientDashboard = () => {
   const navigate = useNavigate();
@@ -24,7 +24,7 @@ const PatientDashboard = () => {
           onClick={() => navigate('/')}
           className="mr-4 hover:bg-medicalBlue-50"
         >
-          <ArrowLeft className="h-5 w-5 text-medicalBlue-600" />
+          <ArrowLeft className="h-5 w-5 text-medicalBlue-500" />
         </Button>
         <div>
           <h1 className="text-3xl font-bold medical-text-gradient">Patient Dashboard</h1>
@@ -37,7 +37,7 @@ const PatientDashboard = () => {
         <CardHeader>
           <div className="flex items-center space-x-3">
             <div className="medical-icon-bg">
-              <Heart className="h-6 w-6 text-medicalBlue-600" />
+              <Heart className="h-6 w-6 text-medicalBlue-500" />
             </div>
             <div>
               <CardTitle className="text-2xl font-bold text-medicalGray-800">Welcome back, John Doe</CardTitle>
@@ -71,7 +71,7 @@ const PatientDashboard = () => {
       {/* Quick Actions */}
       <div className="space-y-4 fade-in-up" style={{ animationDelay: '0.6s' }}>
         <Button 
-          onClick={() => navigate('/appointments')} 
+          onClick={() => navigate('/booking')}
           className="w-full medical-button text-lg py-6"
         >
           <Calendar className="h-5 w-5 mr-2" />

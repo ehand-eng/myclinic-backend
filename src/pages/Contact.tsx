@@ -75,12 +75,12 @@ const Contact = () => {
                   <CardContent className="p-6">
                     <div className="flex items-start space-x-4">
                       <div className="medical-icon-bg">
-                        <Mail className="h-6 w-6 text-medicalBlue-600" />
+                        <Mail className="h-6 w-6 text-medicalBlue-500" />
                       </div>
                       <div>
                         <h3 className="font-medium text-lg mb-1">Email Us</h3>
                         <p className="text-gray-600 mb-2">We'll respond within 24 hours</p>
-                        <a href="mailto:info@docspot-connect.com" className="text-medicalBlue-600 hover:underline">
+                        <a href="mailto:info@docspot-connect.com" className="text-medicalBlue-500 hover:underline">
                           info@docspot-connect.com
                         </a>
                       </div>
@@ -92,12 +92,12 @@ const Contact = () => {
                   <CardContent className="p-6">
                     <div className="flex items-start space-x-4">
                       <div className="medical-icon-bg">
-                        <Phone className="h-6 w-6 text-medicalBlue-600" />
+                        <Phone className="h-6 w-6 text-medicalBlue-500" />
                       </div>
                       <div>
                         <h3 className="font-medium text-lg mb-1">Call Us</h3>
                         <p className="text-gray-600 mb-2">Mon-Fri from 9am to 6pm</p>
-                        <a href="tel:+15551234567" className="text-medicalBlue-600 hover:underline">
+                        <a href="tel:+15551234567" className="text-medicalBlue-500 hover:underline">
                           +1 (555) 123-4567
                         </a>
                       </div>
@@ -109,12 +109,12 @@ const Contact = () => {
                   <CardContent className="p-6">
                     <div className="flex items-start space-x-4">
                       <div className="medical-icon-bg">
-                        <MapPin className="h-6 w-6 text-medicalBlue-600" />
+                        <MapPin className="h-6 w-6 text-medicalBlue-500" />
                       </div>
                       <div>
                         <h3 className="font-medium text-lg mb-1">Main Office</h3>
                         <p className="text-gray-600 mb-2">Visit our headquarters</p>
-                        <address className="text-medicalBlue-600 not-italic">
+                        <address className="text-medicalBlue-500 not-italic">
                           123 Health Avenue, Medical District<br />
                           New York, NY 10001
                         </address>
@@ -127,12 +127,12 @@ const Contact = () => {
                   <CardContent className="p-6">
                     <div className="flex items-start space-x-4">
                       <div className="medical-icon-bg">
-                        <Clock className="h-6 w-6 text-medicalBlue-600" />
+                        <Clock className="h-6 w-6 text-medicalBlue-500" />
                       </div>
                       <div>
                         <h3 className="font-medium text-lg mb-1">Working Hours</h3>
                         <p className="text-gray-600 mb-2">When you can reach us</p>
-                        <div className="space-y-1 text-medicalBlue-600">
+                        <div className="space-y-1 text-medicalBlue-500">
                           <p>Monday - Friday: 9:00 AM - 6:00 PM</p>
                           <p>Saturday: 10:00 AM - 4:00 PM</p>
                           <p>Sunday: Closed</p>

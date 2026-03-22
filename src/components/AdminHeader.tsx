@@ -32,7 +32,7 @@ const AdminHeader = () => {
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('current_user');
-    navigate('/admin');
+    navigate('/admin', { replace: true });
   };
 
   const normalizedRole = user?.role?.toLowerCase() || null;
@@ -46,7 +46,7 @@ const AdminHeader = () => {
     { key: 'bookings', label: 'Bookings', icon: Calendar, path: '/admin/bookings' },
     { key: 'fees', label: 'Fee Management', icon: DollarSign, path: '/admin/fees' },
     { key: 'assign-users', label: 'Assign Users', icon: Users, path: '/admin/user-dispensary' },
-    { key: 'dispensary-check-in', label: 'Check-In', icon: Users, path: '/dispensary/check-in' },
+    { key: 'dispensary-check-in', label: 'Check-In', icon: Users, path: '/admin/dispensary/check-in' },
   ];
 
   const getFilteredNavItems = () => {
@@ -72,15 +72,15 @@ const AdminHeader = () => {
   return (
     <header className="sticky top-0 z-50">
       {/* Top Bar - Logo and User Info */}
-      <div className="bg-gradient-to-br from-medicalGray-900 via-medicalBlue-900 to-medicalTeal-900 text-white shadow-lg">
+      <div className="bg-medicalBlue-500 text-white shadow-lg">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             {/* Logo/Brand */}
             <div className="flex items-center space-x-3">
-              <div className="medical-icon-bg-dark">
-                <Building2 className="h-6 w-6 text-medicalBlue-400" />
+              <div className="bg-white/15 p-3 rounded-full">
+                <Building2 className="h-6 w-6 text-white" />
               </div>
-              <Link to="/admin/dashboard" className="font-bold text-2xl text-white hover:text-medicalBlue-300 transition-colors">
+              <Link to="/admin/dashboard" className="font-bold text-2xl text-white hover:text-white/80 transition-colors">
                 Admin Dashboard
               </Link>
             </div>
@@ -90,11 +90,11 @@ const AdminHeader = () => {
               {user && (
                 <>
                   <div className="hidden md:block text-right">
-                    <div className="text-sm font-medium text-medicalGray-300">
+                    <div className="text-sm font-medium text-white/90">
                       {user.email}
                     </div>
                     {user.role && (
-                      <div className="text-xs text-medicalBlue-400 font-medium">
+                      <div className="text-xs text-medicalBlue-100 font-medium">
                         {getRoleDisplayName(user.role)}
                       </div>
                     )}
@@ -104,7 +104,7 @@ const AdminHeader = () => {
                       onClick={() => navigate('/admin/profile')}
                       variant="outline"
                       size="sm"
-                      className="border-medicalBlue-400 text-medicalBlue-200 hover:bg-medicalBlue-500/20 hover:text-white"
+                      className="border-white/40 text-white hover:bg-white/20 hover:text-white"
                     >
                       Profile
                     </Button>
@@ -113,7 +113,7 @@ const AdminHeader = () => {
                     onClick={handleLogout}
                     variant="outline"
                     size="sm"
-                    className="border-red-400 text-red-300 hover:bg-red-500/20 hover:text-red-200"
+                    className="border-red-300/60 text-red-100 hover:bg-red-500/20 hover:text-red-100"
                   >
                     <LogOut className="h-4 w-4 mr-2" />
                     Logout
@@ -124,7 +124,7 @@ const AdminHeader = () => {
               {/* Mobile Menu Button */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden p-2 rounded-lg text-medicalGray-300 hover:bg-white/10 hover:text-white transition-colors"
+                className="lg:hidden p-2 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition-colors"
               >
                 {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
               </button>
@@ -134,17 +134,22 @@ const AdminHeader = () => {
       </div>
 
       {/* Bottom Bar - Navigation Menu */}
-      <div className="bg-gradient-to-r from-medicalBlue-800 to-medicalTeal-800 text-white shadow-md">
+      <div className="bg-medicalBlue-700 text-white shadow-md">
         <div className="container mx-auto px-4 py-2">
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center justify-center space-x-1">
             {filteredNavItems.map((item) => {
               const Icon = item.icon;
+              const isActive = location.pathname === item.path;
               return (
                 <Link
                   key={item.key}
                   to={item.path}
-                  className="flex flex-col items-center space-y-1 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors min-w-[100px]"
+                  className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-lg transition-colors min-w-[100px] ${
+                    isActive
+                      ? 'bg-white/20 text-white'
+                      : 'text-white/75 hover:bg-white/10 hover:text-white'
+                  }`}
                 >
                   <Icon className="h-4 w-4" />
                   <span className="text-xs font-medium text-center">{item.label}</span>
@@ -159,11 +164,16 @@ const AdminHeader = () => {
               <div className="grid grid-cols-2 gap-2 pt-2">
                 {filteredNavItems.map((item) => {
                   const Icon = item.icon;
+                  const isActive = location.pathname === item.path;
                   return (
                     <Link
                       key={item.key}
                       to={item.path}
-                      className="flex items-center space-x-2 px-3 py-2 rounded-lg text-medicalGray-200 hover:bg-white/10 hover:text-white transition-colors"
+                      className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
+                        isActive
+                          ? 'bg-white/20 text-white'
+                          : 'text-white/75 hover:bg-white/10 hover:text-white'
+                      }`}
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       <Icon className="h-4 w-4" />

@@ -93,20 +93,20 @@ const AdminChangePassword = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-medicalGray-900 via-medicalBlue-900 to-medicalTeal-900">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-medicalBlue-500 via-medicalBlue-600 to-medicalBlue-800">
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="flex justify-center mb-8">
             <div className="flex items-center gap-2 text-white">
-              <Building2 className="h-10 w-10 text-medicalBlue-400" />
+              <Building2 className="h-10 w-10 text-white" />
               <span className="text-2xl font-bold">Admin Portal</span>
             </div>
           </div>
 
-          <Card className="border-medicalBlue-800/50 bg-white/95 shadow-xl">
+          <Card className="border-white/20 bg-white/95 shadow-xl">
             <CardHeader>
               <div className="flex justify-center mb-2">
-                <Lock className="h-12 w-12 text-medicalBlue-600" />
+                <Lock className="h-12 w-12 text-medicalBlue-500" />
               </div>
               <CardTitle className="text-xl text-center">Change your password</CardTitle>
               <CardDescription className="text-center">
@@ -188,7 +188,7 @@ const AdminChangePassword = () => {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-medicalBlue-800 hover:bg-medicalBlue-900 text-white"
+                  className="w-full bg-medicalBlue-500 hover:bg-medicalBlue-600 text-white"
                 >
                   {isLoading ? 'Updating...' : 'Set new password'}
                 </Button>

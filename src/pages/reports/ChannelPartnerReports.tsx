@@ -37,7 +37,7 @@ const ChannelPartnerReports = () => {
           description: "Please log in to access reports",
           variant: "destructive"
         });
-        navigate('/login');
+        navigate('/admin', { replace: true });
         return;
       }
       

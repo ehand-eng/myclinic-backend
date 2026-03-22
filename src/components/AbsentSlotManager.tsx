@@ -12,6 +12,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { format, addDays, subDays } from 'date-fns';
 import { CalendarClock, Plus, Trash2 } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface AbsentSlotManagerProps {
   doctorId: string;
@@ -22,6 +26,8 @@ const AbsentSlotManager = ({ doctorId, dispensaryId }: AbsentSlotManagerProps) =
   const { toast } = useToast();
   const [absentSlots, setAbsentSlots] = useState<AbsentTimeSlot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [slotToDelete, setSlotToDelete] = useState<string | null>(null);
   
   // New absent time slot state
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(addDays(new Date(), 1));
@@ -111,19 +117,24 @@ const AbsentSlotManager = ({ doctorId, dispensaryId }: AbsentSlotManagerProps) =
     }
   };
   
-  const handleDeleteAbsentSlot = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this absent time slot?')) return;
-    
+  const handleDeleteAbsentSlot = (id: string) => {
+    setSlotToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteAbsentSlot = async () => {
+    if (!slotToDelete) return;
+    setDeleteDialogOpen(false);
+
     try {
-      await TimeSlotService.deleteAbsentTimeSlot(id);
-      
+      await TimeSlotService.deleteAbsentTimeSlot(slotToDelete);
+
       toast({
         title: 'Success',
         description: 'Absent slot deleted successfully'
       });
-      
-      // Remove from local state
-      setAbsentSlots(prev => prev.filter(slot => slot.id !== id));
+
+      setAbsentSlots(prev => prev.filter(slot => slot.id !== slotToDelete));
     } catch (error) {
       console.error('Error deleting absent slot:', error);
       toast({
@@ -131,6 +142,8 @@ const AbsentSlotManager = ({ doctorId, dispensaryId }: AbsentSlotManagerProps) =
         description: 'Failed to delete absent slot',
         variant: 'destructive'
       });
+    } finally {
+      setSlotToDelete(null);
     }
   };
   
@@ -160,9 +173,20 @@ const AbsentSlotManager = ({ doctorId, dispensaryId }: AbsentSlotManagerProps) =
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
-                className="border border-medicalGreen-200 rounded-xl shadow-lg mt-2 medical-card"
+                className="border border-medicalGreen-200 rounded-xl shadow-lg mt-2 medical-card w-full"
+                classNames={{
+                  months: "flex flex-col w-full",
+                  month: "space-y-4 w-full",
+                  table: "w-full border-collapse space-y-1",
+                  head_row: "flex w-full",
+                  head_cell: "text-muted-foreground rounded-md flex-1 font-normal text-[0.8rem] text-center",
+                  row: "flex w-full mt-2",
+                  cell: "flex-1 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-lg [&:has([aria-selected].day-outside)]:bg-medicalGreen-50 [&:has([aria-selected])]:bg-medicalGreen-600 first:[&:has([aria-selected])]:rounded-l-lg last:[&:has([aria-selected])]:rounded-r-lg focus-within:relative focus-within:z-20",
+                  day: "h-9 w-full p-0 font-normal aria-selected:opacity-100 rounded-lg hover:bg-accent hover:text-accent-foreground",
+                  day_selected: "bg-medicalGreen-600 text-white hover:bg-medicalGreen-700 hover:text-white focus:bg-medicalGreen-600 focus:text-white rounded-lg",
+                  day_today: "bg-medicalGreen-50 text-medicalGreen-700 font-semibold rounded-lg",
+                }}
                 disabled={(date) => {
-                  // Can't select dates in the past
                   const today = new Date();
                   today.setHours(0, 0, 0, 0);
                   return date < today;
@@ -288,6 +312,23 @@ const AbsentSlotManager = ({ doctorId, dispensaryId }: AbsentSlotManagerProps) =
           </div>
         )}
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Absent Slot</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this absent time slot? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteAbsentSlot} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

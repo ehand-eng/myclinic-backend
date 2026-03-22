@@ -12,6 +12,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Eye, Edit, Trash2, Plus, Search, MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { canManageDispensaries } from '@/lib/roleUtils';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const AdminDispensaries = () => {
   const navigate = useNavigate();
@@ -20,6 +24,8 @@ const AdminDispensaries = () => {
   const [filteredDispensaries, setFilteredDispensaries] = useState<Dispensary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [dispensaryToDelete, setDispensaryToDelete] = useState<string | null>(null);
 
   // Get current user for role-based UI
   const userStr = typeof window !== 'undefined' ? localStorage.getItem('current_user') : null;
@@ -86,11 +92,17 @@ const AdminDispensaries = () => {
     }
   }, [searchTerm, dispensaries]);
 
-  const handleDeleteDispensary = async (dispensaryId: string) => {
-    if (!window.confirm('Are you sure you want to delete this dispensary?')) return;
+  const handleDeleteDispensary = (dispensaryId: string) => {
+    setDispensaryToDelete(dispensaryId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteDispensary = async () => {
+    if (!dispensaryToDelete) return;
+    setDeleteDialogOpen(false);
 
     try {
-      await DispensaryService.deleteDispensary(dispensaryId);
+      await DispensaryService.deleteDispensary(dispensaryToDelete);
       toast({
         title: 'Success',
         description: 'Dispensary has been deleted successfully'
@@ -103,6 +115,8 @@ const AdminDispensaries = () => {
         description: 'Failed to delete dispensary',
         variant: 'destructive'
       });
+    } finally {
+      setDispensaryToDelete(null);
     }
   };
 
@@ -215,6 +229,23 @@ const AdminDispensaries = () => {
         </Card>
       </main>
       <AdminFooter />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Dispensary</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this dispensary? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteDispensary} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

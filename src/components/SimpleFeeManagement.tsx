@@ -6,6 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'react-toastify';
 import { Pencil, Trash2, Plus, AlertCircle, Loader2 } from 'lucide-react';
@@ -46,6 +50,8 @@ const SimpleFeeManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [loadingDispensaries, setLoadingDispensaries] = useState(false);
   const [loadingFees, setLoadingFees] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [feeToDelete, setFeeToDelete] = useState<string | null>(null);
 
   // Form state
   const [feeForm, setFeeForm] = useState({
@@ -329,15 +335,20 @@ const SimpleFeeManagement: React.FC = () => {
     }
   };
 
-  const handleDeleteFee = async (feeId: string) => {
+  const handleDeleteFee = (feeId: string) => {
     if (!selectedDoctorId) return;
-    
-    if (!confirm('Are you sure you want to delete this fee?')) return;
+    setFeeToDelete(feeId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteFee = async () => {
+    if (!feeToDelete || !selectedDoctorId) return;
+    setDeleteDialogOpen(false);
 
     try {
       setLoading(true);
-      
-      const response = await fetch(`${API_BASE_URL}/api/fees/${selectedDoctorId}/${feeId}`, {
+
+      const response = await fetch(`${API_BASE_URL}/api/fees/${selectedDoctorId}/${feeToDelete}`, {
         method: 'DELETE',
       });
 
@@ -347,15 +358,13 @@ const SimpleFeeManagement: React.FC = () => {
       }
 
       toast.success('Fee deleted successfully');
-      
-      // Reload fees
       await loadFeesForDoctor(selectedDoctorId);
-      
     } catch (error: any) {
-      console.error('❌ Error deleting fee:', error);
+      console.error('Error deleting fee:', error);
       toast.error(`Failed to delete fee: ${error.message}`);
     } finally {
       setLoading(false);
+      setFeeToDelete(null);
     }
   };
 
@@ -726,6 +735,23 @@ const SimpleFeeManagement: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Fee</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this fee? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteFee} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

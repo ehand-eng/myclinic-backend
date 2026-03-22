@@ -12,6 +12,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Eye, Edit, Trash2, Plus, Search, UserX, UserCheck } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { canManageDoctors } from '@/lib/roleUtils';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const AdminDoctors = () => {
   const navigate = useNavigate();
@@ -20,6 +24,8 @@ const AdminDoctors = () => {
   const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [doctorToDelete, setDoctorToDelete] = useState<string | null>(null);
 
   const userStr = typeof window !== 'undefined' ? localStorage.getItem('current_user') : null;
   const currentUser = userStr ? JSON.parse(userStr) : null;
@@ -110,11 +116,17 @@ const AdminDoctors = () => {
     }
   };
 
-  const handleDeleteDoctor = async (doctorId: string) => {
-    if (!window.confirm('Are you sure you want to delete this doctor?')) return;
+  const handleDeleteDoctor = (doctorId: string) => {
+    setDoctorToDelete(doctorId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteDoctor = async () => {
+    if (!doctorToDelete) return;
+    setDeleteDialogOpen(false);
 
     try {
-      await DoctorService.deleteDoctor(doctorId);
+      await DoctorService.deleteDoctor(doctorToDelete);
       toast({
         title: 'Success',
         description: 'Doctor has been deleted successfully'
@@ -127,6 +139,8 @@ const AdminDoctors = () => {
         description: 'Failed to delete doctor',
         variant: 'destructive'
       });
+    } finally {
+      setDoctorToDelete(null);
     }
   };
 
@@ -252,6 +266,23 @@ const AdminDoctors = () => {
         </Card>
       </main>
       <AdminFooter />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Doctor</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this doctor? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteDoctor} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

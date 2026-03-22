@@ -29,7 +29,7 @@ const AdminReports = () => {
           description: "Please log in to access the reports",
           variant: "destructive"
         });
-        navigate('/login');
+        navigate('/admin', { replace: true });
         return;
       }
       

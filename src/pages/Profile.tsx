@@ -281,14 +281,16 @@ const Profile = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Role</Label>
-                <Input
-                  value={getRoleDisplayName(profile.role)}
-                  disabled
-                />
-              </div>
+            <div className={`grid grid-cols-1 ${isAdminUser ? 'md:grid-cols-2' : ''} gap-4`}>
+              {isAdminUser && (
+                <div className="space-y-2">
+                  <Label>Role</Label>
+                  <Input
+                    value={getRoleDisplayName(profile.role)}
+                    disabled
+                  />
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Last Login</Label>
                 <Input
@@ -302,23 +304,25 @@ const Profile = () => {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Dispensary IDs</Label>
-              <Input
-                value={
-                  profile.dispensaryIds && profile.dispensaryIds.length > 0
-                    ? profile.dispensaryIds.join(', ')
-                    : 'No dispensary assigned'
-                }
-                disabled
-              />
-            </div>
+            {isAdminUser && (
+              <div className="space-y-2">
+                <Label>Dispensary IDs</Label>
+                <Input
+                  value={
+                    profile.dispensaryIds && profile.dispensaryIds.length > 0
+                      ? profile.dispensaryIds.join(', ')
+                      : 'No dispensary assigned'
+                  }
+                  disabled
+                />
+              </div>
+            )}
 
             <div className="pt-4">
               <Button
                 onClick={handleSaveProfile}
                 disabled={isSavingProfile}
-                className="bg-medicalBlue-700 hover:bg-medicalBlue-800 text-white"
+                className="bg-medicalBlue-500 hover:bg-medicalBlue-600 text-white"
               >
                 {isSavingProfile ? 'Saving...' : 'Save Profile'}
               </Button>

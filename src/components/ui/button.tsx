@@ -10,15 +10,15 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-medicalBlue-600 text-white hover:bg-medicalBlue-700 shadow-sm hover:shadow-md",
+          "bg-medicalBlue-500 text-white hover:bg-medicalBlue-600 shadow-sm hover:shadow-md",
         destructive:
           "bg-red-500 text-white hover:bg-red-600 shadow-sm hover:shadow-md",
         outline:
-          "border border-medicalBlue-500 bg-transparent text-medicalBlue-600 hover:bg-medicalBlue-50 shadow-none",
+          "border border-medicalBlue-400 bg-transparent text-medicalBlue-500 hover:bg-medicalBlue-50 shadow-none",
         secondary:
           "bg-medicalGray-100 text-medicalGray-800 hover:bg-medicalGray-200 shadow-none",
-        ghost: "hover:bg-medicalBlue-50 hover:text-medicalBlue-700 shadow-none",
-        link: "text-medicalBlue-600 underline-offset-4 hover:underline hover:text-medicalBlue-700",
+        ghost: "hover:bg-medicalBlue-50 hover:text-medicalBlue-600 shadow-none",
+        link: "text-medicalBlue-500 underline-offset-4 hover:underline hover:text-medicalBlue-600",
       },
       size: {
         default: "h-10 px-4 py-2",

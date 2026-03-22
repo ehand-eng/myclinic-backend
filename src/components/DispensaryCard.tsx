@@ -32,7 +32,7 @@ const DispensaryCard = ({ dispensary, doctorCount }: DispensaryCardProps) => {
           
           <div className="flex items-center space-x-3">
             <Phone className="h-5 w-5 text-medicalGray-500" />
-            <a href={`tel:${dispensary.contactNumber}`} className="text-medicalBlue-600 hover:text-medicalBlue-700 hover:underline font-medium">
+            <a href={`tel:${dispensary.contactNumber}`} className="text-medicalBlue-500 hover:text-medicalBlue-600 hover:underline font-medium">
               {dispensary.contactNumber}
             </a>
           </div>
@@ -40,7 +40,7 @@ const DispensaryCard = ({ dispensary, doctorCount }: DispensaryCardProps) => {
           {dispensary.email && (
             <div className="flex items-center space-x-3">
               <Mail className="h-5 w-5 text-medicalGray-500" />
-              <a href={`mailto:${dispensary.email}`} className="text-medicalBlue-600 hover:text-medicalBlue-700 hover:underline font-medium">
+              <a href={`mailto:${dispensary.email}`} className="text-medicalBlue-500 hover:text-medicalBlue-600 hover:underline font-medium">
                 {dispensary.email}
               </a>
             </div>

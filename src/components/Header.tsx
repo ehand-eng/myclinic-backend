@@ -1,17 +1,28 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Menu, X, Calendar, User, Phone, BookOpen, Mail } from 'lucide-react';
-import { useState } from 'react';
+import { Menu, X, Calendar, User, Phone, BookOpen, Mail, LogOut, ChevronDown } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 import { getRoleDisplayName } from '@/lib/roleUtils';
-import MyBookingsModal from '@/components/MyBookingsModal';
 
 const Header = () => {
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showMyBookings, setShowMyBookings] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const userStr = localStorage.getItem('current_user');
   const user = userStr ? JSON.parse(userStr) : null;
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
@@ -20,11 +31,11 @@ const Header = () => {
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('current_user');
-    window.location.href = '/login';
+    navigate('/login', { replace: true });
   };
 
   const handleProfile = () => {
-    window.location.href = '/profile';
+    navigate('/profile');
   };
 
   const scrollToAppointment = () => {
@@ -36,11 +47,6 @@ const Header = () => {
 
   return (
     <>
-      <MyBookingsModal
-        isOpen={showMyBookings}
-        onClose={() => setShowMyBookings(false)}
-      />
-
       {/* Medilab Top Bar */}
       <div className="medilab-topbar hidden md:block">
         <div className="container mx-auto px-4 flex items-center justify-between">
@@ -119,15 +125,13 @@ const Header = () => {
                       </Link>
 
                       {user && (!user.role || user.role === 'online') && (
-                        <button
-                          onClick={() => {
-                            setShowMyBookings(true);
-                            setMobileMenuOpen(false);
-                          }}
-                          className="text-lg font-medium text-medilab-heading hover:text-medilab-primary transition-colors p-3 rounded-lg hover:bg-medilab-section-bg text-left"
+                        <Link
+                          to="/my-bookings"
+                          className="text-lg font-medium text-medilab-heading hover:text-medilab-primary transition-colors p-3 rounded-lg hover:bg-medilab-section-bg"
+                          onClick={() => setMobileMenuOpen(false)}
                         >
                           My Bookings
-                        </button>
+                        </Link>
                       )}
 
                       <div className="pt-4 flex flex-col space-y-3">
@@ -173,39 +177,66 @@ const Header = () => {
                 {/* Right side: Auth + CTA */}
                 <div className="flex items-center space-x-4">
                   {user ? (
-                    <>
-                      <div className="text-right mr-2">
-                        <div className="text-sm font-medium text-medilab-heading">
-                          {user.email}
+                    <div className="relative" ref={dropdownRef}>
+                      <button
+                        onClick={() => setDropdownOpen(!dropdownOpen)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-gray-100 transition-colors"
+                      >
+                        <div className="h-8 w-8 rounded-full bg-medilab-primary/10 flex items-center justify-center">
+                          <User className="h-4 w-4 text-medilab-primary" />
                         </div>
-                        {user.role && (
-                          <div className="text-xs text-medilab-primary font-medium">
-                            {getRoleDisplayName(user.role)}
+                        <span className="text-sm font-medium text-medilab-heading max-w-[150px] truncate">
+                          {user.name || user.email}
+                        </span>
+                        <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {dropdownOpen && (
+                        <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50">
+                          <div className="px-4 py-3 border-b border-gray-100">
+                            <p className="text-sm font-medium text-medilab-heading truncate">{user.name || 'User'}</p>
+                            <p className="text-xs text-gray-500 truncate">{user.email}</p>
                           </div>
-                        )}
-                      </div>
-                      {(!user.role || user.role === 'online') && (
-                        <button
-                          onClick={() => setShowMyBookings(true)}
-                          className="px-3 py-1.5 rounded-full bg-medilab-section-bg hover:bg-medilab-light-bg text-medilab-primary text-sm font-medium transition-colors flex items-center gap-1.5"
-                        >
-                          <BookOpen className="h-3.5 w-3.5" />
-                          My Bookings
-                        </button>
+
+                          {(!user.role || user.role === 'online') && (
+                            <button
+                              onClick={() => {
+                                navigate('/my-bookings');
+                                setDropdownOpen(false);
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-medilab-heading hover:bg-gray-50 transition-colors"
+                            >
+                              <BookOpen className="h-4 w-4 text-gray-500" />
+                              My Bookings
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => {
+                              handleProfile();
+                              setDropdownOpen(false);
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-medilab-heading hover:bg-gray-50 transition-colors"
+                          >
+                            <User className="h-4 w-4 text-gray-500" />
+                            Profile
+                          </button>
+
+                          <div className="border-t border-gray-100">
+                            <button
+                              onClick={() => {
+                                handleLogout();
+                                setDropdownOpen(false);
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                            >
+                              <LogOut className="h-4 w-4" />
+                              Logout
+                            </button>
+                          </div>
+                        </div>
                       )}
-                      <button
-                        onClick={handleProfile}
-                        className="px-3 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-medilab-heading text-sm font-medium transition-colors"
-                      >
-                        Profile
-                      </button>
-                      <button
-                        onClick={handleLogout}
-                        className="px-3 py-1.5 rounded-full bg-red-50 hover:bg-red-100 text-red-600 text-sm font-medium transition-colors"
-                      >
-                        Logout
-                      </button>
-                    </>
+                    </div>
                   ) : (
                     <Link
                       to="/login"

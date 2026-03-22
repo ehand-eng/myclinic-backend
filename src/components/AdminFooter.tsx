@@ -1,12 +1,12 @@
 const AdminFooter = () => {
   return (
-    <footer className="bg-gradient-to-r from-medicalGray-800 to-medicalBlue-900 text-white py-6 mt-auto">
+    <footer className="bg-medicalBlue-800 text-white py-6 mt-auto">
       <div className="container mx-auto px-4">
         <div className="text-center">
-          <p className="text-medicalGray-300 text-sm">
+          <p className="text-white/70 text-sm">
             &copy; {new Date().getFullYear()} MyClinic Admin Panel. All rights reserved.
           </p>
-          <p className="text-medicalGray-400 text-xs mt-2">
+          <p className="text-white/50 text-xs mt-2">
             Empowering healthcare management through technology
           </p>
         </div>

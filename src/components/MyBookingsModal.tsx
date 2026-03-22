@@ -151,7 +151,7 @@ const MyBookingsModal = ({ isOpen, onClose }: MyBookingsModalProps) => {
                   {/* Date and Time */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex items-center gap-2">
-                      <CalendarDays className="h-4 w-4 text-medicalBlue-600" />
+                      <CalendarDays className="h-4 w-4 text-medicalBlue-500" />
                       <div>
                         <div className="font-medium">{formatDate(booking.bookingDate)}</div>
                         <div className="text-sm text-gray-500">
@@ -161,7 +161,7 @@ const MyBookingsModal = ({ isOpen, onClose }: MyBookingsModalProps) => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-medicalBlue-600" />
+                      <Clock className="h-4 w-4 text-medicalBlue-500" />
                       <div>
                         <div className="font-medium">Estimated Time</div>
                         <div className="text-sm text-gray-500">{booking.estimatedTime}</div>
@@ -172,7 +172,7 @@ const MyBookingsModal = ({ isOpen, onClose }: MyBookingsModalProps) => {
                   {/* Doctor and Dispensary */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex items-start gap-2">
-                      <Stethoscope className="h-4 w-4 text-medicalBlue-600 mt-1" />
+                      <Stethoscope className="h-4 w-4 text-medicalBlue-500 mt-1" />
                       <div>
                         <div className="font-medium">{booking.doctor.name}</div>
                         <div className="text-sm text-gray-500">{booking.doctor.specialization}</div>
@@ -180,7 +180,7 @@ const MyBookingsModal = ({ isOpen, onClose }: MyBookingsModalProps) => {
                     </div>
 
                     <div className="flex items-start gap-2">
-                      <MapPin className="h-4 w-4 text-medicalBlue-600 mt-1" />
+                      <MapPin className="h-4 w-4 text-medicalBlue-500 mt-1" />
                       <div>
                         <div className="font-medium">{booking.dispensary.name}</div>
                         <div className="text-sm text-gray-500">{booking.dispensary.address}</div>
@@ -191,7 +191,7 @@ const MyBookingsModal = ({ isOpen, onClose }: MyBookingsModalProps) => {
                   {/* Patient Info */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-medicalBlue-600" />
+                      <Phone className="h-4 w-4 text-medicalBlue-500" />
                       <div>
                         <div className="font-medium">Contact</div>
                         <div className="text-sm text-gray-500">{booking.patientPhone}</div>
@@ -200,7 +200,7 @@ const MyBookingsModal = ({ isOpen, onClose }: MyBookingsModalProps) => {
 
                     {booking.patientEmail && (
                       <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-medicalBlue-600" />
+                        <Mail className="h-4 w-4 text-medicalBlue-500" />
                         <div>
                           <div className="font-medium">Email</div>
                           <div className="text-sm text-gray-500">{booking.patientEmail}</div>

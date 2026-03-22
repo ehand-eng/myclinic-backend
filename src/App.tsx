@@ -1,164 +1,143 @@
 
+import { lazy, Suspense, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { Toaster } from '@/components/ui/toaster';
+import { Loader2 } from 'lucide-react';
+import RequireAuth from '@/components/RequireAuth';
+
+// Eagerly load the landing page (first thing users see)
 import Index from './pages/Index';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
 import NotFound from './pages/NotFound';
 
-// Component to scroll to top on route change
+// Lazy-load everything else — each becomes its own chunk
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const AdminDoctors = lazy(() => import('./pages/AdminDoctors'));
+const AdminReports = lazy(() => import('./pages/AdminReports'));
+const AdminTimeSlots = lazy(() => import('./pages/AdminTimeSlots'));
+const Booking = lazy(() => import('./pages/Booking'));
+const Contact = lazy(() => import('./pages/Contact'));
+const AboutUs = lazy(() => import('./pages/AboutUs'));
+const Doctors = lazy(() => import('./pages/Doctors'));
+const Login = lazy(() => import('./pages/Login'));
+const CreateDoctor = lazy(() => import('./pages/CreateDoctor'));
+const EditDoctor = lazy(() => import('./pages/EditDoctor'));
+const ViewDoctor = lazy(() => import('./pages/ViewDoctor'));
+const CreateDispensary = lazy(() => import('./pages/CreateDispensary'));
+const EditDispensary = lazy(() => import('./pages/EditDispensary'));
+const ViewDispensary = lazy(() => import('./pages/ViewDispensary'));
+const AdminDispensaries = lazy(() => import('./pages/AdminDispensaries'));
+const BookingSummary = lazy(() => import('@/components/booking/BookingSummary'));
+const Callback = lazy(() => import('./pages/Callback'));
+const DailyBookings = lazy(() => import('@/pages/reports/DailyBookings'));
+const MonthlySummary = lazy(() => import('@/pages/reports/MonthlySummary'));
+const DoctorPerformance = lazy(() => import('@/pages/reports/DoctorPerformance'));
+const ChannelPartnerReports = lazy(() => import('@/pages/reports/ChannelPartnerReports'));
+const Signup = lazy(() => import('./pages/Signup'));
+const AdminFeeManage = lazy(() => import('./pages/AdminFeeManage'));
+const MobileHome = lazy(() => import('./pages/MobileHome'));
+const TimeSlotManagement = lazy(() => import('./pages/TimeSlotManagement'));
+const CustomRoleManagement = lazy(() => import('./pages/admin/CustomRoleManagement'));
+const Appointments = lazy(() => import('./pages/Appointments'));
+const BookingDetail = lazy(() => import('./pages/BookingDetail'));
+const DispensaryCheckIn = lazy(() => import('./pages/DispensaryCheckIn'));
+const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
+const PaymentFailed = lazy(() => import('./pages/PaymentFailed'));
+const Profile = lazy(() => import('./pages/Profile'));
+const MyBookings = lazy(() => import('./pages/MyBookings'));
+const AdminLogin = lazy(() => import('./pages/AdminLogin'));
+const AdminChangePassword = lazy(() => import('./pages/AdminChangePassword'));
+
+// Minimal full-page loading fallback
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+  </div>
+);
+
+// Scroll to top on route change — single immediate call only
 const ScrollToTop = () => {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    // More aggressive scroll to top approach
-    const scrollToTop = () => {
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-
-      // Force scroll on any scrollable containers
-      const scrollableElements = document.querySelectorAll('[style*="overflow"], .overflow-auto, .overflow-y-auto');
-      scrollableElements.forEach(el => {
-        el.scrollTop = 0;
-      });
-    };
-
-    // Immediate scroll
-    scrollToTop();
-
-    // Multiple fallbacks with different timing
-    setTimeout(scrollToTop, 0);
-    setTimeout(scrollToTop, 10);
-    setTimeout(scrollToTop, 50);
-    setTimeout(scrollToTop, 100);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [pathname]);
 
   return null;
 };
-import AdminDashboard from './pages/AdminDashboard';
-import AdminDoctors from './pages/AdminDoctors';
-import AdminReports from './pages/AdminReports';
-import AdminTimeSlots from './pages/AdminTimeSlots';
-import Booking from './pages/Booking';
-import Contact from './pages/Contact';
-import AboutUs from './pages/AboutUs';
-import Doctors from './pages/Doctors';
-import Login from './pages/Login';
-import CreateDoctor from './pages/CreateDoctor';
-import EditDoctor from './pages/EditDoctor';
-import ViewDoctor from './pages/ViewDoctor';
-import CreateDispensary from './pages/CreateDispensary';
-import EditDispensary from './pages/EditDispensary';
-import ViewDispensary from './pages/ViewDispensary';
-import AdminDispensaries from './pages/AdminDispensaries';
-import BookingSummary from '@/components/booking/BookingSummary';
-import Callback from './pages/Callback';
-import DailyBookings from '@/pages/reports/DailyBookings';
-import MonthlySummary from '@/pages/reports/MonthlySummary';
-import DoctorPerformance from '@/pages/reports/DoctorPerformance';
-import ChannelPartnerReports from '@/pages/reports/ChannelPartnerReports';
-import UserDispensaryAssignment from '@/pages/UserDispensaryAssignment';
-// import DoctorDispensaryFeeManager from './components/admin/DoctorDispensaryFeeManager';
-import Signup from './pages/Signup';
-import AdminFeeManage from './pages/AdminFeeManage';
-import MobileHome from './pages/MobileHome';
-import TimeSlotManagement from './pages/TimeSlotManagement';
-import CustomRoleManagement from './pages/admin/CustomRoleManagement';
-import Appointments from './pages/Appointments';
-import BookingDetail from './pages/BookingDetail';
-import DispensaryCheckIn from './pages/DispensaryCheckIn';
-import { Dashboard } from '@mui/icons-material';
-import { Toaster } from '@/components/ui/toaster';
-import PaymentSuccess from './pages/PaymentSuccess';
-import PaymentFailed from './pages/PaymentFailed';
-import Profile from './pages/Profile';
-import AdminLogin from './pages/AdminLogin';
-import AdminChangePassword from './pages/AdminChangePassword';
 
 const App = () => {
   useEffect(() => {
-    // Disable browser's default scroll restoration to ensure programmatic scrolling works
     if (window.history.scrollRestoration) {
       window.history.scrollRestoration = 'manual';
     }
-
-    // Also listen for popstate events (back/forward button)
-    const handlePopState = () => {
-      setTimeout(() => {
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
-      }, 0);
-    };
-
-    window.addEventListener('popstate', handlePopState);
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, []); // Run once on mount
+  }, []);
 
   return (
     <Router>
       <ScrollToTop />
       <Toaster />
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Index />} />
-        <Route path="/about" element={<AboutUs />} />
-        <Route path="/booking" element={<Booking />} />
-        <Route path="/doctors" element={<Doctors />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/callback" element={<Callback />} />
-        <Route path="/profile" element={<Profile />} />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<Index />} />
+          <Route path="/about" element={<AboutUs />} />
+          <Route path="/booking" element={<Booking />} />
+          <Route path="/doctors" element={<Doctors />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/callback" element={<Callback />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/my-bookings" element={<MyBookings />} />
 
-        {/* Admin login - must be before other /admin/* routes */}
-        <Route path="/admin" element={<AdminLogin />} />
-        <Route path="/admin/change-password" element={<AdminChangePassword />} />
+          {/* Booking Summary (public — accessed via transaction link) */}
+          <Route path="/booking-summary/:transactionId" element={<BookingSummary />} />
 
-        {/* Admin Routes */}
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/admin/doctors" element={<AdminDoctors />} />
-        <Route path="/admin/dispensaries" element={<AdminDispensaries />} />
-        <Route path="/admin/reports" element={<AdminReports />} />
-        <Route path="/admin/time-slots" element={<AdminTimeSlots />} />
-        <Route path="/admin/bookings" element={<Appointments />} />
-        <Route path="/admin/bookings/:id" element={<BookingDetail />} />
-        <Route path="/admin/doctors/create" element={<CreateDoctor />} />
-        <Route path="/admin/doctors/edit/:id" element={<EditDoctor />} />
-        <Route path="/admin/doctors/view/:id" element={<ViewDoctor />} />
-        <Route path="/admin/dispensaries/create" element={<CreateDispensary />} />
-        <Route path="/admin/dispensaries/edit/:id" element={<EditDispensary />} />
-        <Route path="/admin/dispensaries/view/:id" element={<ViewDispensary />} />
-        <Route path="/admin/user-dispensary" element={<CustomRoleManagement />} />
-        <Route path="/admin/roles" element={<CustomRoleManagement />} />
-        <Route path='/admin/fees' element={<AdminFeeManage />} />
-        <Route path="/admin/profile" element={<Profile />} />
+          {/* Payment Result Routes (public — user returns from payment gateway) */}
+          <Route path="/booking/payment-success/:bookingId" element={<PaymentSuccess />} />
+          <Route path="/booking/payment-failed/:bookingId" element={<PaymentFailed />} />
 
-        {/* Dispensary Routes */}
-        <Route path="/dispensary/check-in" element={<DispensaryCheckIn />} />
+          {/* Admin login (public — unauthenticated users land here) */}
+          <Route path="/admin" element={<AdminLogin />} />
 
-        {/* Specific Routes */}
-        <Route path="/doctor/:doctorId/dispensary/:dispensaryId/time-slots" element={<TimeSlotManagement />} />
+          {/* All admin routes — protected by RequireAuth */}
+          <Route element={<RequireAuth />}>
+            <Route path="/admin/change-password" element={<AdminChangePassword />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/doctors" element={<AdminDoctors />} />
+            <Route path="/admin/dispensaries" element={<AdminDispensaries />} />
+            <Route path="/admin/reports" element={<AdminReports />} />
+            <Route path="/admin/time-slots" element={<AdminTimeSlots />} />
+            <Route path="/admin/bookings" element={<Appointments />} />
+            <Route path="/admin/bookings/:id" element={<BookingDetail />} />
+            <Route path="/admin/doctors/create" element={<CreateDoctor />} />
+            <Route path="/admin/doctors/edit/:id" element={<EditDoctor />} />
+            <Route path="/admin/doctors/view/:id" element={<ViewDoctor />} />
+            <Route path="/admin/dispensaries/create" element={<CreateDispensary />} />
+            <Route path="/admin/dispensaries/edit/:id" element={<EditDispensary />} />
+            <Route path="/admin/dispensaries/view/:id" element={<ViewDispensary />} />
+            <Route path="/admin/user-dispensary" element={<CustomRoleManagement />} />
+            <Route path="/admin/roles" element={<CustomRoleManagement />} />
+            <Route path="/admin/fees" element={<AdminFeeManage />} />
+            <Route path="/admin/profile" element={<Profile />} />
 
-        {/* Booking Summary Route */}
-        <Route path="/booking-summary/:transactionId" element={<BookingSummary />} />
+            {/* Dispensary check-in (was /dispensary/check-in, now under /admin/) */}
+            <Route path="/admin/dispensary/check-in" element={<DispensaryCheckIn />} />
 
-        {/* Payment Result Routes */}
-        <Route path="/booking/payment-success/:bookingId" element={<PaymentSuccess />} />
-        <Route path="/booking/payment-failed/:bookingId" element={<PaymentFailed />} />
+            {/* Time slot management (was /doctor/:id/dispensary/:id/time-slots) */}
+            <Route path="/admin/doctor/:doctorId/dispensary/:dispensaryId/time-slots" element={<TimeSlotManagement />} />
 
-        {/* Reports Routes */}
-        <Route path="/reports/daily-bookings" element={<DailyBookings />} />
-        <Route path="/reports/monthly-summary" element={<MonthlySummary />} />
-        <Route path="/reports/doctor-performance" element={<DoctorPerformance />} />
-        <Route path="/reports/channel-partner" element={<ChannelPartnerReports />} />
+            {/* Reports (were /reports/*, now under /admin/) */}
+            <Route path="/admin/reports/daily-bookings" element={<DailyBookings />} />
+            <Route path="/admin/reports/monthly-summary" element={<MonthlySummary />} />
+            <Route path="/admin/reports/doctor-performance" element={<DoctorPerformance />} />
+            <Route path="/admin/reports/channel-partner" element={<ChannelPartnerReports />} />
+          </Route>
 
-        {/* Catch All - 404 */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+          {/* Catch All - 404 */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
     </Router>
   );
 };
