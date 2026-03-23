@@ -1,17 +1,18 @@
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminHeader from '@/components/AdminHeader';
 import AdminFooter from '@/components/AdminFooter';
 import { Button } from '@/components/ui/button';
-import { DoctorService } from '@/api/services';
-import { Doctor } from '@/api/models';
+import { DoctorService, DispensaryService } from '@/api/services';
+import { Doctor, Dispensary } from '@/api/models';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, Edit, Trash2, Plus, Search, UserX, UserCheck } from 'lucide-react';
+import { Eye, Edit, Trash2, Plus, Search, UserX, UserCheck, UserCog } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { canManageDoctors } from '@/lib/roleUtils';
+import ReplacementDoctorManager from '@/components/ReplacementDoctorManager';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -26,10 +27,13 @@ const AdminDoctors = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [doctorToDelete, setDoctorToDelete] = useState<string | null>(null);
+  const [expandedReplacementDoctor, setExpandedReplacementDoctor] = useState<string | null>(null);
+  const [dispensaryMap, setDispensaryMap] = useState<Record<string, Dispensary>>({});
 
   const userStr = typeof window !== 'undefined' ? localStorage.getItem('current_user') : null;
   const currentUser = userStr ? JSON.parse(userStr) : null;
   const canManage = canManageDoctors(currentUser?.role);
+  const userDispensaryIds: string[] = (currentUser?.dispensaryIds || []).map((d: any) => typeof d === 'string' ? d : d._id || d.id);
 
   useEffect(() => {
     fetchDoctors();
@@ -72,6 +76,19 @@ const AdminDoctors = () => {
       console.log('Fetched doctors:', data);
       setDoctors(data);
       setFilteredDoctors(data);
+
+      // Fetch dispensary names for replacement manager
+      try {
+        let dispensaries: Dispensary[];
+        if (userDispensaryIds.length > 0) {
+          dispensaries = await DispensaryService.getDispensariesByIds(userDispensaryIds);
+        } else {
+          dispensaries = await DispensaryService.getAllDispensaries();
+        }
+        const map: Record<string, Dispensary> = {};
+        dispensaries.forEach((d: Dispensary) => { map[d.id] = d; });
+        setDispensaryMap(map);
+      } catch (e) { /* ignore */ }
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
@@ -205,58 +222,121 @@ const AdminDoctors = () => {
                   </TableHeader>
                   <TableBody>
                     {filteredDoctors.map((doctor) => (
-                      <TableRow key={doctor.id} className={doctor.disabled ? 'opacity-60 bg-gray-50' : ''}>
-                        <TableCell className="font-medium">{doctor.name}</TableCell>
-                        <TableCell>{doctor.specialization}</TableCell>
-                        <TableCell>{doctor.email}</TableCell>
-                        <TableCell>{doctor.contactNumber}</TableCell>
-                        <TableCell>
-                          {doctor.disabled ? (
-                            <span className="text-amber-600 font-medium">Disabled</span>
-                          ) : (
-                            <span className="text-green-600 font-medium">Active</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/admin/doctors/view/${doctor.id}`)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          {canManage && (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleToggleDisabled(doctor.id, !!doctor.disabled)}
-                                title={doctor.disabled ? 'Enable doctor' : 'Disable doctor'}
-                              >
-                                {doctor.disabled ? (
-                                  <UserCheck className="h-4 w-4 text-green-600" />
+                      <React.Fragment key={doctor.id}>
+                        <TableRow className={doctor.disabled ? 'opacity-60 bg-gray-50' : ''}>
+                          <TableCell className="font-medium">{doctor.name}</TableCell>
+                          <TableCell>{doctor.specialization}</TableCell>
+                          <TableCell>{doctor.email}</TableCell>
+                          <TableCell>{doctor.contactNumber}</TableCell>
+                          <TableCell>
+                            {doctor.disabled ? (
+                              <span className="text-amber-600 font-medium">Disabled</span>
+                            ) : (
+                              <span className="text-green-600 font-medium">Active</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="space-x-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigate(`/admin/doctors/view/${doctor.id}`)}
+                              title="View doctor"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            {canManage && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setExpandedReplacementDoctor(
+                                    expandedReplacementDoctor === doctor.id ? null : doctor.id
+                                  )}
+                                  title="Manage replacement doctor"
+                                  className={expandedReplacementDoctor === doctor.id ? 'bg-blue-100' : ''}
+                                >
+                                  <UserCog className="h-4 w-4 text-blue-600" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleToggleDisabled(doctor.id, !!doctor.disabled)}
+                                  title={doctor.disabled ? 'Enable doctor' : 'Disable doctor'}
+                                >
+                                  {doctor.disabled ? (
+                                    <UserCheck className="h-4 w-4 text-green-600" />
+                                  ) : (
+                                    <UserX className="h-4 w-4 text-amber-600" />
+                                  )}
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => navigate(`/admin/doctors/edit/${doctor.id}`)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteDoctor(doctor.id)}
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </>
+                            )}
+                          </TableCell>
+                        </TableRow>
+
+                        {/* Expanded replacement doctor section */}
+                        {expandedReplacementDoctor === doctor.id && canManage && (
+                          <TableRow key={`${doctor.id}-replacement`}>
+                            <TableCell colSpan={6} className="bg-blue-50/50 p-4">
+                              <div className="space-y-4">
+                                <h4 className="text-sm font-semibold text-blue-800 flex items-center gap-2">
+                                  <UserCog className="h-4 w-4" />
+                                  Replacement Doctor Management - {doctor.name}
+                                </h4>
+                                {userDispensaryIds.length > 0 ? (
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {userDispensaryIds
+                                      .filter(dId => doctor.dispensaries.includes(dId))
+                                      .map(dId => (
+                                        <div key={dId} className="bg-white rounded-lg p-3 border">
+                                          <h5 className="text-sm font-medium mb-1">{dispensaryMap[dId]?.name || dId}</h5>
+                                          <ReplacementDoctorManager
+                                            doctorId={doctor.id}
+                                            dispensaryId={dId}
+                                            doctorName={doctor.name}
+                                            dispensaryName={dispensaryMap[dId]?.name || ''}
+                                          />
+                                        </div>
+                                    ))}
+                                    {userDispensaryIds.filter(dId => doctor.dispensaries.includes(dId)).length === 0 && (
+                                      <p className="text-sm text-gray-500 italic">This doctor is not associated with your dispensary</p>
+                                    )}
+                                  </div>
                                 ) : (
-                                  <UserX className="h-4 w-4 text-amber-600" />
+                                  /* Super admin: show all dispensaries */
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {doctor.dispensaries.map(dId => (
+                                      <div key={dId} className="bg-white rounded-lg p-3 border">
+                                        <h5 className="text-sm font-medium mb-1">{dispensaryMap[dId]?.name || dId}</h5>
+                                        <ReplacementDoctorManager
+                                          doctorId={doctor.id}
+                                          dispensaryId={dId}
+                                          doctorName={doctor.name}
+                                          dispensaryName={dispensaryMap[dId]?.name || ''}
+                                        />
+                                      </div>
+                                    ))}
+                                  </div>
                                 )}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => navigate(`/admin/doctors/edit/${doctor.id}`)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteDoctor(doctor.id)}
-                              >
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                              </Button>
-                            </>
-                          )}
-                        </TableCell>
-                      </TableRow>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </React.Fragment>
                     ))}
                   </TableBody>
                 </Table>

@@ -7,18 +7,33 @@ export interface AvailableTimeSlot {
   minutesPerPatient: number;
 }
 
+export interface SessionAvailability {
+  timeSlotConfigId: string;
+  startTime: string;
+  endTime: string;
+  maxPatients: number;
+  minutesPerPatient: number;
+  isModified: boolean;
+  totalSlots: number;
+  bookedSlots: number;
+  availableSlots: number;
+  slots: AvailableTimeSlot[];
+}
+
 export interface TimeSlotAvailability {
   available: boolean;
   isModified?: boolean;
-  reason?: 'absent' | 'no_config';
+  reason?: 'absent' | 'no_config' | 'fully_booked' | 'session_expired';
   message?: string;
   sessionInfo?: {
     startTime: string;
     endTime: string;
     minutesPerPatient: number;
     maxPatients: number;
+    timeSlotConfigId?: string;
   };
   slots?: AvailableTimeSlot[];
+  sessions?: SessionAvailability[];
 }
 
 export interface TimeSlotFees {
@@ -54,11 +69,45 @@ export interface AbsentTimeSlot {
   doctorId: string;
   dispensaryId: string;
   date: Date;
+  startTime?: string;
+  endTime?: string;
   isModifiedSession: boolean;
   maxPatients: number;
   minutesPerPatient: number | null;
   createdAt: Date;
   updatedAt: Date;
+  // Date range fields
+  isDateRange?: boolean;
+  startDate?: Date;
+  endDate?: Date;
+  reason?: string;
+  // Per-session absence
+  timeSlotConfigId?: string;
+}
+
+export interface ConflictingBooking {
+  _id: string;
+  patientName: string;
+  patientPhone: string;
+  bookingDate: string;
+  estimatedTime: string;
+  appointmentNumber: number;
+  status: string;
+  transactionId: string;
+}
+
+export interface DateRangeConflictResponse {
+  hasOverlap: boolean;
+  overlappingAbsences?: any[];
+  bookingCount?: number;
+  bookings?: ConflictingBooking[];
+  message?: string;
+}
+
+export interface DateRangeAbsenceResponse {
+  message?: string;
+  conflictingBookings?: ConflictingBooking[];
+  requiresForce?: boolean;
 }
 
 export interface DoctorDispensaryFee {
@@ -188,10 +237,14 @@ export const TimeSlotService = {
       return response.data.map((slot: any) => ({
         ...slot,
         id: slot._id,
-        date: new Date(slot.date),
+        date: slot.date ? new Date(slot.date) : undefined,
         isModifiedSession: slot.isModifiedSession || false,
         maxPatients: slot.maxPatients || 0,
         minutesPerPatient: slot.minutesPerPatient || null,
+        isDateRange: slot.isDateRange || false,
+        startDate: slot.startDate ? new Date(slot.startDate) : undefined,
+        endDate: slot.endDate ? new Date(slot.endDate) : undefined,
+        reason: slot.reason,
         createdAt: new Date(slot.createdAt),
         updatedAt: new Date(slot.updatedAt)
       }));
@@ -484,6 +537,59 @@ export const TimeSlotService = {
     } catch (error) {
       console.error('Error assigning doctor-dispensary fees:', error);
       throw new Error('Failed to assign doctor-dispensary fees');
+    }
+  },
+
+  // Get disabled dates for a doctor-dispensary pair (for calendar)
+  getDisabledDates: async (doctorId: string, dispensaryId: string): Promise<string[]> => {
+    try {
+      const response = await api.get(
+        `/timeslots/absent/disabled-dates/${doctorId}/${dispensaryId}`
+      );
+      return response.data.disabledDates || [];
+    } catch (error) {
+      console.error('Error fetching disabled dates:', error);
+      return [];
+    }
+  },
+
+  // Check conflicts for a date range absence
+  checkDateRangeConflicts: async (
+    doctorId: string,
+    dispensaryId: string,
+    startDate: string,
+    endDate: string
+  ): Promise<DateRangeConflictResponse> => {
+    try {
+      const response = await api.get('/timeslots/absent/date-range/check-conflicts', {
+        params: { doctorId, dispensaryId, startDate, endDate }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error checking date range conflicts:', error);
+      throw new Error('Failed to check date range conflicts');
+    }
+  },
+
+  // Create a date range absence
+  createDateRangeAbsence: async (data: {
+    doctorId: string;
+    dispensaryId: string;
+    startDate: string;
+    endDate: string;
+    reason?: string;
+    force?: boolean;
+  }): Promise<any> => {
+    try {
+      const response = await api.post('/timeslots/absent/date-range', data);
+      return response.data;
+    } catch (error: any) {
+      // Return the conflict response for the caller to handle
+      if (error.response?.status === 409) {
+        throw error;
+      }
+      console.error('Error creating date range absence:', error);
+      throw new Error('Failed to create date range absence');
     }
   },
 

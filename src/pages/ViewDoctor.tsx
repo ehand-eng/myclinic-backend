@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { DoctorService, DispensaryService } from '@/api/services';
 import { Doctor, Dispensary } from '@/api/models';
 import { Calendar } from 'lucide-react';
+import ReplacementDoctorManager from '@/components/ReplacementDoctorManager';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -29,6 +30,11 @@ const ViewDoctor = () => {
   const [dispensaries, setDispensaries] = useState<Dispensary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  const currentUserStr = typeof window !== 'undefined' ? localStorage.getItem('current_user') : null;
+  const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+  const userDispensaryIds: string[] = (currentUser?.dispensaryIds || []).map((d: any) => typeof d === 'string' ? d : d._id || d.id);
+  const isSuperAdmin = currentUser?.role === 'super-admin';
 
   useEffect(() => {
     const fetchDoctor = async () => {
@@ -236,6 +242,14 @@ const ViewDoctor = () => {
                               </Button>
                             </div>
                           </div>
+                          {(isSuperAdmin || userDispensaryIds.includes(dispensary.id)) && (
+                            <ReplacementDoctorManager
+                              doctorId={doctor.id}
+                              dispensaryId={dispensary.id}
+                              doctorName={doctor.name}
+                              dispensaryName={dispensary.name}
+                            />
+                          )}
                         </div>
                       ))}
                     </div>

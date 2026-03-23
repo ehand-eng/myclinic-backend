@@ -4,6 +4,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const Doctor = require('../models/Doctor');
 const Dispensary = require('../models/Dispensary');
+const ReplacementDoctor = require('../models/ReplacementDoctor');
 const logger = require('../utils/logger');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
@@ -55,6 +56,19 @@ router.get('/', async (req, res) => {
       stack: error.stack
     });
     res.status(500).json({ message: 'Error fetching doctors', error: error.message });
+  }
+});
+
+// Delete a replacement doctor entry (must be before /:id to avoid conflict)
+router.delete('/replacement/:id', requireDoctorManager, async (req, res) => {
+  try {
+    const replacement = await ReplacementDoctor.findByIdAndDelete(req.params.id);
+    if (!replacement) {
+      return res.status(404).json({ message: 'Replacement not found' });
+    }
+    res.status(200).json({ message: 'Replacement deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting replacement', error: error.message });
   }
 });
 
@@ -390,6 +404,118 @@ router.delete('/:id', async (req, res) => {
       stack: error.stack,
     });
     res.status(500).json({ message: 'Error deleting doctor', error: error.message });
+  }
+});
+
+// ============ Replacement Doctor Routes ============
+
+// Get active replacement for a doctor at a dispensary for a given date (public - used by booking UI)
+// Query param: ?date=YYYY-MM-DD (optional, defaults to today)
+router.get('/:doctorId/dispensary/:dispensaryId/replacement', async (req, res) => {
+  try {
+    const { doctorId, dispensaryId } = req.params;
+    const checkDate = req.query.date ? new Date(req.query.date) : new Date();
+    checkDate.setHours(0, 0, 0, 0);
+
+    const replacement = await ReplacementDoctor.findOne({
+      doctorId, dispensaryId,
+      startDate: { $lte: checkDate },
+      endDate: { $gte: checkDate }
+    });
+
+    res.status(200).json(replacement || null);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching replacement', error: error.message });
+  }
+});
+
+// Get all replacements for a doctor at a dispensary (admin)
+router.get('/:doctorId/dispensary/:dispensaryId/replacements', async (req, res) => {
+  try {
+    const { doctorId, dispensaryId } = req.params;
+    const replacements = await ReplacementDoctor.find({ doctorId, dispensaryId })
+      .sort({ startDate: -1 });
+    res.status(200).json(replacements);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching replacements', error: error.message });
+  }
+});
+
+// Create a replacement doctor entry
+router.post('/:doctorId/dispensary/:dispensaryId/replacement', requireDoctorManager, async (req, res) => {
+  try {
+    const { doctorId, dispensaryId } = req.params;
+    const { replacementName, startDate, endDate, reason } = req.body;
+
+    if (!replacementName || !startDate || !endDate) {
+      return res.status(400).json({ message: 'replacementName, startDate, and endDate are required' });
+    }
+
+    const rangeStart = new Date(startDate);
+    rangeStart.setHours(0, 0, 0, 0);
+    const rangeEnd = new Date(endDate);
+    rangeEnd.setHours(23, 59, 59, 999);
+
+    if (rangeStart > rangeEnd) {
+      return res.status(400).json({ message: 'Start date must be before end date' });
+    }
+
+    // Check for overlapping active replacements
+    const overlap = await ReplacementDoctor.findOne({
+      doctorId, dispensaryId,
+      startDate: { $lte: rangeEnd },
+      endDate: { $gte: rangeStart }
+    });
+
+    if (overlap) {
+      return res.status(409).json({
+        message: 'There is already an active replacement for this period',
+        existing: overlap
+      });
+    }
+
+    const replacement = new ReplacementDoctor({
+      doctorId, dispensaryId,
+      replacementName,
+      startDate: rangeStart,
+      endDate: rangeEnd,
+      reason
+    });
+
+    await replacement.save();
+    res.status(201).json(replacement);
+  } catch (error) {
+    res.status(500).json({ message: 'Error creating replacement', error: error.message });
+  }
+});
+
+// Bulk get active replacements for multiple doctors at a dispensary (used by booking UI)
+router.post('/replacements/active', async (req, res) => {
+  try {
+    const { doctorIds, dispensaryId } = req.body;
+    if (!doctorIds || !dispensaryId) {
+      return res.status(400).json({ message: 'doctorIds and dispensaryId are required' });
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const replacements = await ReplacementDoctor.find({
+      doctorId: { $in: doctorIds },
+      dispensaryId,
+      startDate: { $lte: today },
+      endDate: { $gte: today }
+    });
+
+    // Return as map: doctorId -> replacement
+    const replacementMap = {};
+    replacements.forEach(r => {
+      replacementMap[r.doctorId.toString()] = r;
+    });
+
+    res.status(200).json(replacementMap);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching replacements', error: error.message });
   }
 });
 

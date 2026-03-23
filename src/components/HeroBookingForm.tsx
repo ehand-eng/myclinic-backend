@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DoctorService, DispensaryService } from '@/api/services';
+import { TimeSlotService } from '@/api/services/TimeSlotService';
 import { Doctor, Dispensary } from '@/api/models';
 import { format, addDays } from 'date-fns';
 import { CalendarIcon, Search } from 'lucide-react';
@@ -23,6 +24,7 @@ const HeroBookingForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingDispensaries, setIsLoadingDispensaries] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [disabledDates, setDisabledDates] = useState<Set<string>>(new Set());
 
   // Load only doctors on initial page load — dispensaries are NOT loaded here
   useEffect(() => {
@@ -85,6 +87,23 @@ const HeroBookingForm = () => {
     const dispObj = dispensaries.find(d => d.id === dispensaryId) || null;
     setSelectedDispensaryData(dispObj);
   };
+
+  // Fetch disabled dates when doctor and dispensary are selected
+  useEffect(() => {
+    if (!selectedDoctor || !selectedDispensary) {
+      setDisabledDates(new Set());
+      return;
+    }
+    const fetchDisabledDates = async () => {
+      try {
+        const dates = await TimeSlotService.getDisabledDates(selectedDoctor, selectedDispensary);
+        setDisabledDates(new Set(dates));
+      } catch (error) {
+        console.error('Error fetching disabled dates:', error);
+      }
+    };
+    fetchDisabledDates();
+  }, [selectedDoctor, selectedDispensary]);
 
   // Compute dynamic max booking days from doctor and dispensary settings
   const maxBookingDays = (() => {
@@ -202,7 +221,10 @@ const HeroBookingForm = () => {
                 disabled={(date) => {
                   const today = new Date();
                   today.setHours(0, 0, 0, 0);
-                  return date < today || date > addDays(today, maxBookingDays);
+                  if (date < today || date > addDays(today, maxBookingDays)) return true;
+                  // Disable dates where doctor is absent
+                  const dateStr = format(date, 'yyyy-MM-dd');
+                  return disabledDates.has(dateStr);
                 }}
                 initialFocus
                 className="rounded-md border shadow-sm"

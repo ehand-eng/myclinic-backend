@@ -24,6 +24,8 @@ export const API_ENDPOINTS = {
     TIMESLOTS_SESSIONS: '/api/timeslots/sessions',
     TIMESLOTS_SESSIONS_BY_DISPENSARY: '/api/timeslots/sessions-by-dispensary',
     TIMESLOTS_ABSENT: '/api/timeslots/absent',
+    TIMESLOTS_ABSENT_DATE_RANGE: '/api/timeslots/absent/date-range',
+    TIMESLOTS_ABSENT_CHECK_CONFLICTS: '/api/timeslots/absent/date-range/check-conflicts',
 
     // Doctor-Dispensary Fees
     DOCTOR_DISPENSARY_FEES: '/api/doctor-dispensaries/fees',

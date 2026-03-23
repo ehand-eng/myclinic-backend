@@ -10,6 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { exportBookingSummaryToPDF } from '@/lib/bookingPdfExport';
+import { DoctorService } from '@/api/services';
+import { format } from 'date-fns';
 import axios from 'axios';
 import {
   CalendarDays, Clock, MapPin, Stethoscope, Phone, Mail, ArrowLeft,
@@ -210,6 +212,25 @@ const MyBookings = () => {
     try {
       const response = await axios.get(`${API_URL}/bookings/summary/${booking.transactionId}`);
       const summary = response.data;
+
+      // Fetch replacement doctor info for the booking date
+      let replacementData: any = undefined;
+      try {
+        const doctorId = summary.doctor?.id || summary.doctor?._id;
+        const dispensaryId = summary.dispensary?.id || summary.dispensary?._id;
+        if (doctorId && dispensaryId) {
+          const dateStr = format(new Date(summary.bookingDate), 'yyyy-MM-dd');
+          const r = await DoctorService.getActiveReplacement(doctorId, dispensaryId, dateStr);
+          if (r) {
+            replacementData = {
+              name: r.replacementName,
+              startDate: format(new Date(r.startDate), 'MMM dd, yyyy'),
+              endDate: format(new Date(r.endDate), 'MMM dd, yyyy'),
+            };
+          }
+        }
+      } catch { /* ignore */ }
+
       exportBookingSummaryToPDF({
         ...summary,
         bookingDate: new Date(summary.bookingDate),
@@ -218,7 +239,8 @@ const MyBookings = () => {
           dispensaryFee: summary.fees.dispensaryFee,
           bookingCommission: summary.fees.bookingCommission,
           totalAmount: summary.fees.totalAmount
-        } : undefined
+        } : undefined,
+        replacementDoctor: replacementData
       });
       toast({ title: 'Success', description: 'PDF downloaded successfully' });
     } catch {

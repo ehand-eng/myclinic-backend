@@ -31,6 +31,11 @@ const dispensarySchema = new mongoose.Schema({
     type: Number,
     default: 30,
     min: 1
+  },
+  bookingCutoffMinutes: {
+    type: Number,
+    default: 60,
+    min: 0
   }
 }, {
   timestamps: {

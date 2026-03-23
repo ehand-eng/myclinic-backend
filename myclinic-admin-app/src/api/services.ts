@@ -151,6 +151,30 @@ export const timeSlotService = {
         await apiClient.delete(`${API_ENDPOINTS.TIMESLOTS_ABSENT}/${id}`);
     },
 
+    checkDateRangeConflicts: async (
+        doctorId: string,
+        dispensaryId: string,
+        startDate: string,
+        endDate: string
+    ): Promise<{ hasOverlap: boolean; bookingCount?: number; bookings?: any[]; overlappingAbsences?: any[] }> => {
+        const response = await apiClient.get(API_ENDPOINTS.TIMESLOTS_ABSENT_CHECK_CONFLICTS, {
+            params: { doctorId, dispensaryId, startDate, endDate }
+        });
+        return response.data;
+    },
+
+    createDateRangeAbsent: async (data: {
+        doctorId: string;
+        dispensaryId: string;
+        startDate: string;
+        endDate: string;
+        reason?: string;
+        force?: boolean;
+    }): Promise<any> => {
+        const response = await apiClient.post(API_ENDPOINTS.TIMESLOTS_ABSENT_DATE_RANGE, data);
+        return response.data;
+    },
+
     getSessionsByDispensary: async (
         dispensaryId: string,
         date: string

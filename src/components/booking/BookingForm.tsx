@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DoctorService, DispensaryService, BookingService } from '@/api/services';
+import { DoctorService, DispensaryService, BookingService, TimeSlotService } from '@/api/services';
+import type { TimeSlotAvailability } from '@/api/services/TimeSlotService';
 import api from '@/lib/axios';
 import { Doctor, Dispensary } from '@/api/models';
-import { TimeSlotAvailability } from '@/api/services/TimeSlotService';
 import BookingStep1 from './BookingStep1';
 import BookingStep2 from './BookingStep2';
 import { format } from 'date-fns';
@@ -65,6 +65,12 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCa
 
   // Fees state
   const [fees, setFees] = useState<any>(null);
+
+  // Disabled dates (absent dates)
+  const [disabledDates, setDisabledDates] = useState<string[]>([]);
+
+  // Multi-session support
+  const [selectedSession, setSelectedSession] = useState<string>('');
 
   // Adjust booking state
   const [adjustBookingId, setAdjustBookingId] = useState('');
@@ -228,6 +234,23 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCa
     fetchDispensaryDoctors();
   }, [selectedDispensary, selectedDoctor]);
 
+  // Fetch disabled dates when doctor and dispensary are selected
+  useEffect(() => {
+    const fetchDisabledDates = async () => {
+      if (!selectedDoctor || !selectedDispensary) {
+        setDisabledDates([]);
+        return;
+      }
+      try {
+        const dates = await TimeSlotService.getDisabledDates(selectedDoctor, selectedDispensary);
+        setDisabledDates(dates);
+      } catch (error) {
+        console.error('Error fetching disabled dates:', error);
+      }
+    };
+    fetchDisabledDates();
+  }, [selectedDoctor, selectedDispensary]);
+
   // Load available appointments when doctor, dispensary, and date are selected
   useEffect(() => {
     const fetchAvailability = async () => {
@@ -258,6 +281,22 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCa
     fetchAvailability();
   }, [selectedDoctor, selectedDispensary, selectedDate]);
 
+  // Helper to get the active appointment slot based on selected session
+  const getActiveSlot = () => {
+    if (availability?.sessions && availability.sessions.length > 1 && selectedSession) {
+      const session = availability.sessions.find(s => s.timeSlotConfigId === selectedSession);
+      return session?.slots?.[0] || null;
+    }
+    return availability?.slots?.[0] || null;
+  };
+
+  const getActiveSessionConfigId = () => {
+    if (availability?.sessions && availability.sessions.length > 1 && selectedSession) {
+      return selectedSession;
+    }
+    return availability?.sessionInfo?.timeSlotConfigId || undefined;
+  };
+
   const handleBooking = async (feesObj?: any, paymentMethod: 'cash' | 'online' = 'cash') => {
     if (!selectedDoctor || !selectedDispensary || !selectedDate || !name || !phone ||
       !availability?.available || !availability.slots?.length) {
@@ -273,6 +312,7 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCa
       setIsLoading(true);
 
       // Create booking
+      const activeSlot = getActiveSlot();
       const { transactionId, bookingId } = await BookingService.createBooking({
         patientName: name,
         patientPhone: phone,
@@ -282,14 +322,13 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCa
         bookingDate: selectedDate,
         fees: feesObj || fees,
         paymentMethod: paymentMethod,
-        // Pass the appointment details from availability
-        timeSlot: availability?.slots?.[0]?.timeSlot,
-        appointmentNumber: availability?.slots?.[0]?.appointmentNumber,
-        estimatedTime: availability?.slots?.[0]?.estimatedTime,
-        minutesPerPatient: availability?.slots?.[0]?.minutesPerPatient
+        timeSlotConfigId: getActiveSessionConfigId(),
+        timeSlot: activeSlot?.timeSlot,
+        appointmentNumber: activeSlot?.appointmentNumber,
+        estimatedTime: activeSlot?.estimatedTime,
+        minutesPerPatient: activeSlot?.minutesPerPatient
       });
 
-      // Navigate to booking summary page
       navigate(`/booking-summary/${transactionId}`);
 
     } catch (error) {
@@ -320,6 +359,7 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCa
       setIsPayOnlineLoading(true);
 
       // Create booking with online payment method
+      const activeSlotPay = getActiveSlot();
       const { transactionId, bookingId } = await BookingService.createBooking({
         patientName: name,
         patientPhone: phone,
@@ -330,11 +370,11 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCa
         fees: feesObj || fees,
         paymentMethod: 'online',
         paymentStatus: 'pending',
-        // Pass the appointment details from availability
-        timeSlot: availability?.slots?.[0]?.timeSlot,
-        appointmentNumber: availability?.slots?.[0]?.appointmentNumber,
-        estimatedTime: availability?.slots?.[0]?.estimatedTime,
-        minutesPerPatient: availability?.slots?.[0]?.minutesPerPatient
+        timeSlotConfigId: getActiveSessionConfigId(),
+        timeSlot: activeSlotPay?.timeSlot,
+        appointmentNumber: activeSlotPay?.appointmentNumber,
+        estimatedTime: activeSlotPay?.estimatedTime,
+        minutesPerPatient: activeSlotPay?.minutesPerPatient
       });
 
       // Create payment intent with Dialog Genie using the api instance
@@ -571,6 +611,9 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCa
                   isLoading={isLoading}
                   onContinue={() => setCurrentStep(1)}
                   showCalendar={showCalendar}
+                  disabledDates={disabledDates}
+                  selectedSession={selectedSession}
+                  onSessionChange={setSelectedSession}
                   readOnly={
                     isFromSearchFlow && !isAdminOrStaff
                       ? {
@@ -582,7 +625,7 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCa
                 />
               ) : (
                 <BookingStep2
-                  nextAppointment={availability?.slots?.[0] || null}
+                  nextAppointment={getActiveSlot()}
                   selectedDate={selectedDate}
                   name={name}
                   phone={phone}
@@ -746,6 +789,9 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCa
                           availability={availability}
                           isLoading={isLoading}
                           onContinue={() => handleAdjustBooking()}
+                          disabledDates={disabledDates}
+                          selectedSession={selectedSession}
+                          onSessionChange={setSelectedSession}
                           readOnly={{
                             doctor: true,
                             dispensary: true

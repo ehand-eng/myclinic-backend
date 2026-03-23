@@ -2,13 +2,15 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { BookingService, type BookingSummary as BookingSummaryType } from '@/api/services/BookingService';
+import { DoctorService } from '@/api/services';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { Calendar, Clock, User, Phone, Mail, MapPin, Building, Receipt, CheckCircle, DollarSign, Stethoscope, Download } from 'lucide-react';
+import { Calendar, Clock, User, Phone, Mail, MapPin, Building, Receipt, CheckCircle, DollarSign, Stethoscope, Download, UserRoundCheck } from 'lucide-react';
 import { exportBookingSummaryToPDF } from '@/lib/bookingPdfExport';
 
 const BookingSummary = () => {
@@ -17,6 +19,7 @@ const BookingSummary = () => {
   const { toast } = useToast();
   const [summary, setSummary] = useState<BookingSummaryType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [replacement, setReplacement] = useState<any>(null);
 
   // Scroll to top when component mounts
   useEffect(() => {
@@ -55,9 +58,14 @@ const BookingSummary = () => {
           totalAmount: summary.fees.totalAmount
         } : undefined,
         bookedUser: summary.bookedUser,
-        bookedBy: summary.bookedBy
+        bookedBy: summary.bookedBy,
+        replacementDoctor: replacement ? {
+          name: replacement.replacementName,
+          startDate: format(new Date(replacement.startDate), 'MMM dd, yyyy'),
+          endDate: format(new Date(replacement.endDate), 'MMM dd, yyyy'),
+        } : undefined
       };
-      
+
       exportBookingSummaryToPDF(pdfData);
       
       toast({
@@ -97,6 +105,24 @@ const BookingSummary = () => {
 
     fetchSummary();
   }, [transactionId, toast]);
+
+  // Fetch replacement doctor info after summary loads
+  useEffect(() => {
+    const fetchReplacement = async () => {
+      if (!summary) return;
+      try {
+        const doctorId = typeof summary.doctor === 'object' ? (summary.doctor as any).id || (summary.doctor as any)._id : '';
+        const dispensaryId = typeof summary.dispensary === 'object' ? (summary.dispensary as any).id || (summary.dispensary as any)._id : '';
+        if (!doctorId || !dispensaryId) return;
+        const dateStr = format(new Date(summary.bookingDate), 'yyyy-MM-dd');
+        const r = await DoctorService.getActiveReplacement(doctorId, dispensaryId, dateStr);
+        setReplacement(r || null);
+      } catch {
+        setReplacement(null);
+      }
+    };
+    fetchReplacement();
+  }, [summary]);
 
   if (isLoading) {
     return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
@@ -500,6 +526,22 @@ const BookingSummary = () => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Replacement Doctor Warning */}
+            {replacement && (
+              <Alert className="no-print border-amber-300 bg-amber-50 mt-4">
+                <AlertTitle className="text-amber-800 flex items-center">
+                  <UserRoundCheck className="h-4 w-4 mr-2" />
+                  Replacement Doctor
+                </AlertTitle>
+                <AlertDescription className="text-amber-700">
+                  Please note: <strong>{replacement.replacementName}</strong> will be attending
+                  in place of <strong>{summary.doctor.name}</strong> from{' '}
+                  {format(new Date(replacement.startDate), 'MMM dd, yyyy')} to{' '}
+                  {format(new Date(replacement.endDate), 'MMM dd, yyyy')}.
+                </AlertDescription>
+              </Alert>
+            )}
 
             {/* Print-only Patient & Doctor Information Tables */}
             <div className="print-only">

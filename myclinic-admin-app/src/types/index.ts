@@ -92,6 +92,23 @@ export interface AbsentTimeSlot {
     maxPatients?: number;
     minutesPerPatient?: number;
     reason?: string;
+    // Date range fields
+    isDateRange?: boolean;
+    startDate?: string;
+    endDate?: string;
+    // Per-session absence
+    timeSlotConfigId?: string;
+}
+
+export interface ConflictingBooking {
+    _id: string;
+    patientName: string;
+    patientPhone: string;
+    bookingDate: string;
+    estimatedTime: string;
+    appointmentNumber: number;
+    status: string;
+    transactionId: string;
 }
 
 // Booking Types

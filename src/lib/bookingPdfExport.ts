@@ -28,6 +28,11 @@ interface BookingSummaryData {
   };
   bookedUser?: string;
   bookedBy?: string;
+  replacementDoctor?: {
+    name: string;
+    startDate: string;
+    endDate: string;
+  };
 }
 
 // ── Color palette ──────────────────────────────────────────────
@@ -339,7 +344,36 @@ export const exportBookingSummaryToPDF = (bookingData: BookingSummaryData) => {
       ['Dispensary', bookingData.dispensary.name],
       ['Address', bookingData.dispensary.address],
     ];
-    y = drawInfoTable(doc, providerRows, margin, y, labelW, valueW) + 8;
+    y = drawInfoTable(doc, providerRows, margin, y, labelW, valueW);
+
+    // Replacement doctor notice
+    if (bookingData.replacementDoctor) {
+      y += 4;
+      ensureSpace(18);
+      const rd = bookingData.replacementDoctor;
+
+      setFill(doc, { r: 255, g: 243, b: 224 }); // amber-50
+      setDraw(doc, { r: 245, g: 208, b: 140 }); // amber-300
+      doc.setLineWidth(0.3);
+      roundedRect(doc, margin, y, contentWidth, 14, 2, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      setText(doc, { r: 146, g: 64, b: 14 }); // amber-800
+      doc.text('REPLACEMENT DOCTOR', margin + 5, y + 5.5);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      setText(doc, { r: 180, g: 83, b: 9 }); // amber-700
+      doc.text(
+        `Please note: ${rd.name} will be attending in place of ${bookingData.doctor.name} from ${rd.startDate} to ${rd.endDate}.`,
+        margin + 5, y + 11
+      );
+
+      y += 18;
+    } else {
+      y += 8;
+    }
 
     // ═══════════════════════════════════════════════════════════
     // FEE BREAKDOWN

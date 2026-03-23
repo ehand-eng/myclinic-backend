@@ -193,6 +193,22 @@ const ViewDispensary = () => {
                   <Separator />
 
                   <div>
+                    <h3 className="text-sm font-medium text-gray-500">Booking Settings</h3>
+                    <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="p-3 bg-gray-50 rounded-md">
+                        <p className="text-xs text-gray-500">Online Booking Visible Days</p>
+                        <p className="font-semibold">{dispensary.bookingVisibleDays ?? 30} days</p>
+                      </div>
+                      <div className="p-3 bg-gray-50 rounded-md">
+                        <p className="text-xs text-gray-500">Booking Cutoff Before Session</p>
+                        <p className="font-semibold">{dispensary.bookingCutoffMinutes ?? 60} minutes</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div>
                     <h3 className="text-sm font-medium text-gray-500">Associated Doctors</h3>
                     <div className="mt-1">
                       {doctors.length === 0 ? (

@@ -110,45 +110,49 @@ const AbsentListScreen: React.FC = () => {
         return <LoadingSpinner message="Loading..." />;
     }
 
-    const renderItem = ({ item }: { item: AbsentTimeSlot }) => (
-        <Card>
-            <View style={styles.itemHeader}>
-                <View style={[
-                    styles.typeBadge,
-                    { backgroundColor: item.isModifiedSession ? colors.warning + '20' : colors.error + '20' }
-                ]}>
-                    <Ionicons
-                        name={item.isModifiedSession ? 'time' : 'close-circle'}
-                        size={16}
-                        color={item.isModifiedSession ? colors.warning : colors.error}
-                    />
-                    <Text style={[
-                        styles.typeText,
-                        { color: item.isModifiedSession ? colors.warning : colors.error }
-                    ]}>
-                        {item.isModifiedSession ? 'Modified Session' : 'Absent'}
-                    </Text>
+    const renderItem = ({ item }: { item: AbsentTimeSlot }) => {
+        const isDateRange = item.isDateRange;
+        const badgeColor = isDateRange ? '#dc2626' : (item.isModifiedSession ? colors.warning : colors.error);
+        const badgeBg = isDateRange ? '#dc262620' : (item.isModifiedSession ? colors.warning + '20' : colors.error + '20');
+        const badgeLabel = isDateRange ? 'Date Range Absence' : (item.isModifiedSession ? 'Modified Session' : 'Absent');
+        const badgeIcon = isDateRange ? 'calendar' : (item.isModifiedSession ? 'time' : 'close-circle');
+
+        return (
+            <Card>
+                <View style={styles.itemHeader}>
+                    <View style={[styles.typeBadge, { backgroundColor: badgeBg }]}>
+                        <Ionicons name={badgeIcon as any} size={16} color={badgeColor} />
+                        <Text style={[styles.typeText, { color: badgeColor }]}>
+                            {badgeLabel}
+                        </Text>
+                    </View>
+                    <TouchableOpacity onPress={() => handleDeleteAbsent(item)}>
+                        <Ionicons name="trash-outline" size={20} color={colors.error} />
+                    </TouchableOpacity>
                 </View>
-                <TouchableOpacity onPress={() => handleDeleteAbsent(item)}>
-                    <Ionicons name="trash-outline" size={20} color={colors.error} />
-                </TouchableOpacity>
-            </View>
 
-            <Text style={styles.dateText}>
-                {format(new Date(item.date), 'EEEE, MMMM d, yyyy')}
-            </Text>
+                {isDateRange && item.startDate && item.endDate ? (
+                    <Text style={[styles.dateText, { color: '#dc2626' }]}>
+                        {format(new Date(item.startDate), 'MMM d, yyyy')} - {format(new Date(item.endDate), 'MMM d, yyyy')}
+                    </Text>
+                ) : (
+                    <Text style={styles.dateText}>
+                        {format(new Date(item.date), 'EEEE, MMMM d, yyyy')}
+                    </Text>
+                )}
 
-            {item.isModifiedSession && item.startTime && item.endTime && (
-                <Text style={styles.timeText}>
-                    {item.startTime} - {item.endTime} • {item.maxPatients} patients
-                </Text>
-            )}
+                {item.isModifiedSession && item.startTime && item.endTime && (
+                    <Text style={styles.timeText}>
+                        {item.startTime} - {item.endTime} • {item.maxPatients} patients
+                    </Text>
+                )}
 
-            {item.reason && (
-                <Text style={styles.reasonText}>Reason: {item.reason}</Text>
-            )}
-        </Card>
-    );
+                {item.reason && (
+                    <Text style={styles.reasonText}>Reason: {item.reason}</Text>
+                )}
+            </Card>
+        );
+    };
 
     return (
         <View style={commonStyles.container}>
@@ -164,7 +168,11 @@ const AbsentListScreen: React.FC = () => {
             </View>
 
             <FlatList
-                data={absentSlots.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())}
+                data={absentSlots.sort((a, b) => {
+                    const dateA = a.isDateRange && a.startDate ? new Date(a.startDate).getTime() : new Date(a.date).getTime();
+                    const dateB = b.isDateRange && b.startDate ? new Date(b.startDate).getTime() : new Date(b.date).getTime();
+                    return dateA - dateB;
+                })}
                 renderItem={renderItem}
                 keyExtractor={(item) => item._id}
                 contentContainerStyle={styles.list}

@@ -25,6 +25,7 @@ export interface BookingCreateParams {
   appointmentNumber?: number;
   estimatedTime?: string;
   minutesPerPatient?: number;
+  timeSlotConfigId?: string;
   // Payment fields
   paymentMethod?: 'cash' | 'online';
   paymentStatus?: 'pending' | 'processing' | 'paid' | 'failed' | 'not_required';

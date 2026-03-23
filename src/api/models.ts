@@ -33,6 +33,7 @@ export interface Dispensary extends BaseModel {
     longitude: number;
   };
   bookingVisibleDays?: number;
+  bookingCutoffMinutes?: number;
 }
 
 // Time slot configuration for doctor at a specific dispensary
@@ -57,6 +58,22 @@ export interface AbsentTimeSlot extends BaseModel {
   isModifiedSession?: boolean; // Flag to indicate if this is a modified session rather than absence
   maxPatients?: number; // If modified session, can specify different max patients
   minutesPerPatient?: number; // Minutes allocated per patient for this specific session
+  // Date range fields
+  isDateRange?: boolean;
+  startDate?: Date;
+  endDate?: Date;
+  // Per-session absence
+  timeSlotConfigId?: string;
+}
+
+// Replacement doctor (temporary substitute)
+export interface ReplacementDoctor extends BaseModel {
+  doctorId: string;
+  dispensaryId: string;
+  replacementName: string;
+  startDate: Date;
+  endDate: Date;
+  reason?: string;
 }
 
 // Patient model

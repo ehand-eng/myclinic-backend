@@ -141,5 +141,37 @@ export const DoctorService = {
       console.error(`Error deleting doctor with ID ${id}:`, error);
       throw new Error('Failed to delete doctor');
     }
+  },
+
+  // ============ Replacement Doctor ============
+
+  getReplacements: async (doctorId: string, dispensaryId: string): Promise<any[]> => {
+    const response = await api.get(`/doctors/${doctorId}/dispensary/${dispensaryId}/replacements`);
+    return response.data;
+  },
+
+  getActiveReplacement: async (doctorId: string, dispensaryId: string, date?: string): Promise<any | null> => {
+    const params = date ? { date } : {};
+    const response = await api.get(`/doctors/${doctorId}/dispensary/${dispensaryId}/replacement`, { params });
+    return response.data;
+  },
+
+  createReplacement: async (doctorId: string, dispensaryId: string, data: {
+    replacementName: string;
+    startDate: string;
+    endDate: string;
+    reason?: string;
+  }): Promise<any> => {
+    const response = await api.post(`/doctors/${doctorId}/dispensary/${dispensaryId}/replacement`, data);
+    return response.data;
+  },
+
+  deleteReplacement: async (id: string): Promise<void> => {
+    await api.delete(`/doctors/replacement/${id}`);
+  },
+
+  getActiveReplacementsBulk: async (doctorIds: string[], dispensaryId: string): Promise<Record<string, any>> => {
+    const response = await api.post('/doctors/replacements/active', { doctorIds, dispensaryId });
+    return response.data;
   }
 };

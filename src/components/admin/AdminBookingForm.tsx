@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DoctorService, DispensaryService, BookingService } from '@/api/services';
+import { DoctorService, DispensaryService, BookingService, TimeSlotService } from '@/api/services';
+import type { TimeSlotAvailability } from '@/api/services/TimeSlotService';
 import api from '@/lib/axios';
 import { Doctor, Dispensary } from '@/api/models';
-import { TimeSlotAvailability } from '@/api/services/TimeSlotService';
 import BookingStep1 from '../booking/BookingStep1';
 import BookingStep2 from '../booking/BookingStep2';
 import { format, addDays } from 'date-fns';
@@ -19,7 +19,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
-import { TimeSlotService } from '@/api/services/TimeSlotService';
 
 interface AdminBookingFormProps {
   initialDoctorId?: string;
@@ -39,6 +38,23 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(initialDate);
   const [availability, setAvailability] = useState<TimeSlotAvailability | null>(null);
   const [availabilityPreview, setAvailabilityPreview] = useState<any>(null);
+  const [selectedSession, setSelectedSession] = useState<string>('');
+
+  // Helper to get the active appointment slot based on selected session
+  const getActiveSlot = () => {
+    if (availability?.sessions && availability.sessions.length > 1 && selectedSession) {
+      const session = availability.sessions.find((s: any) => s.timeSlotConfigId === selectedSession);
+      return session?.slots?.[0] || null;
+    }
+    return getActiveSlot() || null;
+  };
+
+  const getActiveSessionConfigId = () => {
+    if (availability?.sessions && availability.sessions.length > 1 && selectedSession) {
+      return selectedSession;
+    }
+    return availability?.sessionInfo?.timeSlotConfigId || undefined;
+  };
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
@@ -294,7 +310,7 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
   }, [selectedDoctor, selectedDispensary, selectedDate, toast]);
 
   const handleBooking = async (feesObj: any) => {
-    if (!selectedDoctor || !selectedDispensary || !selectedDate || !availability?.slots?.[0]) {
+    if (!selectedDoctor || !selectedDispensary || !selectedDate || !getActiveSlot()) {
       toast({
         title: 'Error',
         description: 'Please select all required fields',
@@ -309,10 +325,10 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
         doctorId: selectedDoctor,
         dispensaryId: selectedDispensary,
         bookingDate: selectedDate, // Pass the Date object, not formatted string
-        timeSlot: availability.slots[0].timeSlot,
-        appointmentNumber: availability.slots[0].appointmentNumber,
-        estimatedTime: availability.slots[0].estimatedTime,
-        minutesPerPatient: availability.slots[0].minutesPerPatient,
+        timeSlot: getActiveSlot()!.timeSlot,
+        appointmentNumber: getActiveSlot()!.appointmentNumber,
+        estimatedTime: getActiveSlot()!.estimatedTime,
+        minutesPerPatient: getActiveSlot()!.minutesPerPatient,
         patientName: name,
         patientPhone: phone,
         patientEmail: email || undefined,
@@ -335,9 +351,9 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
         bookingReceipt = {
           transactionId: response.transactionId,
           bookingDate: selectedDate,
-          timeSlot: availability.slots[0].timeSlot,
-          appointmentNumber: availability.slots[0].appointmentNumber,
-          estimatedTime: availability.slots[0].estimatedTime,
+          timeSlot: getActiveSlot()!.timeSlot,
+          appointmentNumber: getActiveSlot()!.appointmentNumber,
+          estimatedTime: getActiveSlot()!.estimatedTime,
           status: 'scheduled',
           patient: {
             name: name,
@@ -389,7 +405,7 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
   };
 
   const handleAdjustBooking = async (feesObj: any) => {
-    if (!currentBooking || !selectedDoctor || !selectedDispensary || !selectedDate || !availability?.slots?.[0]) {
+    if (!currentBooking || !selectedDoctor || !selectedDispensary || !selectedDate || !getActiveSlot()) {
       toast({
         title: 'Error',
         description: 'Please select all required fields',
@@ -404,10 +420,10 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
         doctorId: selectedDoctor,
         dispensaryId: selectedDispensary,
         bookingDate: selectedDate, // Pass the Date object, not formatted string
-        timeSlot: availability.slots[0].timeSlot,
-        appointmentNumber: availability.slots[0].appointmentNumber,
-        estimatedTime: availability.slots[0].estimatedTime,
-        minutesPerPatient: availability.slots[0].minutesPerPatient,
+        timeSlot: getActiveSlot()!.timeSlot,
+        appointmentNumber: getActiveSlot()!.appointmentNumber,
+        estimatedTime: getActiveSlot()!.estimatedTime,
+        minutesPerPatient: getActiveSlot()!.minutesPerPatient,
         patientName: currentBooking.patient.name,
         patientPhone: currentBooking.patient.phone,
         patientEmail: currentBooking.patient.email || undefined,
@@ -956,8 +972,30 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
                             </AlertTitle>
                             <AlertDescription>{availability.message}</AlertDescription>
                           </Alert>
-                        ) : availability.slots && availability.slots.length > 0 ? (
+                        ) : availability.available ? (
                           <div className="space-y-4">
+                            {/* Session selector for multiple sessions */}
+                            {availability.sessions && availability.sessions.length > 1 && (
+                              <div className="space-y-2">
+                                <Label className="font-semibold">Select Session</Label>
+                                <Select value={selectedSession} onValueChange={setSelectedSession}>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Choose a session" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {availability.sessions.map((session: any) => (
+                                      <SelectItem
+                                        key={session.timeSlotConfigId}
+                                        value={session.timeSlotConfigId}
+                                        disabled={session.availableSlots === 0}
+                                      >
+                                        {session.startTime} - {session.endTime} ({session.availableSlots} available)
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
                             {availability.isModified && (
                               <Alert className="my-4 bg-amber-50 border-amber-200">
                                 <AlertTitle className="text-amber-800 flex items-center">
@@ -970,6 +1008,7 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
                                 </AlertDescription>
                               </Alert>
                             )}
+                            {getActiveSlot() ? (
                             <Card className="border-2 border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 shadow-lg hover:shadow-xl transition-all duration-300">
                               <CardContent className="p-6">
                                 <div className="flex items-center justify-between mb-4">
@@ -978,7 +1017,7 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
                                       <User className="h-5 w-5 text-white" />
                                     </div>
                                     <div>
-                                      <h3 className="font-bold text-lg text-green-800">Appointment #{availability.slots[0].appointmentNumber}</h3>
+                                      <h3 className="font-bold text-lg text-green-800">Appointment #{getActiveSlot()!.appointmentNumber}</h3>
                                     </div>
                                   </div>
                                   <div className="bg-green-100 px-3 py-1 rounded-full">
@@ -993,7 +1032,7 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
                                     </div>
                                     <div>
                                       <p className="text-sm text-gray-600">Appointment Time</p>
-                                      <p className="font-bold text-lg text-blue-700">{availability.slots[0].estimatedTime}</p>
+                                      <p className="font-bold text-lg text-blue-700">{getActiveSlot()!.estimatedTime}</p>
                                     </div>
                                   </div>
 
@@ -1003,7 +1042,7 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
                                     </div>
                                     <div>
                                       <p className="text-sm text-gray-600">Duration</p>
-                                      <p className="font-bold text-lg text-orange-700">{availability.slots[0].minutesPerPatient} minutes</p>
+                                      <p className="font-bold text-lg text-orange-700">{getActiveSlot()!.minutesPerPatient} minutes</p>
                                     </div>
                                   </div>
                                 </div>
@@ -1016,6 +1055,9 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
                                 </div>
                               </CardContent>
                             </Card>
+                            ) : (
+                              <p className="text-center py-4 text-gray-500">Select a session with available slots</p>
+                            )}
                           </div>
                         ) : (
                           <Alert variant="destructive" className="my-4">
@@ -1040,7 +1082,7 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
                 ) : (
                   <BookingStep2
                     key={`${selectedDoctor}-${selectedDispensary}-${selectedDate?.getTime()}-${currentStep}`}
-                    nextAppointment={availability?.slots?.[0] || null}
+                    nextAppointment={getActiveSlot() || null}
                     selectedDate={selectedDate}
                     name={name}
                     phone={phone}
@@ -1161,11 +1203,13 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
                       onContinue={() => setAdjustStep(2)}
                       showCalendar={true}
                       disableDispensarySelection={isDispensaryUser}
+                      selectedSession={selectedSession}
+                      onSessionChange={setSelectedSession}
                     />
 
                     {adjustStep === 2 && (
                       <BookingStep2
-                        nextAppointment={availability?.slots?.[0] || null}
+                        nextAppointment={getActiveSlot() || null}
                         selectedDate={selectedDate}
                         name={name}
                         phone={phone}

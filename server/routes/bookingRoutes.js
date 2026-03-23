@@ -290,31 +290,30 @@ router.get('/available-slots/:doctorId/:dispensaryId/:date', async (req, res) =>
     const parsedDate = new Date(date + 'T00:00:00');
     const dayOfWeek = parsedDate.getDay();
 
-    const timeSlotConfig = await TimeSlotConfig.findOne({ doctorId, dispensaryId, dayOfWeek });
-    if (!timeSlotConfig) {
+    const timeSlotConfigs = await TimeSlotConfig.find({ doctorId, dispensaryId, dayOfWeek }).sort({ startTime: 1 });
+    if (!timeSlotConfigs || timeSlotConfigs.length === 0) {
       return res.json({ available: false, message: 'No session configured for this day', slots: [] });
     }
 
     const startOfDay = new Date(parsedDate); startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(parsedDate); endOfDay.setHours(23, 59, 59, 999);
 
-    const absentSlot = await AbsentTimeSlot.findOne({
-      doctorId, dispensaryId, date: { $gte: startOfDay, $lte: endOfDay }
+    // Check full-day absences
+    const dateRangeAbsent = await AbsentTimeSlot.findOne({
+      doctorId, dispensaryId, isDateRange: true,
+      startDate: { $lte: endOfDay }, endDate: { $gte: startOfDay }
     });
-
-    if (absentSlot && !absentSlot.isModifiedSession) {
+    if (dateRangeAbsent) {
       return res.json({ available: false, message: 'Doctor is not available on this date', slots: [] });
     }
 
-    let startTime, maxPatients, minutesPerPatient;
-    if (absentSlot && absentSlot.isModifiedSession) {
-      startTime = absentSlot.startTime;
-      maxPatients = absentSlot.maxPatients || timeSlotConfig.maxPatients;
-      minutesPerPatient = absentSlot.minutesPerPatient || timeSlotConfig.minutesPerPatient;
-    } else {
-      startTime = timeSlotConfig.startTime;
-      maxPatients = timeSlotConfig.maxPatients;
-      minutesPerPatient = timeSlotConfig.minutesPerPatient || 15;
+    const absentSlot = await AbsentTimeSlot.findOne({
+      doctorId, dispensaryId, isDateRange: { $ne: true },
+      isModifiedSession: false, timeSlotConfigId: { $exists: false },
+      date: { $gte: startOfDay, $lte: endOfDay }
+    });
+    if (absentSlot) {
+      return res.json({ available: false, message: 'Doctor is not available on this date', slots: [] });
     }
 
     const query = {
@@ -323,36 +322,56 @@ router.get('/available-slots/:doctorId/:dispensaryId/:date', async (req, res) =>
       status: { $ne: 'cancelled' }
     };
     if (excludeBookingId) query._id = { $ne: excludeBookingId };
-
     const existingBookings = await Booking.find(query);
-    const bookedNumbers = new Set(existingBookings.map(b => b.appointmentNumber));
 
-    const [startHour, startMinute] = startTime.split(':').map(Number);
-    const slots = [];
+    // Build slots across all sessions
+    const allSlots = [];
+    let totalSlots = 0;
+    let bookedCount = 0;
 
-    for (let i = 1; i <= maxPatients; i++) {
-      if (!bookedNumbers.has(i)) {
-        const offset = (i - 1) * minutesPerPatient;
-        const slotDate = new Date(parsedDate);
-        slotDate.setHours(startHour, startMinute + offset, 0, 0);
-        const endSlotDate = new Date(slotDate);
-        endSlotDate.setMinutes(endSlotDate.getMinutes() + minutesPerPatient);
+    for (const config of timeSlotConfigs) {
+      const configId = config._id.toString();
+      const sessionBookings = existingBookings.filter(b =>
+        b.timeSlotConfigId && b.timeSlotConfigId.toString() === configId
+      );
+      if (timeSlotConfigs.length === 1) {
+        sessionBookings.push(...existingBookings.filter(b => !b.timeSlotConfigId));
+      }
+      const bookedNumbers = new Set(sessionBookings.map(b => b.appointmentNumber));
 
-        const fmt = (d) => `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-        slots.push({
-          appointmentNumber: i,
-          estimatedTime: fmt(slotDate),
-          timeSlot: `${fmt(slotDate)}-${fmt(endSlotDate)}`
-        });
+      const startTime = config.startTime;
+      const maxPatients = config.maxPatients;
+      const minutesPerPatient = config.minutesPerPatient || 15;
+      const [startHour, startMinute] = startTime.split(':').map(Number);
+
+      totalSlots += maxPatients;
+      bookedCount += bookedNumbers.size;
+
+      for (let i = 1; i <= maxPatients; i++) {
+        if (!bookedNumbers.has(i)) {
+          const offset = (i - 1) * minutesPerPatient;
+          const slotDate = new Date(parsedDate);
+          slotDate.setHours(startHour, startMinute + offset, 0, 0);
+          const endSlotDate = new Date(slotDate);
+          endSlotDate.setMinutes(endSlotDate.getMinutes() + minutesPerPatient);
+
+          const fmt = (d) => `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+          allSlots.push({
+            appointmentNumber: i,
+            estimatedTime: fmt(slotDate),
+            timeSlot: `${fmt(slotDate)}-${fmt(endSlotDate)}`,
+            timeSlotConfigId: configId
+          });
+        }
       }
     }
 
     res.json({
-      available: slots.length > 0,
-      totalSlots: maxPatients,
-      bookedSlots: bookedNumbers.size,
-      availableSlots: slots.length,
-      slots
+      available: allSlots.length > 0,
+      totalSlots,
+      bookedSlots: bookedCount,
+      availableSlots: allSlots.length,
+      slots: allSlots
     });
   } catch (error) {
     console.error('Error fetching available slots:', error);
@@ -441,12 +460,9 @@ router.post('/', async (req, res) => {
         });
       }
     } else {
-      // Fallback: find first config for this day (for backward compatibility)
-      timeSlotConfig = await TimeSlotConfig.findOne({
-        doctorId,
-        dispensaryId,
-        dayOfWeek
-      });
+      // Fallback: find first config for this day (for backward compatibility with single session)
+      const configs = await TimeSlotConfig.find({ doctorId, dispensaryId, dayOfWeek }).sort({ startTime: 1 });
+      timeSlotConfig = configs.length > 0 ? configs[0] : null;
     }
 
     console.log("Time slot config:", timeSlotConfig);
@@ -457,29 +473,60 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // Check if there's a modified session for this date
+    // Check absences for this date
     const startOfDay = new Date(parsedBookingDate);
     startOfDay.setHours(0, 0, 0, 0);
 
     const endOfDay = new Date(parsedBookingDate);
     endOfDay.setHours(23, 59, 59, 999);
 
-    const absentSlot = await AbsentTimeSlot.findOne({
-      doctorId,
-      dispensaryId,
-      date: {
-        $gte: startOfDay,
-        $lte: endOfDay
-      }
+    // Check date-range absences
+    const dateRangeAbsent = await AbsentTimeSlot.findOne({
+      doctorId, dispensaryId,
+      isDateRange: true,
+      startDate: { $lte: endOfDay },
+      endDate: { $gte: startOfDay }
     });
 
-    console.log("Absent/Modified slot:", absentSlot);
+    if (dateRangeAbsent) {
+      return res.status(400).json({ message: 'Doctor is not available on this date' });
+    }
 
-    // If completely absent (not a modified session), return an error
-    if (absentSlot && !absentSlot.isModifiedSession) {
-      return res.status(400).json({
-        message: 'Doctor is not available on this date'
+    // Check full-day absence (no timeSlotConfigId)
+    const fullDayAbsent = await AbsentTimeSlot.findOne({
+      doctorId, dispensaryId,
+      isDateRange: { $ne: true },
+      isModifiedSession: false,
+      timeSlotConfigId: { $exists: false },
+      date: { $gte: startOfDay, $lte: endOfDay }
+    });
+
+    if (fullDayAbsent) {
+      return res.status(400).json({ message: 'Doctor is not available on this date' });
+    }
+
+    // Check per-session absent/modified for this specific timeSlotConfig
+    const configId = timeSlotConfig._id;
+    let absentSlot = await AbsentTimeSlot.findOne({
+      doctorId, dispensaryId,
+      isDateRange: { $ne: true },
+      timeSlotConfigId: configId,
+      date: { $gte: startOfDay, $lte: endOfDay }
+    });
+
+    // Also check legacy absent slots (no timeSlotConfigId)
+    if (!absentSlot) {
+      absentSlot = await AbsentTimeSlot.findOne({
+        doctorId, dispensaryId,
+        isDateRange: { $ne: true },
+        timeSlotConfigId: { $exists: false },
+        date: { $gte: startOfDay, $lte: endOfDay }
       });
+    }
+
+    // If this specific session is marked absent
+    if (absentSlot && !absentSlot.isModifiedSession) {
+      return res.status(400).json({ message: 'This session is not available on this date' });
     }
 
     // Determine session parameters based on regular config or modified session
@@ -494,28 +541,30 @@ router.post('/', async (req, res) => {
       startTime = timeSlotConfig.startTime;
       endTime = timeSlotConfig.endTime;
       maxPatients = timeSlotConfig.maxPatients;
-      minutesPerPatient = timeSlotConfig.minutesPerPatient || 15; // Default to 15 minutes if not set
+      minutesPerPatient = timeSlotConfig.minutesPerPatient || 15;
     }
 
     console.log("Session parameters:", { startTime, endTime, maxPatients, minutesPerPatient });
 
-    // Find existing bookings for this session
-    const existingBookings = await Booking.find({
+    // Find existing bookings for this specific session
+    const bookingQuery = {
       doctorId,
       dispensaryId,
-      bookingDate: {
-        $gte: startOfDay,
-        $lte: endOfDay
-      },
+      bookingDate: { $gte: startOfDay, $lte: endOfDay },
       status: { $ne: 'cancelled' }
-    }).sort({ appointmentNumber: 1 });
+    };
+    // Scope to specific session if timeSlotConfigId is provided
+    if (req.body.timeSlotConfigId) {
+      bookingQuery.timeSlotConfigId = configId;
+    }
+    const existingBookings = await Booking.find(bookingQuery).sort({ appointmentNumber: 1 });
 
     console.log("Existing bookings count:", existingBookings.length);
 
     // If all slots are booked
     if (existingBookings.length >= maxPatients) {
       return res.status(400).json({
-        message: 'All appointments for this day are booked'
+        message: 'All appointments for this session are booked'
       });
     }
 
@@ -831,12 +880,9 @@ router.get('/next-available/:doctorId/:dispensaryId/:date', async (req, res) => 
     // Get day of week (0-6, where 0 is Sunday)
     const dayOfWeek = bookingDate.getDay();
 
-    // 1. Get the regular time slot configuration for this day
-    const timeSlotConfig = await TimeSlotConfig.findOne({
-      doctorId,
-      dispensaryId,
-      dayOfWeek
-    });
+    // 1. Get the regular time slot configurations for this day
+    const timeSlotConfigsForDay = await TimeSlotConfig.find({ doctorId, dispensaryId, dayOfWeek }).sort({ startTime: 1 });
+    const timeSlotConfig = timeSlotConfigsForDay.length > 0 ? timeSlotConfigsForDay[0] : null;
 
     if (!timeSlotConfig) {
       return res.status(404).json({ message: 'No time slot configuration found for this day' });
@@ -1056,7 +1102,8 @@ router.patch('/:id/user-amend', validateCustomJwt, async (req, res) => {
     const parsedDate = new Date(newDate);
     const dayOfWeek = parsedDate.getDay();
 
-    const timeSlotConfig = await TimeSlotConfig.findOne({ doctorId, dispensaryId, dayOfWeek });
+    const configs = await TimeSlotConfig.find({ doctorId, dispensaryId, dayOfWeek }).sort({ startTime: 1 });
+    const timeSlotConfig = configs.length > 0 ? configs[0] : null;
     if (!timeSlotConfig) {
       return res.status(400).json({ message: 'Doctor has no session on the selected day' });
     }
@@ -1064,8 +1111,18 @@ router.patch('/:id/user-amend', validateCustomJwt, async (req, res) => {
     const startOfDay = new Date(parsedDate); startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(parsedDate); endOfDay.setHours(23, 59, 59, 999);
 
+    // Check date range absence
+    const dateRangeAbsent = await AbsentTimeSlot.findOne({
+      doctorId, dispensaryId, isDateRange: true,
+      startDate: { $lte: endOfDay }, endDate: { $gte: startOfDay }
+    });
+    if (dateRangeAbsent) {
+      return res.status(400).json({ message: 'Doctor is not available on the selected date' });
+    }
+
     const absentSlot = await AbsentTimeSlot.findOne({
-      doctorId, dispensaryId, date: { $gte: startOfDay, $lte: endOfDay }
+      doctorId, dispensaryId, isDateRange: { $ne: true },
+      date: { $gte: startOfDay, $lte: endOfDay }
     });
 
     if (absentSlot && !absentSlot.isModifiedSession) {
@@ -1165,11 +1222,12 @@ router.patch('/:id/adjust', roleMiddleware.requireAdvancedBookingAccess, async (
     const dayOfWeek = parsedDate.getDay();
 
     // Get the time slot configuration for the new date
-    const timeSlotConfig = await TimeSlotConfig.findOne({
+    const adjustConfigs = await TimeSlotConfig.find({
       doctorId: doctorId || existingBooking.doctorId,
       dispensaryId: dispensaryId || existingBooking.dispensaryId,
       dayOfWeek
-    });
+    }).sort({ startTime: 1 });
+    const timeSlotConfig = adjustConfigs.length > 0 ? adjustConfigs[0] : null;
 
     if (!timeSlotConfig) {
       return res.status(400).json({

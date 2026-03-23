@@ -12,9 +12,12 @@ export { UserDispensaryService } from './UserDispensaryService';
 export { DoctorDispensaryService } from './DoctorDispensaryService';
 
 // Re-export types to avoid conflicts
-export type { 
-  TimeSlotConfig, 
-  AbsentTimeSlot 
+export type {
+  TimeSlotConfig,
+  AbsentTimeSlot,
+  SessionAvailability,
+  AvailableTimeSlot,
+  TimeSlotAvailability,
 } from './TimeSlotService';
 
 export type { 
