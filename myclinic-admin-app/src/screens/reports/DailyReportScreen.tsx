@@ -107,8 +107,12 @@ const DailyReportScreen: React.FC = () => {
                                     <Text style={styles.statLabel}>Total</Text>
                                 </View>
                                 <View style={[styles.statBox, { backgroundColor: colors.success + '20' }]}>
-                                    <Text style={[styles.statNum, { color: colors.success }]}>{report.completed}</Text>
-                                    <Text style={styles.statLabel}>Completed</Text>
+                                    <Text style={[styles.statNum, { color: colors.success }]}>{report.checkedIn}</Text>
+                                    <Text style={styles.statLabel}>Checked-In</Text>
+                                </View>
+                                <View style={[styles.statBox, { backgroundColor: '#3b82f6' + '20' }]}>
+                                    <Text style={[styles.statNum, { color: '#3b82f6' }]}>{report.scheduled}</Text>
+                                    <Text style={styles.statLabel}>Scheduled</Text>
                                 </View>
                                 <View style={[styles.statBox, { backgroundColor: colors.error + '20' }]}>
                                     <Text style={[styles.statNum, { color: colors.error }]}>{report.cancelled}</Text>

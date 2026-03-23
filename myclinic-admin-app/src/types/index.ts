@@ -178,6 +178,8 @@ export interface ReportBooking {
 export interface MonthlyReport {
     totalBookings: number;
     completedBookings: number;
+    checkedInBookings: number;
+    scheduledBookings: number;
     cancelledBookings: number;
     noShowBookings: number;
     dailyStats: DailyStats[];
@@ -187,6 +189,8 @@ export interface DailyStats {
     date: string;
     total: number;
     completed: number;
+    checkedIn: number;
+    scheduled: number;
     cancelled: number;
     noShow: number;
 }

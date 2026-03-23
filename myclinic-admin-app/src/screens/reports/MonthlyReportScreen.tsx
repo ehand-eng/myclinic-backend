@@ -64,9 +64,9 @@ const MonthlyReportScreen: React.FC = () => {
         return <LoadingSpinner message="Loading report..." />;
     }
 
-    const completionRate = report
+    const completionRate = report && report.totalBookings > 0
         ? ((report.completedBookings / report.totalBookings) * 100).toFixed(1)
-        : 0;
+        : '0.0';
 
     return (
         <View style={commonStyles.container}>
@@ -96,10 +96,22 @@ const MonthlyReportScreen: React.FC = () => {
                                     <Text style={[styles.statNum, { color: colors.info }]}>
                                         {report.totalBookings}
                                     </Text>
-                                    <Text style={styles.statLabel}>Total Bookings</Text>
+                                    <Text style={styles.statLabel}>Total</Text>
                                 </View>
                                 <View style={[styles.statBox, { backgroundColor: colors.success + '20' }]}>
                                     <Text style={[styles.statNum, { color: colors.success }]}>
+                                        {report.checkedInBookings || 0}
+                                    </Text>
+                                    <Text style={styles.statLabel}>Checked-In</Text>
+                                </View>
+                                <View style={[styles.statBox, { backgroundColor: '#3b82f6' + '20' }]}>
+                                    <Text style={[styles.statNum, { color: '#3b82f6' }]}>
+                                        {report.scheduledBookings || 0}
+                                    </Text>
+                                    <Text style={styles.statLabel}>Scheduled</Text>
+                                </View>
+                                <View style={[styles.statBox, { backgroundColor: '#8b5cf6' + '20' }]}>
+                                    <Text style={[styles.statNum, { color: '#8b5cf6' }]}>
                                         {report.completedBookings}
                                     </Text>
                                     <Text style={styles.statLabel}>Completed</Text>
@@ -146,9 +158,15 @@ const MonthlyReportScreen: React.FC = () => {
                                             </View>
                                             <View style={styles.dayStat}>
                                                 <Text style={[styles.dayStatNum, { color: colors.success }]}>
-                                                    {day.completed}
+                                                    {day.checkedIn || 0}
                                                 </Text>
-                                                <Text style={styles.dayStatLabel}>Done</Text>
+                                                <Text style={styles.dayStatLabel}>In</Text>
+                                            </View>
+                                            <View style={styles.dayStat}>
+                                                <Text style={[styles.dayStatNum, { color: '#3b82f6' }]}>
+                                                    {day.scheduled || 0}
+                                                </Text>
+                                                <Text style={styles.dayStatLabel}>Sched</Text>
                                             </View>
                                             <View style={styles.dayStat}>
                                                 <Text style={[styles.dayStatNum, { color: colors.error }]}>

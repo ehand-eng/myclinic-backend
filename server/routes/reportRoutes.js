@@ -62,9 +62,23 @@ const getAllowedDispensaries = async (req) => {
 };
 
 // Get all reports
-router.get('/', async (req, res) => {
+router.get('/', validateJwt, roleMiddleware.requireRole(['super-admin', 'dispensary-admin', 'dispensary-staff']), async (req, res) => {
   try {
-    const reports = await Report.find().sort({ createdAt: -1 });
+    let allowedDispensaries;
+    try {
+      allowedDispensaries = await getAllowedDispensaries(req);
+    } catch (error) {
+      return res.status(400).json({ message: error.message });
+    }
+
+    const query = {};
+    // Non-super-admin can only see reports for their dispensaries
+    const userRole = (req.user?.role || req.headers['x-user-role'] || '').toLowerCase().replace(/\s+/g, '-');
+    if (userRole !== 'super-admin') {
+      query.dispensaryId = { $in: allowedDispensaries };
+    }
+
+    const reports = await Report.find(query).sort({ createdAt: -1 });
     res.json(reports);
   } catch (error) {
     console.error('Error getting reports:', error);
@@ -73,12 +87,21 @@ router.get('/', async (req, res) => {
 });
 
 // Get reports by dispensary
-router.get('/dispensary/:dispensaryId', async (req, res) => {
+router.get('/dispensary/:dispensaryId', validateJwt, roleMiddleware.requireRole(['super-admin', 'dispensary-admin', 'dispensary-staff']), async (req, res) => {
   try {
-    const reports = await Report.find({
-      dispensaryId: req.params.dispensaryId
-    }).sort({ createdAt: -1 });
+    let allowedDispensaries;
+    try {
+      allowedDispensaries = await getAllowedDispensaries(req);
+    } catch (error) {
+      return res.status(400).json({ message: error.message });
+    }
 
+    const { dispensaryId } = req.params;
+    if (!allowedDispensaries.includes(dispensaryId)) {
+      return res.status(403).json({ message: 'Access denied to this dispensary' });
+    }
+
+    const reports = await Report.find({ dispensaryId }).sort({ createdAt: -1 });
     res.json(reports);
   } catch (error) {
     console.error('Error getting dispensary reports:', error);
@@ -87,7 +110,7 @@ router.get('/dispensary/:dispensaryId', async (req, res) => {
 });
 
 // Generate daily bookings report
-router.post('/generate/daily-bookings', async (req, res) => {
+router.post('/generate/daily-bookings', validateJwt, roleMiddleware.requireRole(['super-admin', 'dispensary-admin']), async (req, res) => {
   try {
     const { title, startDate, endDate, dispensaryId } = req.body;
 
@@ -161,7 +184,7 @@ router.post('/generate/daily-bookings', async (req, res) => {
 });
 
 // Generate monthly summary report
-router.post('/generate/monthly-summary', async (req, res) => {
+router.post('/generate/monthly-summary', validateJwt, roleMiddleware.requireRole(['super-admin', 'dispensary-admin']), async (req, res) => {
   try {
     const { title, startDate, endDate, dispensaryId } = req.body;
 
@@ -240,9 +263,20 @@ router.post('/generate/monthly-summary', async (req, res) => {
 });
 
 // Get session report (bookings for a specific doctor, dispensary, and date)
-router.get('/session/:doctorId/:dispensaryId/:date', async (req, res) => {
+router.get('/session/:doctorId/:dispensaryId/:date', validateJwt, roleMiddleware.requireRole(['super-admin', 'dispensary-admin', 'dispensary-staff']), async (req, res) => {
   try {
     const { doctorId, dispensaryId, date } = req.params;
+
+    // Verify dispensary access
+    let allowedDispensaries;
+    try {
+      allowedDispensaries = await getAllowedDispensaries(req);
+    } catch (error) {
+      return res.status(400).json({ message: error.message });
+    }
+    if (!allowedDispensaries.includes(dispensaryId)) {
+      return res.status(403).json({ message: 'Access denied to this dispensary' });
+    }
 
     // Create start and end date for the specified date
     const startDate = new Date(date);
@@ -268,7 +302,7 @@ router.get('/session/:doctorId/:dispensaryId/:date', async (req, res) => {
 });
 
 // Generate doctor performance report
-router.post('/generate/doctor-performance', async (req, res) => {
+router.post('/generate/doctor-performance', validateJwt, roleMiddleware.requireRole(['super-admin', 'dispensary-admin']), async (req, res) => {
   try {
     const { title, startDate, endDate, dispensaryId } = req.body;
 
@@ -348,7 +382,7 @@ router.post('/generate/doctor-performance', async (req, res) => {
 });
 
 // Generate dispensary revenue report
-router.post('/generate/dispensary-revenue', async (req, res) => {
+router.post('/generate/dispensary-revenue', validateJwt, roleMiddleware.requireRole(['super-admin', 'dispensary-admin']), async (req, res) => {
   try {
     const { title, startDate, endDate, dispensaryId } = req.body;
 
@@ -552,28 +586,37 @@ router.get('/daily-bookings', validateJwt, roleMiddleware.requireRole(['super-ad
 });
 
 // Get monthly summary report
-router.get('/monthly-summary', validateJwt, async (req, res) => {
+router.get('/monthly-summary', validateJwt, roleMiddleware.requireRole(['super-admin', 'dispensary-admin', 'dispensary-staff']), async (req, res) => {
   try {
-    // Reliable role detection
-    let userRole = null;
-    if (req.user && req.user.role) {
-      userRole = req.user.role.toLowerCase();
-    } else if (req.headers['x-user-role']) {
-      userRole = req.headers['x-user-role'].toLowerCase();
-    }
-    console.log("Report role check:", { tokenRole: req.user?.role, headerRole: req.headers['x-user-role'], finalRole: userRole });
-    if (!userRole) {
-      return res.status(400).json({ message: "Missing X-User-Role header" });
+    let { month, year, dispensaryId } = req.query;
+
+    // Dispensary access enforcement
+    let allowedDispensaries;
+    try {
+      allowedDispensaries = await getAllowedDispensaries(req);
+    } catch (error) {
+      return res.status(400).json({ message: error.message });
     }
 
-    const { month, year, dispensaryId } = req.query;
+    const userRole = (req.user?.role || req.headers['x-user-role'] || '').toLowerCase().replace(/\s+/g, '-');
+    if (userRole !== 'super-admin') {
+      if (!dispensaryId) {
+        if (allowedDispensaries.length === 1) {
+          dispensaryId = allowedDispensaries[0];
+        } else {
+          return res.status(400).json({ message: 'Dispensary selection is required', allowedDispensaries });
+        }
+      } else if (!allowedDispensaries.includes(dispensaryId)) {
+        return res.status(403).json({ message: 'Access denied to this dispensary' });
+      }
+    }
+
     const startDate = moment(`${year}-${month}-01`).startOf('month').toDate();
     const endDate = moment(startDate).endOf('month').toDate();
 
     const query = {
       bookingDate: { $gte: startDate, $lte: endDate }
     };
-
     if (dispensaryId) {
       query.dispensaryId = dispensaryId;
     }
@@ -582,7 +625,7 @@ router.get('/monthly-summary', validateJwt, async (req, res) => {
       .populate('doctorId', 'name specialization')
       .populate('dispensaryId', 'name address');
 
-    // Group by date
+    // Group by date with correct status mapping
     const dailyStats = {};
     bookings.forEach(booking => {
       const date = moment(booking.bookingDate).format('YYYY-MM-DD');
@@ -590,17 +633,26 @@ router.get('/monthly-summary', validateJwt, async (req, res) => {
         dailyStats[date] = {
           total: 0,
           completed: 0,
+          checkedIn: 0,
+          scheduled: 0,
           cancelled: 0,
           noShow: 0
         };
       }
       dailyStats[date].total++;
-      dailyStats[date][booking.status]++;
+      // Map statuses correctly
+      if (booking.status === 'completed') dailyStats[date].completed++;
+      else if (booking.status === 'checked_in') dailyStats[date].checkedIn++;
+      else if (booking.status === 'scheduled') dailyStats[date].scheduled++;
+      else if (booking.status === 'cancelled') dailyStats[date].cancelled++;
+      else if (booking.status === 'no_show') dailyStats[date].noShow++;
     });
 
     const summary = {
       totalBookings: bookings.length,
       completedBookings: bookings.filter(b => b.status === 'completed').length,
+      checkedInBookings: bookings.filter(b => b.status === 'checked_in').length,
+      scheduledBookings: bookings.filter(b => b.status === 'scheduled').length,
       cancelledBookings: bookings.filter(b => b.status === 'cancelled').length,
       noShowBookings: bookings.filter(b => b.status === 'no_show').length,
       dailyStats: Object.entries(dailyStats).map(([date, stats]) => ({
@@ -617,21 +669,31 @@ router.get('/monthly-summary', validateJwt, async (req, res) => {
 });
 
 // Get doctor performance report
-router.get('/doctor-performance', validateJwt, async (req, res) => {
+router.get('/doctor-performance', validateJwt, roleMiddleware.requireRole(['super-admin', 'dispensary-admin', 'dispensary-staff']), async (req, res) => {
   try {
-    // Reliable role detection
-    let userRole = null;
-    if (req.user && req.user.role) {
-      userRole = req.user.role.toLowerCase();
-    } else if (req.headers['x-user-role']) {
-      userRole = req.headers['x-user-role'].toLowerCase();
-    }
-    console.log("Report role check:", { tokenRole: req.user?.role, headerRole: req.headers['x-user-role'], finalRole: userRole });
-    if (!userRole) {
-      return res.status(400).json({ message: "Missing X-User-Role header" });
+    let { doctorId, startDate, endDate, dispensaryId } = req.query;
+
+    // Dispensary access enforcement
+    let allowedDispensaries;
+    try {
+      allowedDispensaries = await getAllowedDispensaries(req);
+    } catch (error) {
+      return res.status(400).json({ message: error.message });
     }
 
-    const { doctorId, startDate, endDate, dispensaryId } = req.query;
+    const userRole = (req.user?.role || req.headers['x-user-role'] || '').toLowerCase().replace(/\s+/g, '-');
+    if (userRole !== 'super-admin') {
+      if (!dispensaryId) {
+        if (allowedDispensaries.length === 1) {
+          dispensaryId = allowedDispensaries[0];
+        } else {
+          return res.status(400).json({ message: 'Dispensary selection is required', allowedDispensaries });
+        }
+      } else if (!allowedDispensaries.includes(dispensaryId)) {
+        return res.status(403).json({ message: 'Access denied to this dispensary' });
+      }
+    }
+
     const query = {
       doctorId,
       bookingDate: {
@@ -665,7 +727,7 @@ router.get('/doctor-performance', validateJwt, async (req, res) => {
     }, 0);
 
     const averageConsultationTime = completedBookingsWithTimes.length > 0
-      ? totalConsultationTime / completedBookingsWithTimes.length
+      ? Math.round(totalConsultationTime / completedBookingsWithTimes.length)
       : 0;
 
     const performance = {
