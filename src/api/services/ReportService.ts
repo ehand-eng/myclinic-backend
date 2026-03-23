@@ -61,6 +61,71 @@ export interface DoctorPerformance {
   bookings: Booking[];
 }
 
+export interface ComprehensiveReportParams {
+  period: 'daily' | 'weekly' | 'monthly';
+  startDate: string;
+  endDate: string;
+  dispensaryId?: string;
+  doctorId?: string;
+  bookedBy?: string;
+  status?: string;
+}
+
+export interface ComprehensiveReportResponse {
+  summary: {
+    total: number;
+    completed: number;
+    scheduled: number;
+    checkedIn: number;
+    cancelled: number;
+    noShow: number;
+  };
+  revenue: {
+    totalFee: number;
+    doctorFee: number;
+    dispensaryFee: number;
+    bookingCommission: number;
+    channelPartnerFee: number;
+    realizedRevenue: number;
+  };
+  trend: { date: string; bookings: number; revenue: number }[];
+  statusDistribution: { name: string; value: number }[];
+  revenueBySource: { name: string; value: number }[];
+  topDoctors: {
+    doctorId: string;
+    doctorName: string;
+    bookingCount: number;
+    totalFee: number;
+    doctorFee: number;
+    dispensaryFee: number;
+    bookingCommission: number;
+    channelPartnerFee: number;
+  }[];
+  bookings: {
+    id: string;
+    bookingReference: string;
+    bookingDate: string;
+    timeSlot: string;
+    appointmentNumber: number;
+    patientName: string;
+    patientPhone: string;
+    status: string;
+    doctorName: string;
+    dispensaryName: string;
+    bookedBy: string;
+    checkedInTime?: string;
+    completedTime?: string;
+    fees?: {
+      totalFee: number;
+      doctorFee: number;
+      dispensaryFee: number;
+      bookingCommission: number;
+      channelPartnerFee: number;
+    };
+  }[];
+  dateRange: { startDate: string; endDate: string };
+}
+
 export const ReportService = {
   // Get all reports
   getAllReports: async (): Promise<Report[]> => {
@@ -307,6 +372,20 @@ export const ReportService = {
   getAdvanceBookings: async (params: any) => {
     const search = new URLSearchParams(params).toString();
     const response = await api.get(`/reports/advance-bookings?${search}`);
+    return response.data;
+  },
+
+  // Comprehensive report
+  getComprehensiveReport: async (params: ComprehensiveReportParams): Promise<ComprehensiveReportResponse> => {
+    const search = new URLSearchParams();
+    search.append('period', params.period);
+    search.append('startDate', params.startDate);
+    search.append('endDate', params.endDate);
+    if (params.dispensaryId) search.append('dispensaryId', params.dispensaryId);
+    if (params.doctorId) search.append('doctorId', params.doctorId);
+    if (params.bookedBy) search.append('bookedBy', params.bookedBy);
+    if (params.status) search.append('status', params.status);
+    const response = await api.get(`/reports/comprehensive?${search.toString()}`);
     return response.data;
   }
 };

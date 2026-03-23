@@ -12,7 +12,6 @@ import NotFound from './pages/NotFound';
 // Lazy-load everything else — each becomes its own chunk
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AdminDoctors = lazy(() => import('./pages/AdminDoctors'));
-const AdminReports = lazy(() => import('./pages/AdminReports'));
 const AdminTimeSlots = lazy(() => import('./pages/AdminTimeSlots'));
 const Booking = lazy(() => import('./pages/Booking'));
 const Contact = lazy(() => import('./pages/Contact'));
@@ -28,9 +27,7 @@ const ViewDispensary = lazy(() => import('./pages/ViewDispensary'));
 const AdminDispensaries = lazy(() => import('./pages/AdminDispensaries'));
 const BookingSummary = lazy(() => import('@/components/booking/BookingSummary'));
 const Callback = lazy(() => import('./pages/Callback'));
-const DailyBookings = lazy(() => import('@/pages/reports/DailyBookings'));
-const MonthlySummary = lazy(() => import('@/pages/reports/MonthlySummary'));
-const DoctorPerformance = lazy(() => import('@/pages/reports/DoctorPerformance'));
+const ComprehensiveReport = lazy(() => import('@/pages/reports/ComprehensiveReport'));
 const ChannelPartnerReports = lazy(() => import('@/pages/reports/ChannelPartnerReports'));
 const Signup = lazy(() => import('./pages/Signup'));
 const AdminFeeManage = lazy(() => import('./pages/AdminFeeManage'));
@@ -106,7 +103,7 @@ const App = () => {
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/doctors" element={<AdminDoctors />} />
             <Route path="/admin/dispensaries" element={<AdminDispensaries />} />
-            <Route path="/admin/reports" element={<AdminReports />} />
+            <Route path="/admin/reports" element={<ComprehensiveReport />} />
             <Route path="/admin/time-slots" element={<AdminTimeSlots />} />
             <Route path="/admin/bookings" element={<Appointments />} />
             <Route path="/admin/bookings/:id" element={<BookingDetail />} />
@@ -127,10 +124,8 @@ const App = () => {
             {/* Time slot management (was /doctor/:id/dispensary/:id/time-slots) */}
             <Route path="/admin/doctor/:doctorId/dispensary/:dispensaryId/time-slots" element={<TimeSlotManagement />} />
 
-            {/* Reports (were /reports/*, now under /admin/) */}
-            <Route path="/admin/reports/daily-bookings" element={<DailyBookings />} />
-            <Route path="/admin/reports/monthly-summary" element={<MonthlySummary />} />
-            <Route path="/admin/reports/doctor-performance" element={<DoctorPerformance />} />
+            {/* Reports */}
+            <Route path="/admin/reports/comprehensive" element={<ComprehensiveReport />} />
             <Route path="/admin/reports/channel-partner" element={<ChannelPartnerReports />} />
           </Route>
 

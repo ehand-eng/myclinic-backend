@@ -61,6 +61,179 @@ const getAllowedDispensaries = async (req) => {
   return [];
 };
 
+// Comprehensive report endpoint
+router.get('/comprehensive', validateJwt, roleMiddleware.requireRole(['super-admin', 'dispensary-admin', 'dispensary-staff']), async (req, res) => {
+  try {
+    let { period, date, startDate: startDateParam, endDate: endDateParam, dispensaryId, doctorId, bookedBy, status } = req.query;
+
+    // Compute date range: use explicit startDate/endDate if provided, otherwise derive from period+date
+    let startDate, endDate;
+
+    if (startDateParam && endDateParam) {
+      startDate = new Date(startDateParam + 'T00:00:00.000Z');
+      endDate = new Date(endDateParam + 'T23:59:59.999Z');
+    } else {
+      const baseDate = date ? new Date(date) : new Date();
+      if (period === 'weekly') {
+        const day = baseDate.getUTCDay(); // 0=Sun
+        const diffToMon = day === 0 ? -6 : 1 - day;
+        startDate = new Date(Date.UTC(baseDate.getUTCFullYear(), baseDate.getUTCMonth(), baseDate.getUTCDate() + diffToMon));
+        endDate = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate() + 6, 23, 59, 59, 999));
+      } else if (period === 'monthly') {
+        startDate = new Date(Date.UTC(baseDate.getUTCFullYear(), baseDate.getUTCMonth(), 1));
+        endDate = new Date(Date.UTC(baseDate.getUTCFullYear(), baseDate.getUTCMonth() + 1, 0, 23, 59, 59, 999));
+      } else {
+        startDate = new Date((date || baseDate.toISOString().split('T')[0]) + 'T00:00:00.000Z');
+        endDate = new Date((date || baseDate.toISOString().split('T')[0]) + 'T23:59:59.999Z');
+      }
+    }
+
+    // Get allowed dispensaries for role-based filtering
+    let allowedDispensaries;
+    try {
+      allowedDispensaries = await getAllowedDispensaries(req);
+    } catch (error) {
+      return res.status(400).json({ message: error.message });
+    }
+
+    const userRole = (req.user?.role || req.headers['x-user-role'] || '').toLowerCase().replace(/\s+/g, '-');
+
+    // Build query
+    const query = { bookingDate: { $gte: startDate, $lte: endDate } };
+
+    if (userRole === 'super-admin') {
+      if (dispensaryId) query.dispensaryId = dispensaryId;
+    } else {
+      if (!dispensaryId) {
+        if (allowedDispensaries.length === 1) {
+          dispensaryId = allowedDispensaries[0];
+        } else if (allowedDispensaries.length > 0) {
+          query.dispensaryId = { $in: allowedDispensaries };
+        } else {
+          return res.json({ summary: {}, revenue: {}, trend: [], statusDistribution: [], revenueBySource: [], topDoctors: [], bookings: [], dateRange: { startDate, endDate } });
+        }
+      } else if (!allowedDispensaries.includes(dispensaryId)) {
+        return res.status(403).json({ message: 'Access denied to this dispensary' });
+      }
+      if (dispensaryId && !query.dispensaryId) query.dispensaryId = dispensaryId;
+    }
+
+    if (doctorId) query.doctorId = doctorId;
+    if (bookedBy) query.bookedBy = bookedBy;
+    if (status) query.status = status;
+
+    const bookings = await Booking.find(query)
+      .populate('doctorId', 'name specialization')
+      .populate('dispensaryId', 'name address')
+      .sort({ bookingDate: 1 });
+
+    // Aggregate summary
+    const summary = {
+      total: bookings.length,
+      completed: 0, scheduled: 0, checkedIn: 0, cancelled: 0, noShow: 0
+    };
+    const revenue = {
+      totalFee: 0, doctorFee: 0, dispensaryFee: 0, bookingCommission: 0, channelPartnerFee: 0, realizedRevenue: 0
+    };
+    const trendMap = {};
+    const statusCounts = {};
+    const doctorMap = {};
+
+    bookings.forEach(b => {
+      // Status counts
+      if (b.status === 'completed') summary.completed++;
+      else if (b.status === 'scheduled') summary.scheduled++;
+      else if (b.status === 'checked_in') summary.checkedIn++;
+      else if (b.status === 'cancelled') summary.cancelled++;
+      else if (b.status === 'no_show') summary.noShow++;
+
+      // Revenue
+      if (b.fees) {
+        revenue.totalFee += b.fees.totalFee || 0;
+        revenue.doctorFee += b.fees.doctorFee || 0;
+        revenue.dispensaryFee += b.fees.dispensaryFee || 0;
+        revenue.bookingCommission += b.fees.bookingCommission || 0;
+        revenue.channelPartnerFee += b.fees.channelPartnerFee || 0;
+        if (b.status === 'completed') {
+          revenue.realizedRevenue += b.fees.totalFee || 0;
+        }
+      }
+
+      // Trend (group by day)
+      const dayKey = moment(b.bookingDate).format('YYYY-MM-DD');
+      if (!trendMap[dayKey]) {
+        trendMap[dayKey] = { date: dayKey, bookings: 0, revenue: 0 };
+      }
+      trendMap[dayKey].bookings++;
+      trendMap[dayKey].revenue += (b.fees && b.fees.totalFee) || 0;
+
+      // Status distribution
+      statusCounts[b.status] = (statusCounts[b.status] || 0) + 1;
+
+      // Doctor aggregation
+      const dId = b.doctorId?._id?.toString() || 'unknown';
+      if (!doctorMap[dId]) {
+        doctorMap[dId] = {
+          doctorId: dId,
+          doctorName: b.doctorId?.name || 'Unknown',
+          bookingCount: 0,
+          totalFee: 0, doctorFee: 0, dispensaryFee: 0, bookingCommission: 0, channelPartnerFee: 0
+        };
+      }
+      doctorMap[dId].bookingCount++;
+      if (b.fees) {
+        doctorMap[dId].totalFee += b.fees.totalFee || 0;
+        doctorMap[dId].doctorFee += b.fees.doctorFee || 0;
+        doctorMap[dId].dispensaryFee += b.fees.dispensaryFee || 0;
+        doctorMap[dId].bookingCommission += b.fees.bookingCommission || 0;
+        doctorMap[dId].channelPartnerFee += b.fees.channelPartnerFee || 0;
+      }
+    });
+
+    const trend = Object.values(trendMap).sort((a, b) => a.date.localeCompare(b.date));
+    const statusDistribution = Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
+    const revenueBySource = [
+      { name: 'Doctor Fee', value: revenue.doctorFee },
+      { name: 'Dispensary Fee', value: revenue.dispensaryFee },
+      { name: 'Commission', value: revenue.bookingCommission },
+      { name: 'Channel Partner', value: revenue.channelPartnerFee }
+    ].filter(r => r.value > 0);
+    const topDoctors = Object.values(doctorMap).sort((a, b) => b.bookingCount - a.bookingCount).slice(0, 10);
+
+    // Map bookings for response
+    const bookingRecords = bookings.map(b => ({
+      id: b._id,
+      bookingReference: b.transactionId,
+      bookingDate: b.bookingDate,
+      timeSlot: b.timeSlot,
+      appointmentNumber: b.appointmentNumber,
+      patientName: b.patientName,
+      patientPhone: b.patientPhone,
+      status: b.status,
+      doctorName: b.doctorId?.name || '',
+      dispensaryName: b.dispensaryId?.name || '',
+      bookedBy: b.bookedBy,
+      checkedInTime: b.checkedInTime,
+      completedTime: b.completedTime,
+      fees: b.fees
+    }));
+
+    res.json({
+      summary,
+      revenue,
+      trend,
+      statusDistribution,
+      revenueBySource,
+      topDoctors,
+      bookings: bookingRecords,
+      dateRange: { startDate, endDate }
+    });
+  } catch (error) {
+    console.error('Comprehensive report error:', error);
+    res.status(500).json({ message: 'Failed to generate comprehensive report' });
+  }
+});
+
 // Get all reports
 router.get('/', validateJwt, roleMiddleware.requireRole(['super-admin', 'dispensary-admin', 'dispensary-staff']), async (req, res) => {
   try {
