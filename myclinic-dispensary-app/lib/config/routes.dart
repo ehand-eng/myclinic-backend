@@ -7,6 +7,7 @@ import '../screens/auth/login_screen.dart';
 import '../screens/auth/change_password_screen.dart';
 import '../screens/auth/dispensary_select_screen.dart';
 import '../screens/main_shell.dart';
+import '../screens/dispensaries/dispensaries_list_screen.dart';
 import '../screens/dispensaries/dispensary_detail_screen.dart';
 import '../screens/doctors/doctor_detail_screen.dart';
 import '../screens/doctors/doctor_form_screen.dart';
@@ -113,6 +114,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
       // Dispensary screens
+      GoRoute(
+        path: '/dispensaries-list',
+        builder: (_, __) => Scaffold(
+          appBar: AppBar(title: const Text('Dispensaries')),
+          body: const DispensariesListScreen(),
+        ),
+      ),
       GoRoute(
         path: '/dispensaries/:id',
         builder: (_, state) => DispensaryDetailScreen(

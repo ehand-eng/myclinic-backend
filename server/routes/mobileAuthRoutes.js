@@ -119,14 +119,14 @@ router.post('/signup-mobile', async (req, res) => {
   try {
     const { name, password, nationality, mobile, email } = req.body;
 
-    // Validate required fields
-    if (!name || !password || !nationality) {
+    // Validate required fields (password is optional for OTP signup)
+    if (!name || !nationality) {
       return res.status(400).json({
-        message: 'Name, password, and nationality are required'
+        message: 'Name and nationality are required'
       });
     }
 
-    if (password.length < 6) {
+    if (password && password.length < 6) {
       return res.status(400).json({
         message: 'Password must be at least 6 characters long'
       });
@@ -162,12 +162,13 @@ router.post('/signup-mobile', async (req, res) => {
 
     // Hash password
     const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
+    // Hash password only if provided
+    const passwordHash = password ? await bcrypt.hash(password, saltRounds) : undefined;
 
     // Create user
     const userData = {
       name,
-      passwordHash,
+      ...(passwordHash && { passwordHash }),
       nationality,
       dispensaryIds: [],
       isActive: true,

@@ -4,6 +4,28 @@ import 'api_service.dart';
 class ReportService {
   final _api = ApiService();
 
+  Future<Map<String, dynamic>> getComprehensiveReport({
+    required String period,
+    required String startDate,
+    required String endDate,
+    String? dispensaryId,
+    String? doctorId,
+    String? status,
+  }) async {
+    final params = <String, dynamic>{
+      'period': period,
+      'startDate': startDate,
+      'endDate': endDate,
+    };
+    if (dispensaryId != null) params['dispensaryId'] = dispensaryId;
+    if (doctorId != null) params['doctorId'] = doctorId;
+    if (status != null && status != 'all') params['status'] = status;
+
+    final response = await _api.get(ApiConfig.comprehensiveReport,
+        queryParameters: params);
+    return response.data;
+  }
+
   Future<Map<String, dynamic>> getDailyBookings({
     required String date,
     String? dispensaryId,

@@ -76,6 +76,7 @@ class ApiConfig {
       '/dispensary/bookings/$id/check-out';
 
   // Reports
+  static const String comprehensiveReport = '/reports/comprehensive';
   static const String dailyBookings = '/reports/daily-bookings';
   static const String monthlySummary = '/reports/monthly-summary';
   static const String doctorPerformance = '/reports/doctor-performance';

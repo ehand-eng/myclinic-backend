@@ -9,6 +9,7 @@ import 'package:myclinic_patient_app/l10n/translations.dart';
 import 'package:myclinic_patient_app/providers/auth_provider.dart';
 import 'package:myclinic_patient_app/services/api_service.dart';
 import 'package:myclinic_patient_app/utils/helpers.dart';
+import 'package:flutter/services.dart';
 import 'package:myclinic_patient_app/utils/validators.dart';
 import 'package:myclinic_patient_app/widgets/buttons/primary_button.dart';
 import 'package:myclinic_patient_app/widgets/inputs/text_input.dart';
@@ -41,6 +42,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
   bool _obscurePhoneConfirm = true;
   bool _acceptTerms = false;
   String _nationality = 'sri_lanka';
+  bool _showPasswordFields = false;
   bool _otpSent = false;
   bool _sendingOtp = false;
   int _resendTimer = 0;
@@ -85,14 +87,28 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
     });
   }
 
+  /// Returns the full phone number with +94 prefix for Sri Lanka
+  String get _fullPhone {
+    final digits = _phoneCtrl.text.replaceAll(RegExp(r'\s'), '');
+    if (_nationality == 'sri_lanka') {
+      return '+94$digits';
+    }
+    return digits;
+  }
+
   Future<void> _sendOtp() async {
-    if (_phoneCtrl.text.isEmpty || _namePhoneCtrl.text.isEmpty) {
+    if (_phoneCtrl.text.trim().isEmpty || _namePhoneCtrl.text.isEmpty) {
       showSnackBar(context, 'Fill in all required fields', isError: true);
       return;
     }
+    if (_nationality == 'sri_lanka' && _phoneCtrl.text.replaceAll(RegExp(r'\s'), '').length != 9) {
+      showSnackBar(context, 'Please enter 9 digits after +94', isError: true);
+      return;
+    }
+    final phone = _fullPhone;
     setState(() => _sendingOtp = true);
     try {
-      await ref.read(authProvider.notifier).sendOtp(_phoneCtrl.text, nationality: _nationality);
+      await ref.read(authProvider.notifier).sendOtp(phone, nationality: _nationality);
       setState(() {
         _otpSent = true;
         _sendingOtp = false;
@@ -111,25 +127,26 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
       showSnackBar(context, 'Please accept Terms & Conditions', isError: true);
       return;
     }
-    if (_phonePasswordCtrl.text.isEmpty) {
-      showSnackBar(context, 'Please enter a password', isError: true);
-      return;
-    }
-    final pwError = Validators.validatePassword(_phonePasswordCtrl.text);
-    if (pwError != null) {
-      showSnackBar(context, pwError, isError: true);
-      return;
-    }
-    if (_phonePasswordCtrl.text != _phoneConfirmPwCtrl.text) {
-      showSnackBar(context, 'Passwords do not match', isError: true);
-      return;
+    // Password is optional — validate only if provided
+    if (_phonePasswordCtrl.text.isNotEmpty) {
+      final pwError = Validators.validatePassword(_phonePasswordCtrl.text);
+      if (pwError != null) {
+        showSnackBar(context, pwError, isError: true);
+        return;
+      }
+      if (_phonePasswordCtrl.text != _phoneConfirmPwCtrl.text) {
+        showSnackBar(context, 'Passwords do not match', isError: true);
+        return;
+      }
     }
     await ref.read(authProvider.notifier).signupMobile(
           name: _namePhoneCtrl.text,
-          phone: _phoneCtrl.text,
+          phone: _fullPhone,
           otp: _otpCtrl.text,
           nationality: _nationality,
-          password: _phonePasswordCtrl.text,
+          password: _phonePasswordCtrl.text.isNotEmpty
+              ? _phonePasswordCtrl.text
+              : null,
         );
     _handleResult();
   }
@@ -178,56 +195,62 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                // Top section with back button
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 8, 24, 16),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-                        onPressed: () => context.pop(),
-                      ),
-                      const Spacer(),
-                    ],
-                  ),
+          child: Column(
+            children: [
+              // Top — compact back button + title
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 4, 24, 0),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                      onPressed: () => context.pop(),
+                    ),
+                    const Spacer(),
+                  ],
                 ),
-                const Icon(Icons.person_add_rounded, size: 48, color: Colors.white)
-                    .animate().scale(duration: 500.ms, curve: Curves.elasticOut),
-                const SizedBox(height: 10),
-                Text(
-                  context.tr('createAccount'),
-                  style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: Colors.white),
-                ).animate(delay: 200.ms).fadeIn(),
-                const SizedBox(height: 20),
-                // Seamless form area (no white card)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+              ),
+              const Icon(Icons.person_add_rounded, size: 36, color: Colors.white)
+                  .animate().scale(duration: 500.ms, curve: Curves.elasticOut),
+              const SizedBox(height: 6),
+              Text(
+                context.tr('createAccount'),
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white),
+              ).animate(delay: 200.ms).fadeIn(),
+              const SizedBox(height: 12),
+
+              // Form — fills remaining space
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
                   child: Column(
                     children: [
-              // Minimal tab selector with bottom border
+              // Tab selector
               Row(
                 children: [
                   _SignupTabButton(label: context.tr('phoneLogin'), icon: Icons.phone_android_rounded, isSelected: _selectedTab == 0, onTap: () => _tabController.animateTo(0)),
                   _SignupTabButton(label: context.tr('emailLogin'), icon: Icons.email_rounded, isSelected: _selectedTab == 1, onTap: () => _tabController.animateTo(1)),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 12),
               // Nationality selector
               Row(
                 children: [
-                  Text('${context.tr('nationality')}: ', style: TextStyle(color: Colors.white.withValues(alpha: 0.8))),
-                  const SizedBox(width: 8),
+                  Text('${context.tr('nationality')}: ', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13)),
+                  const SizedBox(width: 6),
                   Expanded(
                     child: SegmentedButton<String>(
                       segments: [
-                        ButtonSegment(value: 'sri_lanka', label: Text(context.tr('sriLankan'), overflow: TextOverflow.ellipsis)),
-                        ButtonSegment(value: 'other', label: Text(context.tr('foreign'), overflow: TextOverflow.ellipsis)),
+                        ButtonSegment(value: 'sri_lanka', label: Text(context.tr('sriLankan'), overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
+                        ButtonSegment(value: 'other', label: Text(context.tr('foreign'), overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12))),
                       ],
                       selected: {_nationality},
-                      onSelectionChanged: (v) => setState(() => _nationality = v.first),
+                      onSelectionChanged: (v) {
+                        setState(() {
+                          _nationality = v.first;
+                          _phoneCtrl.clear();
+                        });
+                      },
                       style: SegmentedButton.styleFrom(
                         selectedBackgroundColor: Colors.white.withValues(alpha: 0.2),
                         selectedForegroundColor: Colors.white,
@@ -239,31 +262,31 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
               ),
               // Foreign user SMS warning
               if (_nationality == 'other') ...[
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: Colors.amber.shade50.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.amber.shade300.withValues(alpha: 0.5)),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline_rounded, color: Colors.amber.shade200, size: 20),
-                      const SizedBox(width: 8),
+                      Icon(Icons.info_outline_rounded, color: Colors.amber.shade200, size: 18),
+                      const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          'Please note that foreign users will not receive any SMS notifications.',
-                          style: TextStyle(fontSize: 12, color: Colors.amber.shade100),
+                          'Foreign users will not receive SMS notifications.',
+                          style: TextStyle(fontSize: 11, color: Colors.amber.shade100),
                         ),
                       ),
                     ],
                   ),
                 ),
               ],
-              const SizedBox(height: 28),
-              SizedBox(
-                height: 650,
+              const SizedBox(height: 12),
+              // Tab content — fills remaining
+              Expanded(
                 child: TabBarView(
                   controller: _tabController,
                   children: [
@@ -281,14 +304,54 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
                             validator: Validators.validateName,
                           ),
                           const SizedBox(height: 14),
-                          AppTextInput(onDarkBackground: true, 
-                            label: context.tr('phone'),
-                            hint: '+94 7X XXX XXXX',
-                            controller: _phoneCtrl,
-                            prefixIcon: Icons.phone_rounded,
-                            keyboardType: TextInputType.phone,
-                            enabled: !_otpSent,
-                          ),
+                          if (_nationality == 'sri_lanka')
+                            AppTextInput(
+                              onDarkBackground: true,
+                              label: context.tr('phone'),
+                              hint: '7XXXXXXXX',
+                              controller: _phoneCtrl,
+                              prefix: Padding(
+                                padding: const EdgeInsets.only(left: 14, right: 4),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.phone_rounded,
+                                        color: Colors.white70, size: 20),
+                                    const SizedBox(width: 8),
+                                    Text('+94',
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(alpha: 0.9),
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                        )),
+                                  ],
+                                ),
+                              ),
+                              keyboardType: TextInputType.number,
+                              maxLength: 9,
+                              enabled: !_otpSent,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                // Block leading zero
+                                TextInputFormatter.withFunction(
+                                    (oldValue, newValue) {
+                                  if (newValue.text.startsWith('0')) {
+                                    return oldValue;
+                                  }
+                                  return newValue;
+                                }),
+                              ],
+                            )
+                          else
+                            AppTextInput(
+                              onDarkBackground: true,
+                              label: 'Email',
+                              hint: 'your@email.com',
+                              controller: _phoneCtrl,
+                              prefixIcon: Icons.email_rounded,
+                              keyboardType: TextInputType.emailAddress,
+                              enabled: !_otpSent,
+                            ),
                           const SizedBox(height: 14),
                           if (!_otpSent)
                             PrimaryButton(
@@ -305,8 +368,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
                               pinTheme: PinTheme(
                                 shape: PinCodeFieldShape.box,
                                 borderRadius: BorderRadius.circular(12),
-                                fieldHeight: 50,
-                                fieldWidth: 44,
+                                fieldHeight: 46,
+                                fieldWidth: 42,
                                 activeFillColor: Colors.white,
                                 selectedFillColor: AppTheme.primarySurface,
                                 inactiveFillColor: Colors.white.withValues(alpha: 0.15),
@@ -324,42 +387,66 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
                             else
                               TextButton(onPressed: _sendOtp, child: Text(context.tr('resendOtp'), style: const TextStyle(color: Colors.white))),
                             const SizedBox(height: 14),
-                            AppTextInput(
-                              onDarkBackground: true,
-                              label: context.tr('password'),
-                              controller: _phonePasswordCtrl,
-                              prefixIcon: Icons.lock_rounded,
-                              obscureText: _obscurePhonePassword,
-                              validator: Validators.validatePassword,
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscurePhonePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                                  color: Colors.white70,
-                                ),
-                                onPressed: () => setState(() => _obscurePhonePassword = !_obscurePhonePassword),
+                            // Optional password section
+                            GestureDetector(
+                              onTap: () => setState(() => _showPasswordFields = !_showPasswordFields),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    _showPasswordFields
+                                        ? Icons.keyboard_arrow_up_rounded
+                                        : Icons.keyboard_arrow_down_rounded,
+                                    color: Colors.white70,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Set a password (optional)',
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(alpha: 0.8),
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              onChanged: (_) => setState(() {}),
                             ),
-                            if (_phonePasswordCtrl.text.isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              _PasswordStrength(password: _phonePasswordCtrl.text),
+                            if (_showPasswordFields) ...[
+                              const SizedBox(height: 10),
+                              AppTextInput(
+                                onDarkBackground: true,
+                                label: context.tr('password'),
+                                controller: _phonePasswordCtrl,
+                                prefixIcon: Icons.lock_rounded,
+                                obscureText: _obscurePhonePassword,
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscurePhonePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                                    color: Colors.white70,
+                                  ),
+                                  onPressed: () => setState(() => _obscurePhonePassword = !_obscurePhonePassword),
+                                ),
+                                onChanged: (_) => setState(() {}),
+                              ),
+                              if (_phonePasswordCtrl.text.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                _PasswordStrength(password: _phonePasswordCtrl.text),
+                              ],
+                              const SizedBox(height: 14),
+                              AppTextInput(
+                                onDarkBackground: true,
+                                label: context.tr('confirmPassword'),
+                                controller: _phoneConfirmPwCtrl,
+                                prefixIcon: Icons.lock_rounded,
+                                obscureText: _obscurePhoneConfirm,
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscurePhoneConfirm ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                                    color: Colors.white70,
+                                  ),
+                                  onPressed: () => setState(() => _obscurePhoneConfirm = !_obscurePhoneConfirm),
+                                ),
+                              ),
                             ],
-                            const SizedBox(height: 14),
-                            AppTextInput(
-                              onDarkBackground: true,
-                              label: context.tr('confirmPassword'),
-                              controller: _phoneConfirmPwCtrl,
-                              prefixIcon: Icons.lock_rounded,
-                              obscureText: _obscurePhoneConfirm,
-                              validator: (v) => Validators.validateConfirmPassword(v, _phonePasswordCtrl.text),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscurePhoneConfirm ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                                  color: Colors.white70,
-                                ),
-                                onPressed: () => setState(() => _obscurePhoneConfirm = !_obscurePhoneConfirm),
-                              ),
-                            ),
                             const SizedBox(height: 8),
                             _termsCheckbox(),
                             const SizedBox(height: 14),
@@ -449,24 +536,27 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(context.tr('alreadyHaveAccount'),
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.8))),
-                  const SizedBox(width: 4),
-                  GestureDetector(
-                    onTap: () => context.pop(),
-                    child: Text(context.tr('login'), style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 15)),
-                  ),
-                ],
+              // Bottom link
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12, top: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(context.tr('alreadyHaveAccount'),
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13)),
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: () => context.pop(),
+                      child: Text(context.tr('login'), style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 14)),
+                    ),
+                  ],
+                ),
               ),
                     ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

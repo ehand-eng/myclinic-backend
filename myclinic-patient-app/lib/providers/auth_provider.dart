@@ -98,7 +98,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String phone,
     required String otp,
     String? nationality,
-    required String password,
+    String? password,
   }) async {
     state = state.copyWith(isLoading: true, error: null);
     try {

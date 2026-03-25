@@ -41,14 +41,17 @@ class AuthService {
     required String phone,
     required String otp,
     String? nationality,
-    required String password,
+    String? password,
   }) async {
-    final res = await _api.post(ApiConfig.signupMobile, data: {
+    final data = <String, dynamic>{
       'name': name,
-      'password': password,
       'mobile': phone,
       'nationality': nationality ?? 'sri_lanka',
-    });
+    };
+    if (password != null && password.isNotEmpty) {
+      data['password'] = password;
+    }
+    final res = await _api.post(ApiConfig.signupMobile, data: data);
     return AuthResponse.fromJson(res.data);
   }
 
