@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Edit, Trash2, MapPin, CalendarDays } from 'lucide-react';
-import { canManageDispensaries } from '@/lib/roleUtils';
+import { canManageDispensaries, canEditDispensaries } from '@/lib/roleUtils';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -34,6 +34,7 @@ const ViewDispensary = () => {
   const userStr = typeof window !== 'undefined' ? localStorage.getItem('current_user') : null;
   const currentUser = userStr ? JSON.parse(userStr) : null;
   const canManage = canManageDispensaries(currentUser?.role);
+  const canEdit = canEditDispensaries(currentUser?.role);
 
   useEffect(() => {
     const fetchDispensaryData = async () => {
@@ -136,21 +137,25 @@ const ViewDispensary = () => {
           <div className="w-full max-w-full mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold medical-text-gradient">Dispensary Details</h1>
-            {canManage && (
+            {(canEdit || canManage) && (
               <div className="space-x-2">
-                <Button
-                  variant="outline"
-                  onClick={() => navigate(`/admin/dispensaries/edit/${id}`)}
-                >
-                  <Edit className="mr-2 h-4 w-4" /> Edit
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleDelete}
-                  className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" /> Delete
-                </Button>
+                {canEdit && (
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(`/admin/dispensaries/edit/${id}`)}
+                  >
+                    <Edit className="mr-2 h-4 w-4" /> Edit
+                  </Button>
+                )}
+                {canManage && (
+                  <Button
+                    variant="outline"
+                    onClick={handleDelete}
+                    className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                  </Button>
+                )}
               </div>
             )}
           </div>

@@ -346,12 +346,10 @@ async function showAvailableAppointments(from, session) {
     const doctor = await Doctor.findById(doctorId).select('bookingVisibleDays').lean();
     const dispensary = await Dispensary.findById(dispensaryId).select('bookingVisibleDays').lean();
 
+    // Doctor value wins when explicitly set; fallback to dispensary, then 30
     const doctorDays = doctor?.bookingVisibleDays;
     const dispensaryDays = dispensary?.bookingVisibleDays;
-    let maxDays = 30;
-    if (doctorDays && dispensaryDays) maxDays = Math.min(doctorDays, dispensaryDays);
-    else if (doctorDays) maxDays = doctorDays;
-    else if (dispensaryDays) maxDays = dispensaryDays;
+    let maxDays = doctorDays ?? dispensaryDays ?? 30;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);

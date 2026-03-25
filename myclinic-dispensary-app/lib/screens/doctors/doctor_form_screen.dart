@@ -22,6 +22,7 @@ class _DoctorFormScreenState extends ConsumerState<DoctorFormScreen> {
   final _qualController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
+  final _visibleDaysController = TextEditingController();
   List<String> _selectedDispensaryIds = [];
   bool _isLoading = false;
   bool _isEdit = false;
@@ -29,14 +30,17 @@ class _DoctorFormScreenState extends ConsumerState<DoctorFormScreen> {
   @override
   void initState() {
     super.initState();
+    final auth = ref.read(authProvider);
     if (widget.doctorId != null) {
       _isEdit = true;
       _loadDoctor();
     } else {
-      final auth = ref.read(authProvider);
       if (auth.selectedDispensary != null) {
         _selectedDispensaryIds = [auth.selectedDispensary!.id];
       }
+      // Default to dispensary's bookingVisibleDays
+      _visibleDaysController.text =
+          '${auth.selectedDispensary?.bookingVisibleDays ?? 30}';
     }
   }
 
@@ -49,6 +53,7 @@ class _DoctorFormScreenState extends ConsumerState<DoctorFormScreen> {
       _qualController.text = doctor.qualifications.join(', ');
       _phoneController.text = doctor.contactNumber ?? '';
       _emailController.text = doctor.email ?? '';
+      _visibleDaysController.text = '${doctor.bookingVisibleDays}';
       _selectedDispensaryIds = List.from(doctor.dispensaryIds);
     } catch (e) {
       if (mounted) {
@@ -76,6 +81,8 @@ class _DoctorFormScreenState extends ConsumerState<DoctorFormScreen> {
         'contactNumber': _phoneController.text.trim(),
         'email': _emailController.text.trim(),
         'dispensaries': _selectedDispensaryIds,
+        'bookingVisibleDays':
+            int.tryParse(_visibleDaysController.text) ?? 30,
       };
 
       if (_isEdit) {
@@ -85,11 +92,9 @@ class _DoctorFormScreenState extends ConsumerState<DoctorFormScreen> {
       }
 
       if (mounted) {
-        // Invalidate the doctor detail cache so it re-fetches on return
         if (_isEdit && widget.doctorId != null) {
           ref.invalidate(doctorDetailProvider(widget.doctorId!));
         }
-        // Also invalidate doctors list
         final dispensaryId = ref.read(authProvider).selectedDispensary?.id;
         if (dispensaryId != null) {
           ref.invalidate(doctorsListProvider(dispensaryId));
@@ -97,7 +102,8 @@ class _DoctorFormScreenState extends ConsumerState<DoctorFormScreen> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Doctor ${_isEdit ? 'updated' : 'created'} successfully'),
+            content:
+                Text('Doctor ${_isEdit ? 'updated' : 'created'} successfully'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -120,6 +126,7 @@ class _DoctorFormScreenState extends ConsumerState<DoctorFormScreen> {
     _qualController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
+    _visibleDaysController.dispose();
     super.dispose();
   }
 
@@ -183,7 +190,8 @@ class _DoctorFormScreenState extends ConsumerState<DoctorFormScreen> {
                         if (v == null || v.trim().isEmpty) {
                           return 'Contact number is required';
                         }
-                        final cleaned = v.replaceAll(RegExp(r'[\s\-+]'), '');
+                        final cleaned =
+                            v.replaceAll(RegExp(r'[\s\-+]'), '');
                         if (!RegExp(r'^\d{9,12}$').hasMatch(cleaned)) {
                           return 'Enter a valid phone number';
                         }
@@ -203,6 +211,28 @@ class _DoctorFormScreenState extends ConsumerState<DoctorFormScreen> {
                           return 'Email is required';
                         }
                         if (!v.contains('@')) return 'Enter a valid email';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Booking Visible Days
+                    TextFormField(
+                      controller: _visibleDaysController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Booking Visible Days',
+                        prefixIcon: const Icon(Icons.calendar_month_outlined),
+                        helperText:
+                            'Dispensary default: ${auth.selectedDispensary?.bookingVisibleDays ?? 30} days',
+                        helperMaxLines: 2,
+                      ),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return null;
+                        final n = int.tryParse(v);
+                        if (n == null || n < 1 || n > 365) {
+                          return 'Enter a value between 1 and 365';
+                        }
                         return null;
                       },
                     ),

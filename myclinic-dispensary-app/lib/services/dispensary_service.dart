@@ -26,6 +26,11 @@ class DispensaryService {
     return (data as List).map((e) => Dispensary.fromJson(e)).toList();
   }
 
+  Future<void> updateDispensary(
+      String id, Map<String, dynamic> data) async {
+    await _api.put(ApiConfig.dispensaryById(id), data: data);
+  }
+
   Future<List<Dispensary>> getDispensariesByDoctor(String doctorId) async {
     final response =
         await _api.get(ApiConfig.dispensaryByDoctor(doctorId));

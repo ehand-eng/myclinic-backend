@@ -105,15 +105,11 @@ const HeroBookingForm = () => {
     fetchDisabledDates();
   }, [selectedDoctor, selectedDispensary]);
 
-  // Compute dynamic max booking days from doctor and dispensary settings
+  // Doctor value wins when explicitly set; fallback to dispensary, then 30
   const maxBookingDays = (() => {
     const doctorDays = selectedDoctorData?.bookingVisibleDays;
     const dispensaryDays = selectedDispensaryData?.bookingVisibleDays;
-
-    if (doctorDays && dispensaryDays) return Math.min(doctorDays, dispensaryDays);
-    if (doctorDays) return doctorDays;
-    if (dispensaryDays) return dispensaryDays;
-    return 30;
+    return doctorDays ?? dispensaryDays ?? 30;
   })();
 
   const handleSubmit = () => {

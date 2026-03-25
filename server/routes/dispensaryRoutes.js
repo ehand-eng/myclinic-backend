@@ -6,7 +6,9 @@ const Doctor = require('../models/Doctor');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
-// Require super-admin role for write operations (create, update, delete dispensaries)
+const User = require('../models/User');
+
+// Require super-admin role for create/delete dispensaries
 const requireSuperAdmin = (req, res, next) => {
   const authHeader = req.headers.authorization || '';
   const token = authHeader.split(' ')[1];
@@ -17,10 +19,45 @@ const requireSuperAdmin = (req, res, next) => {
     const decoded = jwt.verify(token, JWT_SECRET);
     const role = (decoded.role || '').toLowerCase().replace(/_/g, '-');
     if (role !== 'super-admin') {
-      return res.status(403).json({ message: 'Only Super Administrators can add, edit, or delete dispensaries' });
+      return res.status(403).json({ message: 'Only Super Administrators can perform this action' });
     }
     req.user = { id: decoded.userId, role: decoded.role };
     next();
+  } catch (err) {
+    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Invalid or expired token' });
+    }
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Allow super-admin OR dispensary-admin (for their own assigned dispensaries)
+const requireDispensaryEditAccess = async (req, res, next) => {
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ message: 'Authorization required' });
+  }
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const role = (decoded.role || '').toLowerCase().replace(/_/g, '-');
+    req.user = { id: decoded.userId, role: decoded.role };
+
+    // Super-admin can edit any dispensary
+    if (role === 'super-admin') return next();
+
+    // Dispensary-admin can only edit their assigned dispensaries
+    if (role === 'dispensary-admin' || role === 'hospital-admin') {
+      const user = await User.findById(decoded.userId).select('dispensaryIds').lean();
+      const dispensaryId = req.params.id;
+      const assignedIds = (user?.dispensaryIds || []).map(id => id.toString());
+      if (assignedIds.includes(dispensaryId)) {
+        return next();
+      }
+      return res.status(403).json({ message: 'You can only edit dispensaries assigned to you' });
+    }
+
+    return res.status(403).json({ message: 'Insufficient permissions to edit dispensaries' });
   } catch (err) {
     if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
       return res.status(401).json({ message: 'Invalid or expired token' });
@@ -143,8 +180,8 @@ router.post('/by-ids', async (req, res) => {
   }
 });
 
-// Update dispensary
-router.put('/:id', requireSuperAdmin, async (req, res) => {
+// Update dispensary (super-admin or dispensary-admin for their own)
+router.put('/:id', requireDispensaryEditAccess, async (req, res) => {
   try {
     const dispensary = await Dispensary.findById(req.params.id);
     if (!dispensary) {
@@ -178,11 +215,24 @@ router.put('/:id', requireSuperAdmin, async (req, res) => {
       }
     }
     
+    // If bookingVisibleDays changed, auto-update doctors who had the old default
+    const oldVisibleDays = dispensary.bookingVisibleDays;
+    const newVisibleDays = req.body.bookingVisibleDays;
+    if (newVisibleDays && newVisibleDays !== oldVisibleDays) {
+      await Doctor.updateMany(
+        {
+          _id: { $in: dispensary.doctors },
+          bookingVisibleDays: oldVisibleDays
+        },
+        { $set: { bookingVisibleDays: newVisibleDays } }
+      );
+    }
+
     // Update dispensary fields
     Object.keys(req.body).forEach(key => {
       dispensary[key] = req.body[key];
     });
-    
+
     await dispensary.save();
     res.status(200).json(dispensary);
   } catch (error) {

@@ -93,7 +93,7 @@ class _DoctorsListScreenState extends ConsumerState<DoctorsListScreen> {
                       return _DoctorCard(
                         doctor: doctor,
                         onTap: () =>
-                            context.push('/doctors/${doctor.id}'),
+                            context.push('/doctors/edit/${doctor.id}'),
                       );
                     },
                   ),

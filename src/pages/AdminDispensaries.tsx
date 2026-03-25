@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Eye, Edit, Trash2, Plus, Search, MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { canManageDispensaries } from '@/lib/roleUtils';
+import { canManageDispensaries, canEditDispensaries } from '@/lib/roleUtils';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -31,6 +31,7 @@ const AdminDispensaries = () => {
   const userStr = typeof window !== 'undefined' ? localStorage.getItem('current_user') : null;
   const currentUser = userStr ? JSON.parse(userStr) : null;
   const canManage = canManageDispensaries(currentUser?.role);
+  const canEdit = canEditDispensaries(currentUser?.role);
 
   useEffect(() => {
     fetchDispensaries();
@@ -200,23 +201,23 @@ const AdminDispensaries = () => {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
+                          {canEdit && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigate(`/admin/dispensaries/edit/${dispensary.id}`)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
                           {canManage && (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => navigate(`/admin/dispensaries/edit/${dispensary.id}`)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteDispensary(dispensary.id)}
-                              >
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                              </Button>
-                            </>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteDispensary(dispensary.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
                           )}
                         </TableCell>
                       </TableRow>

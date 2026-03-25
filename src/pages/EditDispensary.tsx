@@ -4,22 +4,22 @@ import { useParams, useNavigate } from 'react-router-dom';
 import AdminHeader from '@/components/AdminHeader';
 import AdminFooter from '@/components/AdminFooter';
 import DispensaryForm from '@/components/DispensaryForm';
-import { canManageDispensaries } from '@/lib/roleUtils';
+import { canEditDispensaries } from '@/lib/roleUtils';
 
 const EditDispensary = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const userStr = typeof window !== 'undefined' ? localStorage.getItem('current_user') : null;
   const currentUser = userStr ? JSON.parse(userStr) : null;
-  const canManage = canManageDispensaries(currentUser?.role);
+  const canEdit = canEditDispensaries(currentUser?.role);
 
   useEffect(() => {
-    if (!canManage) {
+    if (!canEdit) {
       navigate('/admin/dispensaries', { replace: true });
     }
-  }, [canManage, navigate]);
+  }, [canEdit, navigate]);
 
-  if (!canManage) {
+  if (!canEdit) {
     return null;
   }
 

@@ -13,6 +13,7 @@ import '../screens/doctors/doctor_form_screen.dart';
 import '../screens/doctors/replacement_screen.dart';
 import '../screens/timeslots/timeslot_selector_screen.dart';
 import '../screens/timeslots/timeslot_manage_screen.dart';
+import '../screens/dispensaries/dispensary_edit_screen.dart';
 import '../screens/bookings/booking_detail_screen.dart';
 import '../screens/reports/reports_screen.dart';
 
@@ -111,10 +112,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const MainShell(),
       ),
 
-      // Dispensary detail
+      // Dispensary screens
       GoRoute(
         path: '/dispensaries/:id',
         builder: (_, state) => DispensaryDetailScreen(
+          dispensaryId: state.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        path: '/dispensaries/edit/:id',
+        builder: (_, state) => DispensaryEditScreen(
           dispensaryId: state.pathParameters['id']!,
         ),
       ),

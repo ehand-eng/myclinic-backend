@@ -216,7 +216,11 @@ class _BookingStep1ScreenState extends ConsumerState<BookingStep1Screen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       child: TableCalendar(
                         firstDay: DateTime.now(),
-                        lastDay: DateTime.now().add(Duration(days: state.selectedDoctor?.bookingVisibleDays ?? 30)),
+                        lastDay: DateTime.now().add(Duration(
+                          days: state.selectedDoctor?.bookingVisibleDays
+                              ?? state.selectedDispensary?.bookingVisibleDays
+                              ?? 30,
+                        )),
                         focusedDay: _focusedDay,
                         selectedDayPredicate: (day) => isSameDay(state.selectedDate, day),
                         enabledDayPredicate: (day) => !state.disabledDates.any((d) => isSameDay(d, day)),

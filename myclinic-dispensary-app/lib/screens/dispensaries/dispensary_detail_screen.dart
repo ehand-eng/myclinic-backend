@@ -31,7 +31,15 @@ class DispensaryDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Dispensary Details')),
+      appBar: AppBar(
+        title: const Text('Dispensary Details'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () => context.push('/dispensaries/edit/$dispensaryId'),
+          ),
+        ],
+      ),
       body: detailAsync.when(
         loading: () => const LoadingWidget(),
         error: (e, _) => Center(child: Text('Error: $e')),

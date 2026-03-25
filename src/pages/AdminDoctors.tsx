@@ -9,7 +9,7 @@ import { Doctor, Dispensary } from '@/api/models';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, Edit, Trash2, Plus, Search, UserX, UserCheck, UserCog } from 'lucide-react';
+import { Edit, Trash2, Plus, Search, UserX, UserCheck, UserCog } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { canManageDoctors } from '@/lib/roleUtils';
 import ReplacementDoctorManager from '@/components/ReplacementDoctorManager';
@@ -236,14 +236,6 @@ const AdminDoctors = () => {
                             )}
                           </TableCell>
                           <TableCell className="space-x-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => navigate(`/admin/doctors/view/${doctor.id}`)}
-                              title="View doctor"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
                             {canManage && (
                               <>
                                 <Button

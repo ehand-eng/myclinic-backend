@@ -44,6 +44,11 @@ export const canManageDispensaries = (userRole: string | undefined): boolean => 
   return isSuperAdmin(userRole);
 };
 
+// Dispensary-admin can edit their assigned dispensaries (but not create/delete)
+export const canEditDispensaries = (userRole: string | undefined): boolean => {
+  return isSuperAdmin(userRole) || isDispensaryAdmin(userRole);
+};
+
 export const canManageDoctors = (userRole: string | undefined): boolean => {
   return isSuperAdmin(userRole) || isDispensaryAdmin(userRole);
 };
