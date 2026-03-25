@@ -92,7 +92,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
     }
     setState(() => _sendingOtp = true);
     try {
-      await ref.read(authProvider.notifier).sendOtp(_phoneCtrl.text);
+      await ref.read(authProvider.notifier).sendOtp(_phoneCtrl.text, nationality: _nationality);
       setState(() {
         _otpSent = true;
         _sendingOtp = false;

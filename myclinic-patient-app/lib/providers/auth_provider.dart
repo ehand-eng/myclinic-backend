@@ -67,12 +67,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<Map<String, dynamic>> sendOtp(String phone) async {
-    return _authService.sendOtp(phone);
+  Future<Map<String, dynamic>> sendOtp(String phone, {String nationality = 'sri_lanka'}) async {
+    return _authService.sendOtp(phone, nationality: nationality);
   }
 
-  Future<Map<String, dynamic>> sendLoginOtp(String phone) async {
-    return _authService.sendLoginOtp(phone);
+  Future<Map<String, dynamic>> sendLoginOtp(String phone, {String loginType = 'mobile'}) async {
+    return _authService.sendLoginOtp(phone, loginType: loginType);
   }
 
   Future<void> loginWithOtp(String phone, String otp, {bool keepSignedIn = false}) async {

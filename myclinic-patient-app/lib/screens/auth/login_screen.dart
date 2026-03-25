@@ -75,7 +75,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     }
     setState(() => _sendingOtp = true);
     try {
-      await ref.read(authProvider.notifier).sendLoginOtp(_phoneCtrl.text);
+      await ref.read(authProvider.notifier).sendLoginOtp(_phoneCtrl.text, loginType: 'mobile');
       setState(() { _otpSent = true; _sendingOtp = false; });
       _startResendTimer();
       if (mounted) showSnackBar(context, 'OTP sent successfully');

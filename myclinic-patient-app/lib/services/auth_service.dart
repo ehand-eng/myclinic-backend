@@ -14,13 +14,25 @@ class AuthService {
 
   AuthService(this._api, this._storage);
 
-  Future<Map<String, dynamic>> sendOtp(String phone) async {
-    final res = await _api.post(ApiConfig.sendOtp, data: {'mobile': phone});
+  Future<Map<String, dynamic>> sendOtp(String phone, {String nationality = 'sri_lanka'}) async {
+    final data = <String, dynamic>{'nationality': nationality};
+    if (nationality == 'sri_lanka') {
+      data['mobile'] = phone;
+    } else {
+      data['email'] = phone;
+    }
+    final res = await _api.post(ApiConfig.sendOtp, data: data);
     return res.data;
   }
 
-  Future<Map<String, dynamic>> verifyOtp(String phone, String otp) async {
-    final res = await _api.post(ApiConfig.verifyOtp, data: {'mobile': phone, 'otp': otp});
+  Future<Map<String, dynamic>> verifyOtp(String phone, String otp, {String nationality = 'sri_lanka'}) async {
+    final data = <String, dynamic>{'otp': otp, 'nationality': nationality};
+    if (nationality == 'sri_lanka') {
+      data['mobile'] = phone;
+    } else {
+      data['email'] = phone;
+    }
+    final res = await _api.post(ApiConfig.verifyOtp, data: data);
     return res.data;
   }
 
@@ -40,8 +52,14 @@ class AuthService {
     return AuthResponse.fromJson(res.data);
   }
 
-  Future<Map<String, dynamic>> sendLoginOtp(String phone) async {
-    final res = await _api.post(ApiConfig.sendLoginOtp, data: {'mobile': phone});
+  Future<Map<String, dynamic>> sendLoginOtp(String phone, {String loginType = 'mobile'}) async {
+    final data = <String, dynamic>{'loginType': loginType};
+    if (loginType == 'mobile') {
+      data['mobile'] = phone;
+    } else {
+      data['email'] = phone;
+    }
+    final res = await _api.post(ApiConfig.sendLoginOtp, data: data);
     return res.data;
   }
 

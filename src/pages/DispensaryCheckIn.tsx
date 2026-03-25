@@ -14,8 +14,9 @@ import { DoctorService } from '@/api/services/DoctorService';
 import { DispensaryService } from '@/api/services/DispensaryService';
 import { TimeSlotService } from '@/api/services/TimeSlotService';
 import { Booking, BookingStatus } from '@/api/models';
-import { Search, Loader2, CheckCircle2, Calendar, LogOut, TimerReset } from 'lucide-react';
+import { Search, Loader2, CheckCircle2, Calendar, LogOut, TimerReset, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
 
 interface BookingWithDetails extends Booking {
   doctor?: {
@@ -363,6 +364,21 @@ const DispensaryCheckIn = () => {
     return Math.floor(diffMs / 1000);
   };
 
+  // Date restriction helpers — check-in/out only allowed for today's bookings
+  const isBookingToday = (booking: BookingWithDetails): boolean => {
+    if (!booking.bookingDate) return false;
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const bookingStr = format(new Date(booking.bookingDate), 'yyyy-MM-dd');
+    return todayStr === bookingStr;
+  };
+
+  const isBookingFuture = (booking: BookingWithDetails): boolean => {
+    if (!booking.bookingDate) return false;
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const bookingStr = format(new Date(booking.bookingDate), 'yyyy-MM-dd');
+    return bookingStr > todayStr;
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'checked_in':
@@ -676,22 +692,31 @@ const DispensaryCheckIn = () => {
                           <TableCell className="text-right">
                             {booking.status === 'checked_in' ? (
                               (() => {
+                                const bookingIsToday = isBookingToday(booking);
+                                const bookingIsFuture = isBookingFuture(booking);
                                 const remaining = getCheckoutRemainingSeconds(booking);
                                 const minutes = Math.floor(remaining / 60);
                                 const seconds = remaining % 60;
-                                const disabled = remaining <= 0 || isCheckingOut === booking.id;
+                                const disabled = !bookingIsToday || remaining <= 0 || isCheckingOut === booking.id;
                                 return (
                                   <div className="flex items-center justify-end gap-3">
-                                    <div className="flex items-center gap-1 text-xs text-red-600">
-                                      <TimerReset className="h-3 w-3" />
-                                      {remaining > 0 ? (
-                                        <span>
-                                          {minutes}:{seconds.toString().padStart(2, '0')} left
-                                        </span>
-                                      ) : (
-                                        <span>Checkout window expired</span>
-                                      )}
-                                    </div>
+                                    {bookingIsToday ? (
+                                      <div className="flex items-center gap-1 text-xs text-red-600">
+                                        <TimerReset className="h-3 w-3" />
+                                        {remaining > 0 ? (
+                                          <span>
+                                            {minutes}:{seconds.toString().padStart(2, '0')} left
+                                          </span>
+                                        ) : (
+                                          <span>Checkout window expired</span>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <span className="text-xs text-amber-600 flex items-center gap-1">
+                                        <AlertCircle className="h-3 w-3" />
+                                        Cannot check out {bookingIsFuture ? 'future' : 'past'} bookings
+                                      </span>
+                                    )}
                                     <Button
                                       size="sm"
                                       variant="outline"
@@ -714,20 +739,34 @@ const DispensaryCheckIn = () => {
                                 );
                               })()
                             ) : booking.status === 'scheduled' ? (
-                              <Button
-                                size="sm"
-                                onClick={() => handleCheckIn(booking.id)}
-                                disabled={isCheckingIn === booking.id}
-                              >
-                                {isCheckingIn === booking.id ? (
-                                  <>
-                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                    Checking In...
-                                  </>
-                                ) : (
-                                  'Check-In'
-                                )}
-                              </Button>
+                              (() => {
+                                const bookingIsToday = isBookingToday(booking);
+                                const bookingIsFuture = isBookingFuture(booking);
+                                return (
+                                  <div className="flex items-center justify-end gap-2">
+                                    {!bookingIsToday && (
+                                      <span className="text-xs text-amber-600 flex items-center gap-1">
+                                        <AlertCircle className="h-3 w-3" />
+                                        Cannot check in {bookingIsFuture ? 'future' : 'past'} bookings
+                                      </span>
+                                    )}
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleCheckIn(booking.id)}
+                                      disabled={!bookingIsToday || isCheckingIn === booking.id}
+                                    >
+                                      {isCheckingIn === booking.id ? (
+                                        <>
+                                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                          Checking In...
+                                        </>
+                                      ) : (
+                                        'Check-In'
+                                      )}
+                                    </Button>
+                                  </div>
+                                );
+                              })()
                             ) : null}
                           </TableCell>
                         </TableRow>
