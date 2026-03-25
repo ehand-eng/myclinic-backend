@@ -53,14 +53,28 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({ filters, onFilterChange }
   const [dispensaries, setDispensaries] = useState<any[]>([]);
   const [doctors, setDoctors] = useState<any[]>([]);
 
+  // Detect if current user is super admin
+  const userStr = localStorage.getItem('current_user') || sessionStorage.getItem('current_user');
+  const currentUser = userStr ? JSON.parse(userStr) : null;
+  const isSuperAdmin = currentUser?.role?.toLowerCase() === 'super admin' || currentUser?.role?.toLowerCase() === 'super-admin';
+
   useEffect(() => {
     const userStr = localStorage.getItem('current_user') || sessionStorage.getItem('current_user');
     const user = userStr ? JSON.parse(userStr) : null;
-    if (user?.dispensaryIds?.length) {
-      DispensaryService.getDispensariesByIds(user.dispensaryIds).then(setDispensaries);
-    } else {
-      DispensaryService.getAllDispensaries().then(setDispensaries);
-    }
+    const loadDispensaries = async () => {
+      let list: any[] = [];
+      if (user?.dispensaryIds?.length) {
+        list = await DispensaryService.getDispensariesByIds(user.dispensaryIds);
+      } else {
+        list = await DispensaryService.getAllDispensaries();
+      }
+      setDispensaries(list);
+      // Auto-select first dispensary for non-super-admin
+      if (!isSuperAdmin && list.length > 0 && filters.dispensaryId === 'all') {
+        onFilterChange({ ...filters, dispensaryId: list[0]._id || list[0].id });
+      }
+    };
+    loadDispensaries();
   }, []);
 
   useEffect(() => {
@@ -192,10 +206,10 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({ filters, onFilterChange }
           <label className="text-xs font-medium text-muted-foreground">Dispensary</label>
           <Select value={filters.dispensaryId} onValueChange={(v) => update({ dispensaryId: v })}>
             <SelectTrigger className="w-[200px] h-9">
-              <SelectValue placeholder="All Dispensaries" />
+              <SelectValue placeholder={isSuperAdmin ? 'All Dispensaries' : 'Select Dispensary'} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Dispensaries</SelectItem>
+              {isSuperAdmin && <SelectItem value="all">All Dispensaries</SelectItem>}
               {dispensaries.map(d => (
                 <SelectItem key={d._id || d.id} value={d._id || d.id}>{d.name}</SelectItem>
               ))}
