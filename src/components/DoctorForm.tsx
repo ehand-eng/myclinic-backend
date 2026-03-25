@@ -31,7 +31,8 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Upload } from 'lucide-react';
+import { Upload, Building2 } from 'lucide-react';
+import { isSuperAdmin, isDispensaryAdmin } from '@/lib/roleUtils';
 
 interface DoctorFormProps {
   doctorId?: string;
@@ -87,6 +88,13 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
   const [selectedDispensaries, setSelectedDispensaries] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Get current user for role-based dispensary filtering
+  const userStr = typeof window !== 'undefined' ? localStorage.getItem('current_user') : null;
+  const currentUser = userStr ? JSON.parse(userStr) : null;
+  const userRole = currentUser?.role;
+  const isDA = isDispensaryAdmin(userRole);
+  const userDispensaryIds: string[] = (currentUser?.dispensaryIds || []).map((id: any) => id?.toString?.() || id);
+
   const form = useForm<DoctorFormValues>({
     defaultValues: {
       name: '',
@@ -104,16 +112,36 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        // Load dispensaries for selection
-        const dispensariesData = await DispensaryService.getAllDispensaries();
+        // Load dispensaries — DA only sees their assigned dispensaries
+        let dispensariesData: Dispensary[];
+        if (isDA && userDispensaryIds.length > 0) {
+          dispensariesData = await DispensaryService.getDispensariesByIds(userDispensaryIds);
+        } else {
+          dispensariesData = await DispensaryService.getAllDispensaries();
+        }
         setDispensaries(dispensariesData);
+
+        // For DA creating a new doctor, auto-select their dispensaries
+        // and set bookingVisibleDays from the dispensary default
+        if (!isEdit && isDA) {
+          setSelectedDispensaries([...userDispensaryIds]);
+          const userDisp = dispensariesData.find(d => userDispensaryIds.includes(d.id));
+          if (userDisp?.bookingVisibleDays) {
+            form.setValue('bookingVisibleDays', userDisp.bookingVisibleDays);
+          }
+        }
 
         // If editing, load doctor data
         if (isEdit && doctorId) {
           const doctorData = await DoctorService.getDoctorById(doctorId);
           if (doctorData) {
-            const dispensaryIds = doctorData.dispensaries || [];
-            console.log("selected dis " + JSON.stringify(dispensaryIds));
+            let dispensaryIds = doctorData.dispensaries || [];
+            // For DA, ensure their dispensary is always included
+            if (isDA) {
+              for (const id of userDispensaryIds) {
+                if (!dispensaryIds.includes(id)) dispensaryIds.push(id);
+              }
+            }
             setSelectedDispensaries(dispensaryIds);
             form.reset({
               name: doctorData.name,
@@ -382,27 +410,41 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
 
             <div>
               <FormLabel className="block mb-2">Associated Dispensaries</FormLabel>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 border rounded-md p-4">
-                {dispensaries.length === 0 ? (
-                  <p className="text-sm text-gray-500">No dispensaries available</p>
-                ) : (
-                  dispensaries.map((dispensary) => (
-                    <div key={dispensary.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`dispensary-${dispensary.id}`}
-                        checked={JSON.stringify(selectedDispensaries).includes(dispensary.id)}
-                        onCheckedChange={() => handleSelectedDispensariesChange(dispensary.id)}
-                      />
-                      <label
-                        htmlFor={`dispensary-${dispensary.id}`}
-                        className="text-sm cursor-pointer"
-                      >
-                        {dispensary.name}
-                      </label>
+              {isDA ? (
+                <div className="border rounded-md p-4 bg-blue-50">
+                  {dispensaries.filter(d => userDispensaryIds.includes(d.id)).map((dispensary) => (
+                    <div key={dispensary.id} className="flex items-center gap-2 py-1">
+                      <Building2 className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm font-medium">{dispensary.name}</span>
+                      {dispensary.address && (
+                        <span className="text-xs text-gray-500">— {dispensary.address}</span>
+                      )}
                     </div>
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 border rounded-md p-4">
+                  {dispensaries.length === 0 ? (
+                    <p className="text-sm text-gray-500">No dispensaries available</p>
+                  ) : (
+                    dispensaries.map((dispensary) => (
+                      <div key={dispensary.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`dispensary-${dispensary.id}`}
+                          checked={JSON.stringify(selectedDispensaries).includes(dispensary.id)}
+                          onCheckedChange={() => handleSelectedDispensariesChange(dispensary.id)}
+                        />
+                        <label
+                          htmlFor={`dispensary-${dispensary.id}`}
+                          className="text-sm cursor-pointer"
+                        >
+                          {dispensary.name}
+                        </label>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
 
             {selectedDispensaries.length > 0 && (

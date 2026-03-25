@@ -31,13 +31,14 @@ class _DoctorFormScreenState extends ConsumerState<DoctorFormScreen> {
   void initState() {
     super.initState();
     final auth = ref.read(authProvider);
+    // Always include the selected dispensary
+    if (auth.selectedDispensary != null) {
+      _selectedDispensaryIds = [auth.selectedDispensary!.id];
+    }
     if (widget.doctorId != null) {
       _isEdit = true;
       _loadDoctor();
     } else {
-      if (auth.selectedDispensary != null) {
-        _selectedDispensaryIds = [auth.selectedDispensary!.id];
-      }
       // Default to dispensary's bookingVisibleDays
       _visibleDaysController.text =
           '${auth.selectedDispensary?.bookingVisibleDays ?? 30}';
@@ -54,7 +55,13 @@ class _DoctorFormScreenState extends ConsumerState<DoctorFormScreen> {
       _phoneController.text = doctor.contactNumber ?? '';
       _emailController.text = doctor.email ?? '';
       _visibleDaysController.text = '${doctor.bookingVisibleDays}';
+      // Keep existing dispensaries but ensure current dispensary is included
       _selectedDispensaryIds = List.from(doctor.dispensaryIds);
+      final auth = ref.read(authProvider);
+      if (auth.selectedDispensary != null &&
+          !_selectedDispensaryIds.contains(auth.selectedDispensary!.id)) {
+        _selectedDispensaryIds.add(auth.selectedDispensary!.id);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -238,9 +245,9 @@ class _DoctorFormScreenState extends ConsumerState<DoctorFormScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Dispensary selection
+                    // Dispensary — auto-bound to selected dispensary for DA
                     const Text(
-                      'Dispensaries',
+                      'Dispensary',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -248,25 +255,46 @@ class _DoctorFormScreenState extends ConsumerState<DoctorFormScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    ...auth.dispensaries.map((disp) => CheckboxListTile(
-                          title: Text(disp.name),
-                          subtitle: disp.address != null
-                              ? Text(disp.address!,
-                                  style: const TextStyle(fontSize: 12))
-                              : null,
-                          value: _selectedDispensaryIds.contains(disp.id),
-                          onChanged: (checked) {
-                            setState(() {
-                              if (checked == true) {
-                                _selectedDispensaryIds.add(disp.id);
-                              } else {
-                                _selectedDispensaryIds.remove(disp.id);
-                              }
-                            });
-                          },
-                          controlAffinity: ListTileControlAffinity.leading,
-                          contentPadding: EdgeInsets.zero,
-                        )),
+                    if (auth.selectedDispensary != null)
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppColors.primarySurface,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.primary.withAlpha(40)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.local_hospital,
+                                color: AppColors.primary, size: 20),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    auth.selectedDispensary!.name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.text,
+                                    ),
+                                  ),
+                                  if (auth.selectedDispensary!.address != null)
+                                    Text(
+                                      auth.selectedDispensary!.address!,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.check_circle,
+                                color: AppColors.primary, size: 20),
+                          ],
+                        ),
+                      ),
                     const SizedBox(height: 24),
 
                     SizedBox(
