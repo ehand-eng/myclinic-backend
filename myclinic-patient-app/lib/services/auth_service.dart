@@ -46,6 +46,7 @@ class AuthService {
     final data = <String, dynamic>{
       'name': name,
       'mobile': phone,
+      'otp': otp,
       'nationality': nationality ?? 'sri_lanka',
     };
     if (password != null && password.isNotEmpty) {

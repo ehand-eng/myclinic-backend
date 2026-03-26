@@ -98,7 +98,8 @@ router.post('/verify-otp', async (req, res) => {
     }
 
     const identifier = nationality === 'sri_lanka' ? mobile : email;
-    const result = OTPService.verifyOTP(identifier, otp);
+    // Don't consume the OTP here — it will be consumed during signup
+    const result = OTPService.verifyOTP(identifier, otp, { consume: false });
 
     if (result.success) {
       res.json({ message: result.message });
@@ -117,7 +118,7 @@ router.post('/verify-otp', async (req, res) => {
 // Signup with mobile/email
 router.post('/signup-mobile', async (req, res) => {
   try {
-    const { name, password, nationality, mobile, email } = req.body;
+    const { name, password, nationality, mobile, email, otp } = req.body;
 
     // Validate required fields (password is optional for OTP signup)
     if (!name || !nationality) {
@@ -147,6 +148,16 @@ router.post('/signup-mobile', async (req, res) => {
       if (!OTPService.validateEmail(email)) {
         return res.status(400).json({ message: 'Invalid email format' });
       }
+    }
+
+    // Verify OTP before creating account
+    const identifier = nationality === 'sri_lanka' ? mobile : email;
+    if (!otp) {
+      return res.status(400).json({ message: 'OTP is required' });
+    }
+    const otpResult = OTPService.verifyOTP(identifier, otp);
+    if (!otpResult.success) {
+      return res.status(400).json({ message: otpResult.message });
     }
 
     // Check if user already exists
@@ -202,7 +213,8 @@ router.post('/signup-mobile', async (req, res) => {
       user: {
         id: user._id,
         name: user.name,
-        ...(nationality === 'sri_lanka' ? { mobile: user.mobile } : { email: user.email }),
+        email: user.email,
+        mobile: user.mobile,
         nationality: user.nationality,
         role: 'online',
         dispensaryIds: user.dispensaryIds
@@ -302,8 +314,8 @@ router.post('/login-mobile', async (req, res) => {
       return res.status(400).json({ message: 'Invalid Sri Lankan mobile number format' });
     }
 
-    // Find user
-    const user = await User.findOne({ email: "akudahewa@gmail.com" });
+    // Find user by mobile number
+    const user = await User.findOne({ mobile });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -403,6 +415,7 @@ router.post('/login-email', async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        mobile: user.mobile,
         nationality: user.nationality,
         role: user.role || 'online',
         dispensaryIds: user.dispensaryIds

@@ -55,6 +55,15 @@ const Login = () => {
       return;
     }
 
+    if (loginData.loginType === 'mobile' && loginData.mobile.length !== 9) {
+      toast({
+        title: "Error",
+        description: "Please enter 9 digits after +94",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (loginData.loginType === 'email' && !loginData.email) {
       toast({
         title: "Error",
@@ -70,7 +79,7 @@ const Login = () => {
       const otpData = {
         loginType: loginData.loginType,
         ...(loginData.loginType === 'mobile'
-          ? { mobile: loginData.mobile }
+          ? { mobile: `+94${loginData.mobile}` }
           : { email: loginData.email }
         )
       };
@@ -111,7 +120,7 @@ const Login = () => {
 
       const loginPayload = {
         loginType: 'mobile',
-        mobile: loginData.mobile,
+        mobile: `+94${loginData.mobile}`,
         otp: loginData.otp,
         keepSignedIn: loginData.keepSignedIn
       };
@@ -212,14 +221,24 @@ const Login = () => {
         <Label htmlFor="mobile" className="text-gray-700 font-medium">
           Mobile Number
         </Label>
-        <Input
-          id="mobile"
-          type="tel"
-          placeholder="Enter your mobile number"
-          value={loginData.mobile}
-          onChange={(e) => handleChange('mobile', e.target.value)}
-          disabled={otpSent}
-        />
+        <div className="flex">
+          <span className="inline-flex items-center px-3 rounded-l-lg border-2 border-r-0 border-medicalBlue-200 bg-gray-100 text-gray-700 text-sm font-medium">
+            +94
+          </span>
+          <Input
+            id="mobile"
+            type="tel"
+            placeholder="7XXXXXXXX"
+            value={loginData.mobile}
+            onChange={(e) => {
+              const val = e.target.value.replace(/\D/g, '').replace(/^0/, '');
+              if (val.length <= 9) handleChange('mobile', val);
+            }}
+            maxLength={9}
+            className="rounded-l-none"
+            disabled={otpSent}
+          />
+        </div>
       </div>
 
       {!otpSent ? (

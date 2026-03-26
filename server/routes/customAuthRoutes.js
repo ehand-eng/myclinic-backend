@@ -34,21 +34,26 @@ const PASSWORD_RULE_MESSAGE =
 // Register endpoint
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, role, dispensaryIds = [], nationality } = req.body;
+    const { name, email, mobile, password, role, dispensaryIds = [], nationality } = req.body;
 
     // Validation
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Name, email, and password are required' });
+    if (!name || !email || !password || !mobile) {
+      return res.status(400).json({ message: 'Name, email, phone number, and password are required' });
     }
 
     if (!isStrongPassword(password)) {
       return res.status(400).json({ message: PASSWORD_RULE_MESSAGE });
     }
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
+    // Check if user already exists by email or mobile
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) {
       return res.status(400).json({ message: 'User with this email already exists' });
+    }
+
+    const existingMobile = await User.findOne({ mobile });
+    if (existingMobile) {
+      return res.status(400).json({ message: 'User with this phone number already exists' });
     }
 
     // Handle role assignment - if no role provided, user is an online user
@@ -69,9 +74,9 @@ router.post('/register', async (req, res) => {
 
     // Create user
     const user = new User({
-      //TODO: add user name later
       name,
       email,
+      mobile,
       passwordHash,
       nationality: nationality || 'other',
       role: roleDoc ? roleDoc._id : null, // null for online users
@@ -100,6 +105,8 @@ router.post('/register', async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        mobile: user.mobile,
+        nationality: user.nationality,
         role: userRole,
         dispensaryIds: user.dispensaryIds
       }
@@ -168,6 +175,8 @@ router.post('/login', async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        mobile: user.mobile,
+        nationality: user.nationality,
         role: roleName,
         dispensaryIds: user.dispensaryIds,
         permissions: user.role ? user.role.permissions : [],
@@ -262,6 +271,8 @@ router.get('/me', async (req, res) => {
       id: user._id,
       name: user.name,
       email: user.email,
+      mobile: user.mobile,
+      nationality: user.nationality,
       role: user.role ? user.role.name : 'online',
       dispensaryIds: user.dispensaryIds,
       permissions: user.role ? user.role.permissions : [],
@@ -311,6 +322,8 @@ router.put('/me', async (req, res) => {
       id: user._id,
       name: user.name,
       email: user.email,
+      mobile: user.mobile,
+      nationality: user.nationality,
       role: user.role ? user.role.name : 'online',
       dispensaryIds: user.dispensaryIds,
       permissions: user.role ? user.role.permissions : [],

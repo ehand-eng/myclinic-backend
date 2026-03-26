@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pin_code_fields/pin_code_fields.dart';
 import 'package:myclinic_patient_app/config/theme.dart';
 import 'package:myclinic_patient_app/l10n/translations.dart';
 import 'package:myclinic_patient_app/providers/auth_provider.dart';
@@ -12,6 +11,7 @@ import 'package:myclinic_patient_app/services/api_service.dart';
 import 'package:myclinic_patient_app/utils/helpers.dart';
 import 'package:myclinic_patient_app/utils/validators.dart';
 import 'package:myclinic_patient_app/widgets/buttons/primary_button.dart';
+import 'package:myclinic_patient_app/widgets/inputs/otp_input.dart';
 import 'package:myclinic_patient_app/widgets/inputs/text_input.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -239,7 +239,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
 
   Widget _buildPhoneTab(AuthState auth) {
     return SingleChildScrollView(
-      child: Column(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 12),
+        child: Column(
         children: [
           AppTextInput(
             onDarkBackground: true,
@@ -258,27 +260,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
           else ...[
             Text(context.tr('enterOtp'), style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13)),
             const SizedBox(height: 8),
-            PinCodeTextField(
-              appContext: context,
-              length: 6,
-              controller: _otpCtrl,
-              keyboardType: TextInputType.number,
-              animationType: AnimationType.scale,
-              pinTheme: PinTheme(
-                shape: PinCodeFieldShape.box,
-                borderRadius: BorderRadius.circular(12),
-                fieldHeight: 46, fieldWidth: 42,
-                activeFillColor: Colors.white,
-                selectedFillColor: AppTheme.primarySurface,
-                inactiveFillColor: Colors.white.withValues(alpha: 0.15),
-                activeColor: Colors.white,
-                selectedColor: Colors.white,
-                inactiveColor: Colors.white.withValues(alpha: 0.4),
-              ),
-              enableActiveFill: true,
-              textStyle: const TextStyle(color: AppTheme.text),
-              onChanged: (_) {},
-            ),
+            OtpInput(controller: _otpCtrl),
             if (_resendTimer > 0)
               Text('Resend in ${_resendTimer}s', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12))
             else
@@ -310,12 +292,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
           ],
         ],
       ),
+      ),
     );
   }
 
   Widget _buildEmailTab(AuthState auth) {
     return SingleChildScrollView(
-      child: Form(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 12),
+        child: Form(
         key: _emailFormKey,
         child: Column(
           children: [
@@ -363,6 +348,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
             PrimaryButton(text: context.tr('login'), isLoading: auth.isLoading, useGradient: true, icon: Icons.login_rounded, onPressed: _loginWithEmail),
           ],
         ),
+      ),
       ),
     );
   }

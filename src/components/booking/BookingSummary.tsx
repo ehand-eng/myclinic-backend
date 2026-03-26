@@ -10,11 +10,13 @@ import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { Calendar, Clock, User, Phone, Mail, MapPin, Building, Receipt, CheckCircle, DollarSign, Stethoscope, Download, UserRoundCheck } from 'lucide-react';
+import { Calendar, Clock, User, Phone, Mail, MapPin, Building, Receipt, CheckCircle, DollarSign, Stethoscope, Download, UserRoundCheck, QrCode } from 'lucide-react';
 import { exportBookingSummaryToPDF } from '@/lib/bookingPdfExport';
+import BookingQrDialog from '@/components/BookingQrDialog';
 
 const BookingSummary = () => {
   const { transactionId } = useParams();
+  const [showQr, setShowQr] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const [summary, setSummary] = useState<BookingSummaryType | null>(null);
@@ -785,8 +787,16 @@ const BookingSummary = () => {
               >
                 Back to Home
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
+                onClick={() => setShowQr(true)}
+                className="border-2 border-[#1977cc] text-[#1977cc] hover:bg-[#f1f7fd] px-8 py-3 text-lg shadow-md hover:shadow-lg transition-all duration-300 rounded-full"
+              >
+                <QrCode className="mr-2 h-5 w-5" />
+                QR Code
+              </Button>
+              <Button
+                variant="outline"
                 onClick={handleDownloadPDF}
                 className="border-2 border-[#1977cc] text-[#1977cc] hover:bg-[#f1f7fd] px-8 py-3 text-lg shadow-md hover:shadow-lg transition-all duration-300 rounded-full"
               >
@@ -794,6 +804,24 @@ const BookingSummary = () => {
                 Download PDF
               </Button>
             </div>
+
+            {summary && (
+              <BookingQrDialog
+                open={showQr}
+                onClose={() => setShowQr(false)}
+                data={{
+                  bookingId: summary._id || '',
+                  transactionId: summary.transactionId,
+                  phone: summary.patient?.phone || '',
+                  doctor: summary.doctor?.name || '',
+                  dispensary: summary.dispensary?.name || '',
+                  date: summary.bookingDate ? new Date(summary.bookingDate).toISOString().split('T')[0] : '',
+                  time: summary.timeSlot || '',
+                  aptNo: summary.appointmentNumber,
+                  estTime: summary.estimatedTime || '',
+                }}
+              />
+            )}
           </div>
         </div>
       </main>

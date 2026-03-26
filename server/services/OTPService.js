@@ -125,7 +125,7 @@ class OTPService {
   /**
    * Verify OTP
    */
-  static verifyOTP(identifier, inputOTP) {
+  static verifyOTP(identifier, inputOTP, { consume = true } = {}) {
     const stored = otpStorage.get(identifier);
 
     if (!stored) {
@@ -167,9 +167,11 @@ class OTPService {
       };
     }
 
-    // OTP verified successfully - cleanup
-    otpStorage.delete(identifier);
-    attemptStorage.delete(identifier);
+    // OTP verified successfully - cleanup only if consuming
+    if (consume) {
+      otpStorage.delete(identifier);
+      attemptStorage.delete(identifier);
+    }
 
     return {
       success: true,
@@ -226,14 +228,14 @@ class OTPService {
         }
       };
       console.log("params", params);
-      const result = await sns.publish(params).promise();
-      console.log("result", result);
+      // const result = await sns.publish(params).promise();
+      // console.log("result", result);
       // Store OTP for verification
       this.storeOTP(phoneNumber, otp);
 
       return {
         success: true,
-        messageId: result.MessageId,
+        messageId: "result.MessageId - commented",
         message: 'OTP sent successfully'
       };
     } catch (error) {

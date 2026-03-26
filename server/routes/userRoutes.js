@@ -147,7 +147,7 @@ router.post('/', validateJwt, requireRole([ROLES.SUPER_ADMIN]), async (req, res)
 // Update user
 router.put('/:id', validateJwt, requireRole([ROLES.SUPER_ADMIN, ROLES.hospital_admin]), async (req, res) => {
   try {
-    const { name, email, role, dispensaryIds, isActive } = req.body;
+    const { name, email, mobile, role, dispensaryIds, isActive } = req.body;
     const userId = req.params.id;
 
     // Get user from our database
@@ -186,6 +186,8 @@ router.put('/:id', validateJwt, requireRole([ROLES.SUPER_ADMIN, ROLES.hospital_a
     // Update user in our database
     if (name) user.name = name;
     if (email) user.email = email;
+    // Only super_admin can update mobile number
+    if (mobile && req.user.role === ROLES.SUPER_ADMIN) user.mobile = mobile;
     if (role) user.role = role;
     if (dispensaryIds) user.dispensaryIds = dispensaryIds;
     if (typeof isActive === 'boolean') user.isActive = isActive;
@@ -198,6 +200,8 @@ router.put('/:id', validateJwt, requireRole([ROLES.SUPER_ADMIN, ROLES.hospital_a
         id: user._id,
         name: user.name,
         email: user.email,
+        mobile: user.mobile,
+        nationality: user.nationality,
         role: user.role,
         dispensaryIds: user.dispensaryIds,
         isActive: user.isActive

@@ -12,6 +12,7 @@ import 'package:myclinic_patient_app/utils/helpers.dart';
 import 'package:myclinic_patient_app/utils/pdf_generator.dart';
 import 'package:myclinic_patient_app/widgets/buttons/primary_button.dart';
 import 'package:myclinic_patient_app/widgets/buttons/outline_button.dart';
+import 'package:myclinic_patient_app/widgets/common/booking_qr_dialog.dart';
 import 'package:myclinic_patient_app/widgets/common/loading_widget.dart';
 import 'package:myclinic_patient_app/widgets/common/error_widget.dart';
 
@@ -251,18 +252,35 @@ class _BookingConfirmationScreenState extends ConsumerState<BookingConfirmationS
 
                   const SizedBox(height: 16),
 
-                  // Download PDF
-                  OutlineAppButton(
-                    text: context.tr('downloadPdf'),
-                    icon: Icons.picture_as_pdf_rounded,
-                    onPressed: () {
-                      try {
-                        final b = Booking.fromJson(booking is Map<String, dynamic> ? booking : Map<String, dynamic>.from(booking));
-                        PdfGenerator.printBookingPdf(b, replacementDoctor: _replacement);
-                      } catch (_) {
-                        showSnackBar(context, 'Failed to generate PDF', isError: true);
-                      }
-                    },
+                  // QR Code & Download PDF
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlineAppButton(
+                          text: 'QR Code',
+                          icon: Icons.qr_code_2_rounded,
+                          onPressed: () => showBookingQrDialog(
+                            context,
+                            buildQrDataFromMap(booking is Map<String, dynamic> ? booking : Map<String, dynamic>.from(booking)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlineAppButton(
+                          text: context.tr('downloadPdf'),
+                          icon: Icons.picture_as_pdf_rounded,
+                          onPressed: () {
+                            try {
+                              final b = Booking.fromJson(booking is Map<String, dynamic> ? booking : Map<String, dynamic>.from(booking));
+                              PdfGenerator.printBookingPdf(b, replacementDoctor: _replacement);
+                            } catch (_) {
+                              showSnackBar(context, 'Failed to generate PDF', isError: true);
+                            }
+                          },
+                        ),
+                      ),
+                    ],
                   ),
 
                   const SizedBox(height: 16),

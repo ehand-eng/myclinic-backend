@@ -95,6 +95,15 @@ const Signup = () => {
       return;
     }
 
+    if (formData.nationality === 'sri_lanka' && formData.signupMethod === 'mobile' && formData.mobile.length !== 9) {
+      toast({
+        title: "Error",
+        description: "Please enter 9 digits after +94",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (formData.nationality === 'sri_lanka' && formData.signupMethod === 'email' && !formData.email) {
       toast({
         title: "Error",
@@ -117,7 +126,7 @@ const Signup = () => {
       
       const otpData = {
         nationality: formData.nationality,
-        mobile: formData.mobile
+        mobile: `+94${formData.mobile}`
       };
 
       await axios.post(`${API_URL}/mobile/auth/send-otp`, otpData);
@@ -154,8 +163,8 @@ const Signup = () => {
       const verifyData = {
         nationality: formData.nationality,
         otp: formData.otp,
-        ...(formData.nationality === 'sri_lanka' 
-          ? { mobile: formData.mobile }
+        ...(formData.nationality === 'sri_lanka'
+          ? { mobile: `+94${formData.mobile}` }
           : { email: formData.email }
         )
       };
@@ -182,10 +191,19 @@ const Signup = () => {
     e.preventDefault();
     
     // Validate form
-    if (!formData.name || !formData.password || !formData.confirmPassword) {
+    if (!formData.name || !formData.password || !formData.confirmPassword || !formData.mobile) {
       toast({
         title: "Error",
-        description: "Please fill in all fields",
+        description: "Please fill in all fields including phone number",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (formData.nationality === 'sri_lanka' && formData.mobile.length !== 9) {
+      toast({
+        title: "Error",
+        description: "Please enter 9 digits after +94",
         variant: "destructive"
       });
       return;
@@ -227,7 +245,8 @@ const Signup = () => {
           name: formData.name,
           password: formData.password,
           nationality: formData.nationality,
-          mobile: formData.mobile
+          mobile: `+94${formData.mobile}`,
+          otp: formData.otp
         };
         response = await axios.post(`${API_URL}/auth/signup-mobile`, signupData);
       } else {
@@ -235,6 +254,7 @@ const Signup = () => {
         const signupData = {
           name: formData.name,
           email: formData.email,
+          mobile: formData.nationality === 'sri_lanka' ? `+94${formData.mobile}` : formData.mobile,
           password: formData.password,
           nationality: formData.nationality
         };
@@ -323,39 +343,40 @@ const Signup = () => {
 
         <div className="space-y-2">
           <Label htmlFor="contact" className="text-gray-700 font-medium">
-            {formData.nationality === 'sri_lanka' 
+            {formData.nationality === 'sri_lanka'
               ? (formData.signupMethod === 'mobile' ? 'Mobile Number' : 'Email Address')
               : 'Email Address'
             }
           </Label>
-          <Input
-            id="contact"
-            type={
-              formData.nationality === 'sri_lanka' 
-                ? (formData.signupMethod === 'mobile' ? 'tel' : 'email')
-                : 'email'
-            }
-            placeholder={
-              formData.nationality === 'sri_lanka' 
-                ? (formData.signupMethod === 'mobile' 
-                    ? 'Enter your mobile number' 
-                    : 'Enter your email address')
-                : 'Enter your email address'
-            }
-            value={
-              formData.nationality === 'sri_lanka' 
-                ? (formData.signupMethod === 'mobile' ? formData.mobile : formData.email)
-                : formData.email
-            }
-            onChange={(e) => {
-              if (formData.nationality === 'sri_lanka') {
-                handleChange(formData.signupMethod === 'mobile' ? 'mobile' : 'email', e.target.value);
-              } else {
-                handleChange('email', e.target.value);
-              }
-            }}
-            disabled={!formData.nationality || (formData.nationality === 'sri_lanka' && !formData.signupMethod)}
-          />
+          {formData.nationality === 'sri_lanka' && formData.signupMethod === 'mobile' ? (
+            <div className="flex">
+              <span className="inline-flex items-center px-3 rounded-l-lg border-2 border-r-0 border-medicalBlue-200 bg-gray-100 text-gray-700 text-sm font-medium">
+                +94
+              </span>
+              <Input
+                id="contact"
+                type="tel"
+                placeholder="7XXXXXXXX"
+                value={formData.mobile}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '').replace(/^0/, '');
+                  if (val.length <= 9) handleChange('mobile', val);
+                }}
+                maxLength={9}
+                className="rounded-l-none"
+                disabled={!formData.nationality}
+              />
+            </div>
+          ) : (
+            <Input
+              id="contact"
+              type="email"
+              placeholder="Enter your email address"
+              value={formData.email}
+              onChange={(e) => handleChange('email', e.target.value)}
+              disabled={!formData.nationality || (formData.nationality === 'sri_lanka' && !formData.signupMethod)}
+            />
+          )}
         </div>
       </div>
 
@@ -454,6 +475,41 @@ const Signup = () => {
             onChange={(e) => handleChange('name', e.target.value)}
             required
           />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="mobile" className="text-gray-700 font-medium">
+            Phone Number
+          </Label>
+          {formData.nationality === 'sri_lanka' ? (
+            <div className="flex">
+              <span className="inline-flex items-center px-3 rounded-l-lg border-2 border-r-0 border-medicalBlue-200 bg-gray-100 text-gray-700 text-sm font-medium">
+                +94
+              </span>
+              <Input
+                id="mobile"
+                type="tel"
+                placeholder="7XXXXXXXX"
+                value={formData.mobile}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '').replace(/^0/, '');
+                  if (val.length <= 9) handleChange('mobile', val);
+                }}
+                maxLength={9}
+                className="rounded-l-none"
+                required
+              />
+            </div>
+          ) : (
+            <Input
+              id="mobile"
+              type="tel"
+              placeholder="e.g. +1 234 567 8900"
+              value={formData.mobile}
+              onChange={(e) => handleChange('mobile', e.target.value)}
+              required
+            />
+          )}
         </div>
 
         <div className="space-y-2">

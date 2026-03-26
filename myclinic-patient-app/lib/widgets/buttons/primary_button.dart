@@ -32,7 +32,7 @@ class PrimaryButton extends StatelessWidget {
         height: 52,
         decoration: BoxDecoration(
           gradient: enabled ? AppTheme.primaryGradient : null,
-          color: enabled ? null : Colors.grey[300],
+          color: enabled ? null : btnColor.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(12),
           boxShadow: enabled
               ? [BoxShadow(color: btnColor.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))]
@@ -56,7 +56,8 @@ class PrimaryButton extends StatelessWidget {
         onPressed: enabled ? onPressed : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: btnColor,
-          disabledBackgroundColor: Colors.grey[300],
+          disabledBackgroundColor: btnColor.withValues(alpha: 0.5),
+          disabledForegroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           elevation: enabled ? 2 : 0,
           shadowColor: btnColor.withValues(alpha: 0.3),

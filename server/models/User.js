@@ -29,12 +29,9 @@ const userSchema = new mongoose.Schema({
     enum: ['sri_lanka', 'other'],
     required: true
   },
-  passwordHash: { 
-    type: String, 
-    required: function() {
-      // Required unless user has auth0Id (for backward compatibility during migration)
-      return !this.auth0Id;
-    }
+  passwordHash: {
+    type: String,
+    required: false
   },
   auth0Id: {
     type: String,

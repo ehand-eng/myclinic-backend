@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pin_code_fields/pin_code_fields.dart';
 import 'package:myclinic_patient_app/config/theme.dart';
 import 'package:myclinic_patient_app/l10n/translations.dart';
 import 'package:myclinic_patient_app/providers/auth_provider.dart';
@@ -12,6 +11,7 @@ import 'package:myclinic_patient_app/utils/helpers.dart';
 import 'package:flutter/services.dart';
 import 'package:myclinic_patient_app/utils/validators.dart';
 import 'package:myclinic_patient_app/widgets/buttons/primary_button.dart';
+import 'package:myclinic_patient_app/widgets/inputs/otp_input.dart';
 import 'package:myclinic_patient_app/widgets/inputs/text_input.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
@@ -157,11 +157,14 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
       showSnackBar(context, 'Please accept Terms & Conditions', isError: true);
       return;
     }
+    final emailPhone = _nationality == 'sri_lanka'
+        ? '+94${_emailPhoneCtrl.text.replaceAll(RegExp(r'\s'), '')}'
+        : _emailPhoneCtrl.text.trim();
     await ref.read(authProvider.notifier).signupEmail(
           name: _nameCtrl.text,
           email: _emailCtrl.text,
           password: _passwordCtrl.text,
-          phone: _emailPhoneCtrl.text.isNotEmpty ? _emailPhoneCtrl.text : null,
+          phone: emailPhone,
           nationality: _nationality,
         );
     _handleResult();
@@ -228,7 +231,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
               // Tab selector
               Row(
                 children: [
-                  _SignupTabButton(label: context.tr('phoneLogin'), icon: Icons.phone_android_rounded, isSelected: _selectedTab == 0, onTap: () => _tabController.animateTo(0)),
+                  _SignupTabButton(label: context.tr('phoneLogin'), icon: Icons.phone_android_rounded, isSelected: _selectedTab == 0, onTap: _nationality == 'other' ? null : () => _tabController.animateTo(0)),
                   _SignupTabButton(label: context.tr('emailLogin'), icon: Icons.email_rounded, isSelected: _selectedTab == 1, onTap: () => _tabController.animateTo(1)),
                 ],
               ),
@@ -250,6 +253,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
                           _nationality = v.first;
                           _phoneCtrl.clear();
                         });
+                        // Foreign users can only sign up via email
+                        if (v.first == 'other') {
+                          _tabController.animateTo(1);
+                        }
                       },
                       style: SegmentedButton.styleFrom(
                         selectedBackgroundColor: Colors.white.withValues(alpha: 0.2),
@@ -289,6 +296,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
+                  physics: _nationality == 'other' ? const NeverScrollableScrollPhysics() : null,
                   children: [
                     // Phone signup
                     SingleChildScrollView(
@@ -360,27 +368,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
                               onPressed: _sendOtp,
                             )
                           else ...[
-                            PinCodeTextField(
-                              appContext: context,
-                              length: 6,
-                              controller: _otpCtrl,
-                              keyboardType: TextInputType.number,
-                              pinTheme: PinTheme(
-                                shape: PinCodeFieldShape.box,
-                                borderRadius: BorderRadius.circular(12),
-                                fieldHeight: 46,
-                                fieldWidth: 42,
-                                activeFillColor: Colors.white,
-                                selectedFillColor: AppTheme.primarySurface,
-                                inactiveFillColor: Colors.white.withValues(alpha: 0.15),
-                                activeColor: Colors.white,
-                                selectedColor: Colors.white,
-                                inactiveColor: Colors.white.withValues(alpha: 0.4),
-                              ),
-                              enableActiveFill: true,
-                              textStyle: const TextStyle(color: AppTheme.text),
-                              onChanged: (_) {},
-                            ),
+                            OtpInput(controller: _otpCtrl),
                             if (_resendTimer > 0)
                               Text('Resend in ${_resendTimer}s',
                                   style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13))
@@ -477,7 +465,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
                               validator: Validators.validateName,
                             ),
                             const SizedBox(height: 14),
-                            AppTextInput(onDarkBackground: true, 
+                            AppTextInput(onDarkBackground: true,
                               label: context.tr('email'),
                               controller: _emailCtrl,
                               prefixIcon: Icons.email_rounded,
@@ -485,7 +473,58 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
                               validator: Validators.validateEmail,
                             ),
                             const SizedBox(height: 14),
-                            AppTextInput(onDarkBackground: true, 
+                            if (_nationality == 'sri_lanka')
+                              AppTextInput(
+                                onDarkBackground: true,
+                                label: context.tr('phone'),
+                                hint: '7XXXXXXXX',
+                                controller: _emailPhoneCtrl,
+                                prefix: Padding(
+                                  padding: const EdgeInsets.only(left: 14, right: 4),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.phone_rounded, color: Colors.white70, size: 20),
+                                      const SizedBox(width: 8),
+                                      Text('+94',
+                                          style: TextStyle(
+                                            color: Colors.white.withValues(alpha: 0.9),
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                          )),
+                                    ],
+                                  ),
+                                ),
+                                keyboardType: TextInputType.number,
+                                maxLength: 9,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                  TextInputFormatter.withFunction((oldValue, newValue) {
+                                    if (newValue.text.startsWith('0')) return oldValue;
+                                    return newValue;
+                                  }),
+                                ],
+                                validator: (v) {
+                                  if (v == null || v.trim().isEmpty) return 'Phone number is required';
+                                  if (v.replaceAll(RegExp(r'\s'), '').length != 9) return 'Enter 9 digits after +94';
+                                  return null;
+                                },
+                              )
+                            else
+                              AppTextInput(
+                                onDarkBackground: true,
+                                label: context.tr('phone'),
+                                hint: 'e.g. +1 234 567 8900',
+                                controller: _emailPhoneCtrl,
+                                prefixIcon: Icons.phone_rounded,
+                                keyboardType: TextInputType.phone,
+                                validator: (v) {
+                                  if (v == null || v.trim().isEmpty) return 'Phone number is required';
+                                  return null;
+                                },
+                              ),
+                            const SizedBox(height: 14),
+                            AppTextInput(onDarkBackground: true,
                               label: context.tr('password'),
                               controller: _passwordCtrl,
                               prefixIcon: Icons.lock_rounded,
@@ -593,8 +632,8 @@ class _SignupTabButton extends StatelessWidget {
   final String label;
   final IconData icon;
   final bool isSelected;
-  final VoidCallback onTap;
-  const _SignupTabButton({required this.label, required this.icon, required this.isSelected, required this.onTap});
+  final VoidCallback? onTap;
+  const _SignupTabButton({required this.label, required this.icon, required this.isSelected, this.onTap});
 
   @override
   Widget build(BuildContext context) {

@@ -200,6 +200,14 @@ class _AppDrawer extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(vertical: 8),
               children: [
                 _DrawerItem(
+                  icon: Icons.qr_code_scanner,
+                  label: 'QR Scan Check-In',
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/qr-scan');
+                  },
+                ),
+                _DrawerItem(
                   icon: Icons.assessment_outlined,
                   label: 'Reports',
                   onTap: () {

@@ -11,6 +11,7 @@ import 'package:myclinic_patient_app/utils/formatters.dart';
 import 'package:myclinic_patient_app/utils/helpers.dart';
 import 'package:myclinic_patient_app/utils/pdf_generator.dart';
 import 'package:myclinic_patient_app/widgets/buttons/outline_button.dart';
+import 'package:myclinic_patient_app/widgets/common/booking_qr_dialog.dart';
 import 'package:myclinic_patient_app/widgets/common/loading_widget.dart';
 import 'package:myclinic_patient_app/widgets/common/error_widget.dart';
 import 'package:myclinic_patient_app/widgets/common/status_badge.dart';
@@ -24,7 +25,30 @@ class BookingDetailScreen extends ConsumerWidget {
     final booking = ref.watch(bookingByIdProvider(bookingId));
 
     return Scaffold(
-      appBar: AppBar(title: Text(context.tr('bookingDetails'))),
+      appBar: AppBar(
+        title: Text(context.tr('bookingDetails')),
+        actions: [
+          if (booking.valueOrNull != null)
+            IconButton(
+              icon: const Icon(Icons.qr_code_2_rounded),
+              tooltip: 'QR Code',
+              onPressed: () {
+                final b = booking.valueOrNull!;
+                showBookingQrDialog(context, {
+                  'bookingId': b.id,
+                  'transactionId': b.transactionId,
+                  'phone': b.patientPhone,
+                  'doctor': b.doctorName,
+                  'dispensary': b.dispensaryName,
+                  'date': b.bookingDate.split('T')[0],
+                  'time': b.timeSlot,
+                  'aptNo': b.appointmentNumber,
+                  'estTime': b.estimatedTime,
+                });
+              },
+            ),
+        ],
+      ),
       body: booking.when(
         data: (b) => SingleChildScrollView(
           child: Column(
@@ -261,20 +285,42 @@ class BookingDetailScreen extends ConsumerWidget {
                       ),
                     ],
                     const SizedBox(height: 8),
-                    OutlineAppButton(
-                      text: context.tr('downloadPdf'),
-                      icon: Icons.picture_as_pdf_rounded,
-                      onPressed: () async {
-                        // Fetch replacement doctor for the PDF
-                        Map<String, dynamic>? replacement;
-                        try {
-                          final dateStr = b.bookingDate.split('T')[0];
-                          replacement = await ref.read(doctorServiceProvider).getActiveReplacement(
-                            b.doctorIdStr, b.dispensaryIdStr, dateStr,
-                          );
-                        } catch (_) {}
-                        PdfGenerator.printBookingPdf(b, replacementDoctor: replacement);
-                      },
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlineAppButton(
+                            text: 'QR Code',
+                            icon: Icons.qr_code_2_rounded,
+                            onPressed: () => showBookingQrDialog(context, {
+                              'transactionId': b.transactionId,
+                              'phone': b.patientPhone,
+                              'doctor': b.doctorName,
+                              'dispensary': b.dispensaryName,
+                              'date': b.bookingDate.split('T')[0],
+                              'time': b.timeSlot,
+                              'aptNo': b.appointmentNumber,
+                              'estTime': b.estimatedTime,
+                            }),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: OutlineAppButton(
+                            text: context.tr('downloadPdf'),
+                            icon: Icons.picture_as_pdf_rounded,
+                            onPressed: () async {
+                              Map<String, dynamic>? replacement;
+                              try {
+                                final dateStr = b.bookingDate.split('T')[0];
+                                replacement = await ref.read(doctorServiceProvider).getActiveReplacement(
+                                  b.doctorIdStr, b.dispensaryIdStr, dateStr,
+                                );
+                              } catch (_) {}
+                              PdfGenerator.printBookingPdf(b, replacementDoctor: replacement);
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 24),
                   ],

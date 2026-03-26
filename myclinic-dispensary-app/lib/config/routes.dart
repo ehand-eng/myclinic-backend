@@ -17,6 +17,7 @@ import '../screens/timeslots/timeslot_manage_screen.dart';
 import '../screens/dispensaries/dispensary_edit_screen.dart';
 import '../screens/bookings/booking_detail_screen.dart';
 import '../screens/reports/reports_screen.dart';
+import '../screens/qrscan/qr_scan_screen.dart';
 
 class _RouterRefreshNotifier extends ChangeNotifier {
   void notify() => notifyListeners();
@@ -181,6 +182,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) => BookingDetailScreen(
           bookingId: state.pathParameters['id']!,
         ),
+      ),
+
+      // QR Scan
+      GoRoute(
+        path: '/qr-scan',
+        builder: (_, __) => const QrScanScreen(),
       ),
 
       // Reports

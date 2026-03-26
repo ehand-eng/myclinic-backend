@@ -16,8 +16,9 @@ import axios from 'axios';
 import {
   CalendarDays, Clock, MapPin, Stethoscope, Phone, Mail, ArrowLeft,
   Download, Edit3, XCircle, Search, ChevronLeft, ChevronRight,
-  FileText, AlertTriangle, CheckCircle2, Hash, Filter
+  FileText, AlertTriangle, CheckCircle2, Hash, Filter, QrCode
 } from 'lucide-react';
+import BookingQrDialog, { type BookingQrData } from '@/components/BookingQrDialog';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 const ITEMS_PER_PAGE = 8;
@@ -121,6 +122,8 @@ const MyBookings = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   // Amend state
+  const [showQr, setShowQr] = useState(false);
+  const [qrData, setQrData] = useState<BookingQrData | null>(null);
   const [showAmendModal, setShowAmendModal] = useState(false);
   const [amendDate, setAmendDate] = useState('');
   const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
@@ -479,7 +482,7 @@ const MyBookings = () => {
           <div className="bg-gradient-to-r from-[#0a1f44] to-[#1a3a6e] px-6 py-5 text-white">
             <div className="flex items-start justify-between">
               <div>
-                <h2 className="text-xl font-bold">Appointment #{b.appointmentNumber}</h2>
+                <h2 className="text-xl font-bold text-white">Appointment #{b.appointmentNumber}</h2>
                 <p className="text-blue-200 text-sm mt-1">Ref: {b.transactionId}</p>
               </div>
               <div className="text-right">
@@ -604,6 +607,27 @@ const MyBookings = () => {
 
         {/* Action buttons */}
         <div className="flex flex-wrap gap-3">
+          <Button
+            onClick={() => {
+              setQrData({
+                bookingId: b._id || '',
+                transactionId: b.transactionId,
+                phone: b.patientPhone,
+                doctor: b.doctor?.name || '',
+                dispensary: b.dispensary?.name || '',
+                date: b.bookingDate?.split('T')[0] || '',
+                time: b.timeSlot || '',
+                aptNo: b.appointmentNumber,
+                estTime: b.estimatedTime || '',
+              });
+              setShowQr(true);
+            }}
+            variant="outline"
+            className="flex items-center gap-2 border-gray-300"
+          >
+            <QrCode className="h-4 w-4" />
+            QR Code
+          </Button>
           <Button
             onClick={() => handleDownloadPDF(b)}
             variant="outline"
@@ -916,6 +940,13 @@ const MyBookings = () => {
       {/* Modals */}
       {renderAmendModal()}
       {renderCancelDialog()}
+      {qrData && (
+        <BookingQrDialog
+          open={showQr}
+          onClose={() => setShowQr(false)}
+          data={qrData}
+        />
+      )}
     </div>
   );
 };

@@ -44,9 +44,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (user == null) return;
     setState(() => _saving = true);
     try {
-      final updated = await ref.read(userServiceProvider).updateUser(user.id, {
+      final updated = await ref.read(userServiceProvider).updateProfile({
         'name': _nameCtrl.text.trim(),
-        'mobile': _phoneCtrl.text.trim(),
       });
       ref.read(authProvider.notifier).updateUser(updated);
       setState(() => _editing = false);
@@ -225,8 +224,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 Text(context.tr('editProfile'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 16),
                 AppTextInput(label: context.tr('name'), controller: _nameCtrl, prefixIcon: Icons.person_rounded, maxLength: 25),
-                const SizedBox(height: 14),
-                AppTextInput(label: context.tr('phone'), controller: _phoneCtrl, prefixIcon: Icons.phone_rounded, keyboardType: TextInputType.phone),
+                if (ref.read(currentUserProvider)?.mobile != null) ...[
+                  const SizedBox(height: 14),
+                  AppTextInput(label: context.tr('phone'), controller: _phoneCtrl, prefixIcon: Icons.phone_rounded, enabled: false),
+                ],
                 const SizedBox(height: 20),
                 PrimaryButton(text: context.tr('saveChanges'), isLoading: _saving, onPressed: _save),
                 const SizedBox(height: 8),

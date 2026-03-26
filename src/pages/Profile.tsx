@@ -17,6 +17,8 @@ interface ProfileResponse {
   id: string;
   name: string;
   email: string;
+  mobile?: string;
+  nationality?: string;
   role: string;
   dispensaryIds: string[];
   permissions: string[];
@@ -280,6 +282,15 @@ const Profile = () => {
                 <Input id="email" value={profile.email} disabled />
               </div>
             </div>
+
+            {profile.mobile && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="mobile">Phone</Label>
+                  <Input id="mobile" value={profile.mobile} disabled />
+                </div>
+              </div>
+            )}
 
             <div className={`grid grid-cols-1 ${isAdminUser ? 'md:grid-cols-2' : ''} gap-4`}>
               {isAdminUser && (

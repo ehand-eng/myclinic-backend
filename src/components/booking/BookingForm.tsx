@@ -573,8 +573,8 @@ const BookingForm = ({ initialDoctorId, initialDispensaryId, initialDate, showCa
   return (
     <Card className="w-full">
       <CardContent className="pt-6">
-        {/* Role-based access notice */}
-        {!canAccessAdvancedFeatures && userRole && (
+        {/* Role-based access notice — only for non-admin staff roles, not for online/guest users */}
+        {!canAccessAdvancedFeatures && userRole && userRole !== 'online' && (
           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-center gap-2">
               <User className="h-4 w-4 text-blue-600" />
