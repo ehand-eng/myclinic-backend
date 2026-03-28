@@ -25,21 +25,32 @@ class _BookingsListScreenState extends ConsumerState<BookingsListScreen> {
   String _search = '';
   String _statusFilter = 'all';
   Timer? _timer;
-  DateTime _now = DateTime.now();
+  final ValueNotifier<DateTime> _nowNotifier = ValueNotifier(DateTime.now());
+  Timer? _searchDebounce;
 
   @override
   void initState() {
     super.initState();
     _loadBookings();
-    // Tick every second for checkout countdown
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() => _now = DateTime.now());
-    });
+    // Only tick if there are checked-in bookings needing countdown
+    _startTimerIfNeeded();
+  }
+
+  void _startTimerIfNeeded() {
+    _timer?.cancel();
+    final hasCheckedIn = _bookings.any((b) => b.status == 'checked_in');
+    if (hasCheckedIn) {
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) _nowNotifier.value = DateTime.now();
+      });
+    }
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _nowNotifier.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
   }
 
@@ -52,10 +63,10 @@ class _BookingsListScreenState extends ConsumerState<BookingsListScreen> {
           DateFormat('yyyy-MM-dd').format(DateTime.now())) >
       0;
 
-  int _getCheckoutRemaining(Booking booking) {
+  int _getCheckoutRemaining(Booking booking, DateTime now) {
     if (booking.checkedInTime == null) return 0;
     final expiresAt = booking.checkedInTime!.add(const Duration(minutes: 5));
-    final diff = expiresAt.difference(_now).inSeconds;
+    final diff = expiresAt.difference(now).inSeconds;
     return diff > 0 ? diff : 0;
   }
 
@@ -76,7 +87,10 @@ class _BookingsListScreenState extends ConsumerState<BookingsListScreen> {
         dateStr,
         dispensaryId: dispensaryId,
       );
-      if (mounted) setState(() => _bookings = bookings);
+      if (mounted) {
+        setState(() => _bookings = bookings);
+        _startTimerIfNeeded();
+      }
     } catch (e) {
       debugPrint('Error loading bookings: $e');
     } finally {
@@ -242,7 +256,12 @@ class _BookingsListScreenState extends ConsumerState<BookingsListScreen> {
                   child: SizedBox(
                     height: 42,
                     child: TextField(
-                      onChanged: (v) => setState(() => _search = v),
+                      onChanged: (v) {
+                        _searchDebounce?.cancel();
+                        _searchDebounce = Timer(const Duration(milliseconds: 400), () {
+                          if (mounted) setState(() => _search = v);
+                        });
+                      },
                       style: const TextStyle(fontSize: 14),
                       decoration: const InputDecoration(
                         hintText: 'Search...',
@@ -301,24 +320,30 @@ class _BookingsListScreenState extends ConsumerState<BookingsListScreen> {
                       )
                     : RefreshIndicator(
                         onRefresh: _loadBookings,
-                        child: ListView.separated(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: _filteredBookings.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 8),
-                          itemBuilder: (context, index) {
-                            final booking = _filteredBookings[index];
-                            return _BookingCard(
-                              booking: booking,
-                              isToday: _isToday,
-                              isFuture: _isFuture,
-                              checkoutRemaining:
-                                  _getCheckoutRemaining(booking),
-                              formatCountdown: _formatCountdown,
-                              onTap: () =>
-                                  context.push('/bookings/${booking.id}'),
-                              onCheckIn: () => _checkIn(booking.id),
-                              onCheckOut: () => _checkOut(booking.id),
+                        child: ValueListenableBuilder<DateTime>(
+                          valueListenable: _nowNotifier,
+                          builder: (context, now, _) {
+                            final filtered = _filteredBookings;
+                            return ListView.separated(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              itemCount: filtered.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 8),
+                              itemBuilder: (context, index) {
+                                final booking = filtered[index];
+                                return _BookingCard(
+                                  booking: booking,
+                                  isToday: _isToday,
+                                  isFuture: _isFuture,
+                                  checkoutRemaining:
+                                      _getCheckoutRemaining(booking, now),
+                                  formatCountdown: _formatCountdown,
+                                  onTap: () =>
+                                      context.push('/bookings/${booking.id}'),
+                                  onCheckIn: () => _checkIn(booking.id),
+                                  onCheckOut: () => _checkOut(booking.id),
+                                );
+                              },
                             );
                           },
                         ),

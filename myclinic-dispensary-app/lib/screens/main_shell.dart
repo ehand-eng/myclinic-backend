@@ -18,14 +18,7 @@ class MainShell extends ConsumerStatefulWidget {
 
 class _MainShellState extends ConsumerState<MainShell> {
   int _currentIndex = 0;
-
-  final _screens = const [
-    DashboardScreen(),
-    BookingsListScreen(),
-    CheckInScreen(),
-    DoctorsListScreen(),
-    ProfileScreen(),
-  ];
+  final Set<int> _initializedTabs = {0}; // Only build visited tabs
 
   static const _titles = [
     'Dashboard',
@@ -69,12 +62,28 @@ class _MainShellState extends ConsumerState<MainShell> {
       drawer: _AppDrawer(auth: auth),
       body: IndexedStack(
         index: _currentIndex,
-        children: _screens,
+        children: List.generate(5, (index) {
+          if (!_initializedTabs.contains(index)) {
+            return const SizedBox.shrink();
+          }
+          switch (index) {
+            case 0: return const DashboardScreen();
+            case 1: return const BookingsListScreen();
+            case 2: return const CheckInScreen();
+            case 3: return const DoctorsListScreen();
+            case 4: return const ProfileScreen();
+            default: return const SizedBox.shrink();
+          }
+        }),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
-        onDestinationSelected: (index) =>
-            setState(() => _currentIndex = index),
+        onDestinationSelected: (index) {
+          setState(() {
+            _initializedTabs.add(index);
+            _currentIndex = index;
+          });
+        },
         backgroundColor: AppColors.card,
         indicatorColor: AppColors.primarySurface,
         destinations: const [

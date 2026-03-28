@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../config/theme.dart';
 import '../../models/doctor.dart';
 import '../../providers/auth_provider.dart';
@@ -127,16 +128,52 @@ class _DoctorCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: doctor.disabled
-                  ? AppColors.border
-                  : AppColors.primarySurface,
-              backgroundImage: doctor.profilePicture != null
-                  ? NetworkImage(doctor.profilePicture!)
-                  : null,
-              child: doctor.profilePicture == null
-                  ? Text(
+            doctor.profilePicture != null
+                ? CachedNetworkImage(
+                    imageUrl: doctor.profilePicture!,
+                    imageBuilder: (context, imageProvider) => CircleAvatar(
+                      radius: 24,
+                      backgroundColor: doctor.disabled
+                          ? AppColors.border
+                          : AppColors.primarySurface,
+                      backgroundImage: imageProvider,
+                    ),
+                    placeholder: (context, url) => CircleAvatar(
+                      radius: 24,
+                      backgroundColor: doctor.disabled
+                          ? AppColors.border
+                          : AppColors.primarySurface,
+                      child: const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => CircleAvatar(
+                      radius: 24,
+                      backgroundColor: doctor.disabled
+                          ? AppColors.border
+                          : AppColors.primarySurface,
+                      child: Text(
+                        doctor.name.isNotEmpty
+                            ? doctor.name[0].toUpperCase()
+                            : 'D',
+                        style: TextStyle(
+                          color: doctor.disabled
+                              ? AppColors.textLight
+                              : AppColors.primary,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  )
+                : CircleAvatar(
+                    radius: 24,
+                    backgroundColor: doctor.disabled
+                        ? AppColors.border
+                        : AppColors.primarySurface,
+                    child: Text(
                       doctor.name.isNotEmpty
                           ? doctor.name[0].toUpperCase()
                           : 'D',
@@ -147,9 +184,8 @@ class _DoctorCard extends StatelessWidget {
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
-                    )
-                  : null,
-            ),
+                    ),
+                  ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(

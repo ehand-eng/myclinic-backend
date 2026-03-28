@@ -32,21 +32,28 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
   List<Booking> _bookings = [];
   bool _isLoading = false;
   Timer? _timer;
-  DateTime _now = DateTime.now();
+  final ValueNotifier<DateTime> _nowNotifier = ValueNotifier(DateTime.now());
 
   @override
   void initState() {
     super.initState();
     _loadDoctors();
-    // Tick every second for checkout countdown
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() => _now = DateTime.now());
-    });
+  }
+
+  void _startTimerIfNeeded() {
+    _timer?.cancel();
+    final hasCheckedIn = _bookings.any((b) => b.status == 'checked_in');
+    if (hasCheckedIn) {
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) _nowNotifier.value = DateTime.now();
+      });
+    }
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _nowNotifier.dispose();
     super.dispose();
   }
 
@@ -66,10 +73,10 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
     return bookingStr.compareTo(todayStr) > 0;
   }
 
-  int _getCheckoutRemaining(Booking booking) {
+  int _getCheckoutRemaining(Booking booking, DateTime now) {
     if (booking.checkedInTime == null) return 0;
     final expiresAt = booking.checkedInTime!.add(const Duration(minutes: 5));
-    final diff = expiresAt.difference(_now).inSeconds;
+    final diff = expiresAt.difference(now).inSeconds;
     return diff > 0 ? diff : 0;
   }
 
@@ -121,7 +128,10 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
         dispensaryId: dispensaryId,
         search: _searchQuery.trim(),
       );
-      if (mounted) setState(() => _bookings = bookings);
+      if (mounted) {
+        setState(() => _bookings = bookings);
+        _startTimerIfNeeded();
+      }
     } catch (e) {
       debugPrint('Search error: $e');
     } finally {
@@ -143,7 +153,10 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
         doctorId: _selectedDoctor?.id,
         sessionId: _selectedSession?.configId,
       );
-      if (mounted) setState(() => _bookings = bookings);
+      if (mounted) {
+        setState(() => _bookings = bookings);
+        _startTimerIfNeeded();
+      }
     } catch (e) {
       debugPrint('Session load error: $e');
     } finally {
@@ -349,14 +362,17 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
                       )
                     : RefreshIndicator(
                         onRefresh: _reload,
-                        child: ListView.separated(
+                        child: ValueListenableBuilder<DateTime>(
+                          valueListenable: _nowNotifier,
+                          builder: (context, now, _) {
+                            return ListView.separated(
                           padding: const EdgeInsets.all(16),
                           itemCount: _bookings.length,
                           separatorBuilder: (_, __) =>
                               const SizedBox(height: 8),
                           itemBuilder: (context, index) {
                             final b = _bookings[index];
-                            final remaining = _getCheckoutRemaining(b);
+                            final remaining = _getCheckoutRemaining(b, now);
                             final isToday = _isBookingToday(b);
                             final isFuture = _isBookingFuture(b);
 
@@ -520,6 +536,8 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
                                   ],
                                 ],
                               ),
+                            );
+                          },
                             );
                           },
                         ),
