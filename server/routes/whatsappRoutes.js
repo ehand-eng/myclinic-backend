@@ -4,6 +4,7 @@ const whatsappService = require('../services/whatsappService');
 
 // Webhook verification (GET) — Meta calls this once during setup
 router.get('/webhook', (req, res) => {
+    console.log("ssssssss +++++++++++ whatsapp webhook");
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
