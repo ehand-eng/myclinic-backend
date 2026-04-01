@@ -9,7 +9,7 @@ router.get('/webhook', (req, res) => {
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
 
-    if (mode === 'subscribe' && token === process.env.WHATSAPP_VERIFY_TOKEN) {
+    if (mode === 'subscribe' && token === "myclinic_whatsapp_token") {
         console.log('✅ WhatsApp webhook verified');
         return res.status(200).send(challenge);
     }
