@@ -1,11 +1,11 @@
 # Mobile Authentication Setup Guide
 
-This guide explains how to set up the new mobile authentication system with OTP functionality using Amazon SNS.
+This guide explains how to set up the new mobile authentication system with OTP functionality using Dialog SMS API.
 
 ## Features
 
 - **Nationality-based signup**: Users can select Sri Lanka or Other
-- **Mobile OTP for Sri Lankan users**: SMS-based verification using Amazon SNS
+- **Mobile OTP for Sri Lankan users**: SMS-based verification using Dialog SMS API
 - **Email OTP for foreign users**: Email-based verification using Amazon SES
 - **Dual login options**: Mobile OTP or email/password login
 - **Modern UI**: Clean, responsive design matching the provided mockups
@@ -21,7 +21,12 @@ MONGODB_URI=mongodb://localhost:27017/doctor-reservation
 # JWT Secret
 JWT_SECRET=your-super-secret-jwt-key-change-in-production
 
-# AWS Configuration for SNS and SES
+# Dialog SMS API Configuration
+DIALOG_SMS_URL=https://e-sms.dialog.lk/api/v2
+DIALOG_SMS_USERNAME=your-dialog-sms-username
+DIALOG_SMS_PASSWORD=your-dialog-sms-password
+
+# AWS Configuration for SES (Email)
 AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=your-aws-access-key-id
 AWS_SECRET_ACCESS_KEY=your-aws-secret-access-key
@@ -36,15 +41,14 @@ NODE_ENV=development
 
 ## AWS Setup
 
-### 1. Amazon SNS Setup (for SMS)
+### 1. Dialog SMS API Setup (for SMS)
 
-1. Create an AWS account and navigate to SNS console
-2. Create a new topic or use the default
-3. Get your AWS Access Key ID and Secret Access Key
+1. Obtain a Dialog SMS API account and credentials
+2. Get your API Username and Password from Dialog
+3. Configure the source address / mask if applicable
 4. Configure SMS settings:
-   - Set spending limits to prevent unexpected charges
-   - Configure delivery status logging
-   - Set up CloudWatch alarms for monitoring
+   - Make sure your IP is whitelisted if Dialog requires it
+   - Ensure you have sufficient balance in your prepaid account
 
 ### 2. Amazon SES Setup (for Email)
 
@@ -62,15 +66,6 @@ Create an IAM user with the following permissions:
 {
     "Version": "2012-10-17",
     "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "sns:Publish",
-                "sns:GetSMSAttributes",
-                "sns:SetSMSAttributes"
-            ],
-            "Resource": "*"
-        },
         {
             "Effect": "Allow",
             "Action": [
@@ -203,8 +198,8 @@ Ensure your test email addresses are verified in SES if in sandbox mode.
 
 ## Monitoring
 
-- Monitor SNS delivery rates and costs
-- Set up CloudWatch alarms for failed OTP sends
+- Monitor Dialog SMS API delivery rates and costs
+- Set up logging for failed OTP sends
 - Track user registration and login patterns
 - Monitor database performance with new schema
 
@@ -212,7 +207,7 @@ Ensure your test email addresses are verified in SES if in sandbox mode.
 
 ### Common Issues
 
-1. **SMS not delivered**: Check AWS SNS spending limits and phone number format
+1. **SMS not delivered**: Check Dialog SMS balance and phone number format (expecting 9-digit mobile format without +94 or leading 0).
 2. **Email not sent**: Verify SES configuration and email addresses
 3. **OTP verification fails**: Check server logs for OTP storage issues
 4. **Database errors**: Ensure MongoDB is running and schema is updated

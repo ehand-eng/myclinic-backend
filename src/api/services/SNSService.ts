@@ -1,11 +1,6 @@
 import AWS from 'aws-sdk';
 
-// Configure AWS SDK
-const sns = new AWS.SNS({
-  region: process.env.AWS_REGION || 'us-east-1',
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-});
+// Configuration removed for SNS
 
 export interface OTPRequest {
   phoneNumber?: string;
@@ -20,45 +15,6 @@ export interface OTPResponse {
 }
 
 export class SNSService {
-  /**
-   * Send OTP via SMS to mobile number
-   */
-  static async sendSMSOTP(phoneNumber: string, otp: string): Promise<OTPResponse> {
-    try {
-      // Format phone number for Sri Lanka (+94)
-      const formattedNumber = this.formatSriLankanNumber(phoneNumber);
-      
-      const message = `Your MyClinic Connect verification code is: ${otp}. This code will expire in 5 minutes.`;
-      
-      const params = {
-        PhoneNumber: formattedNumber,
-        Message: message,
-        MessageAttributes: {
-          'AWS.SNS.SMS.SenderID': {
-            DataType: 'String',
-            StringValue: 'MyClinic'
-          },
-          'AWS.SNS.SMS.SMSType': {
-            DataType: 'String',
-            StringValue: 'Transactional'
-          }
-        }
-      };
-
-      const result = await sns.publish(params).promise();
-      
-      return {
-        success: true,
-        messageId: result.MessageId
-      };
-    } catch (error: any) {
-      console.error('SMS OTP Error:', error);
-      return {
-        success: false,
-        error: error.message
-      };
-    }
-  }
 
   /**
    * Send OTP via Email (using SES)
@@ -95,7 +51,7 @@ export class SNSService {
       };
 
       const result = await ses.sendEmail(params).promise();
-      
+
       return {
         success: true,
         messageId: result.MessageId
@@ -115,7 +71,7 @@ export class SNSService {
   private static formatSriLankanNumber(phoneNumber: string): string {
     // Remove all non-digit characters
     const cleaned = phoneNumber.replace(/\D/g, '');
-    
+
     // Handle different Sri Lankan number formats
     if (cleaned.startsWith('94')) {
       // Already in international format
@@ -249,7 +205,7 @@ export class SNSService {
    */
   static validateSriLankanMobile(mobile: string): boolean {
     const cleaned = mobile.replace(/\D/g, '');
-    
+
     // Sri Lankan mobile numbers should be 9 digits after country code
     // Common formats: 07XXXXXXXX, +947XXXXXXXX, 947XXXXXXXX
     return /^(0|94|\+94)?7[0-9]{8}$/.test(cleaned);

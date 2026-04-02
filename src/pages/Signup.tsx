@@ -114,8 +114,8 @@ const Signup = () => {
     }
 
     // For foreign users (email) or Sri Lankan email users, skip OTP and go directly to step 2
-    if (formData.nationality === 'other' || 
-        (formData.nationality === 'sri_lanka' && formData.signupMethod === 'email')) {
+    if (formData.nationality === 'other' ||
+      (formData.nationality === 'sri_lanka' && formData.signupMethod === 'email')) {
       setCurrentStep(2);
       return;
     }
@@ -123,14 +123,14 @@ const Signup = () => {
     // For Sri Lankan mobile users, send OTP
     try {
       setIsLoading(true);
-      
+
       const otpData = {
         nationality: formData.nationality,
         mobile: `+94${formData.mobile}`
       };
 
       await axios.post(`${API_URL}/mobile/auth/send-otp`, otpData);
-      
+
       setOtpSent(true);
       toast({
         title: "Success",
@@ -159,7 +159,7 @@ const Signup = () => {
 
     try {
       setIsLoading(true);
-      
+
       const verifyData = {
         nationality: formData.nationality,
         otp: formData.otp,
@@ -169,8 +169,8 @@ const Signup = () => {
         )
       };
 
-      await axios.post(`${API_URL}/auth/verify-otp`, verifyData);
-      
+      await axios.post(`${API_URL}/mobile/auth/verify-otp`, verifyData);
+
       setCurrentStep(2);
       toast({
         title: "Success",
@@ -189,7 +189,7 @@ const Signup = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate form
     if (!formData.name || !formData.password || !formData.confirmPassword || !formData.mobile) {
       toast({
@@ -236,9 +236,9 @@ const Signup = () => {
 
     try {
       setIsLoading(true);
-      
+
       let response;
-      
+
       if (formData.nationality === 'sri_lanka' && formData.signupMethod === 'mobile') {
         // Use mobile signup for Sri Lankan mobile users
         const signupData = {
@@ -248,7 +248,7 @@ const Signup = () => {
           mobile: `+94${formData.mobile}`,
           otp: formData.otp
         };
-        response = await axios.post(`${API_URL}/auth/signup-mobile`, signupData);
+        response = await axios.post(`${API_URL}/mobile/auth/signup-mobile`, signupData);
       } else {
         // Use existing custom auth for foreign users and Sri Lankan email users
         const signupData = {
@@ -294,9 +294,8 @@ const Signup = () => {
         {[1, 2, 3, 4, 5].map((step) => (
           <div
             key={step}
-            className={`w-8 h-2 rounded-full ${
-              step === 1 ? 'bg-[#0a1f44]' : 'bg-gray-300'
-            }`}
+            className={`w-8 h-2 rounded-full ${step === 1 ? 'bg-[#0a1f44]' : 'bg-gray-300'
+              }`}
           />
         ))}
       </div>
@@ -398,14 +397,14 @@ const Signup = () => {
         >
           Back
         </Button>
-        
+
         {!otpSent ? (
           <Button
             type="button"
             onClick={sendOTP}
             disabled={
-              isLoading || 
-              !formData.nationality || 
+              isLoading ||
+              !formData.nationality ||
               (formData.nationality === 'sri_lanka' && !formData.signupMethod) ||
               (formData.nationality === 'sri_lanka' && formData.signupMethod === 'mobile' && !formData.mobile) ||
               (formData.nationality === 'sri_lanka' && formData.signupMethod === 'email' && !formData.email) ||
@@ -413,10 +412,10 @@ const Signup = () => {
             }
             className="bg-[#0a1f44] hover:bg-[#0a1f44]/90 text-white"
           >
-            {isLoading 
-              ? 'Sending...' 
-              : (formData.nationality === 'sri_lanka' && formData.signupMethod === 'mobile') 
-                ? 'Send OTP' 
+            {isLoading
+              ? 'Sending...'
+              : (formData.nationality === 'sri_lanka' && formData.signupMethod === 'mobile')
+                ? 'Send OTP'
                 : 'Next'
             }
           </Button>
@@ -448,9 +447,8 @@ const Signup = () => {
         {[1, 2, 3, 4, 5].map((step) => (
           <div
             key={step}
-            className={`w-8 h-2 rounded-full ${
-              step <= 2 ? 'bg-[#0a1f44]' : 'bg-gray-300'
-            }`}
+            className={`w-8 h-2 rounded-full ${step <= 2 ? 'bg-[#0a1f44]' : 'bg-gray-300'
+              }`}
           />
         ))}
       </div>
@@ -604,9 +602,8 @@ const Signup = () => {
           </div>
           {formData.confirmPassword && (
             <p
-              className={`text-xs ${
-                formData.password === formData.confirmPassword ? 'text-green-600' : 'text-red-600'
-              }`}
+              className={`text-xs ${formData.password === formData.confirmPassword ? 'text-green-600' : 'text-red-600'
+                }`}
             >
               {formData.password === formData.confirmPassword ? 'Passwords match' : 'Passwords do not match'}
             </p>
@@ -622,7 +619,7 @@ const Signup = () => {
           >
             Back
           </Button>
-          
+
           <Button
             type="submit"
             disabled={isLoading}
@@ -638,7 +635,7 @@ const Signup = () => {
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100">
       <Header />
-      
+
       <main className="flex-grow flex items-center justify-center py-12">
         <div className="w-full max-w-2xl px-4">
           <Card className="bg-white shadow-lg rounded-lg">
@@ -648,7 +645,7 @@ const Signup = () => {
           </Card>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );

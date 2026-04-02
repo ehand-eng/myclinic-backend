@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5001/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api',
   timeout: 30000,
 });
 
@@ -10,7 +10,7 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     console.log('🚀 Axios Interceptor - Processing request:', config.url);
-    
+
     // Ensure headers object exists
     if (!config.headers) {
       config.headers = {};
@@ -37,7 +37,7 @@ api.interceptors.request.use(
         } else {
           console.warn('⚠️ User object exists but no role property found:', user);
         }
-        
+
         // Comprehensive debug logging for ALL requests (not just reports)
         console.log('🔧 Request Details:', {
           url: config.url,
