@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "709963963075",
+    "firebase_url": "https://myclinic-smsgateway-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "myclinic-smsgateway",
+    "storage_bucket": "myclinic-smsgateway.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:709963963075:android:0fb4130c212bf2e6f82076",
+        "android_client_info": {
+          "package_name": "com.myclinic.smsgateway"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCAGdNfOFh_abujwvfmqCw6rcNzigqZuNA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

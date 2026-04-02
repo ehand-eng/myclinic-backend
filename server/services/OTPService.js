@@ -1,12 +1,6 @@
 const AWS = require('aws-sdk');
 const crypto = require('crypto');
-
-// Configure AWS SDK
-const sns = new AWS.SNS({
-  region: process.env.AWS_REGION || 'us-east-1',
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-});
+const smsService = require('./smsService');
 
 const ses = new AWS.SES({
   region: process.env.AWS_REGION || 'us-east-1',
@@ -209,33 +203,31 @@ class OTPService {
   static async sendSMSOTP(phoneNumber) {
     try {
       const otp = this.generateOTP();
-      const formattedNumber = this.formatSriLankanNumber(phoneNumber);
+      
+      // Dialog API operates properly with 9-digit Sri Lankan numbers.
+      let normalizedNumber = phoneNumber.replace(/\D/g, '');
+      if (normalizedNumber.startsWith('94')) {
+        normalizedNumber = normalizedNumber.substring(2);
+      }
+      if (normalizedNumber.startsWith('0')) {
+        normalizedNumber = normalizedNumber.substring(1);
+      }
 
       const message = `Your MyClinic Connect verification code is: ${otp}. This code will expire in 5 minutes.`;
 
-      const params = {
-        PhoneNumber: formattedNumber,
-        Message: message,
-        MessageAttributes: {
-          'AWS.SNS.SMS.SenderID': {
-            DataType: 'String',
-            StringValue: 'MyClinic'
-          },
-          'AWS.SNS.SMS.SMSType': {
-            DataType: 'String',
-            StringValue: 'Transactional'
-          }
-        }
-      };
-      console.log("params", params);
-      // const result = await sns.publish(params).promise();
-      // console.log("result", result);
+      console.log(`Sending OTP via Dialog SMS API to ${normalizedNumber}`);
+      
+      const result = await smsService.sendSMS([normalizedNumber], message);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to send SMS via Dialog API');
+      }
       // Store OTP for verification
       this.storeOTP(phoneNumber, otp);
 
       return {
         success: true,
-        messageId: "result.MessageId - commented",
+        messageId: result.transactionId ? result.transactionId.toString() : 'dialog-sms-' + Date.now(),
         message: 'OTP sent successfully'
       };
     } catch (error) {

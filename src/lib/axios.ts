@@ -10,7 +10,7 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     console.log('🚀 Axios Interceptor - Processing request:', config.url);
-    
+
     // Ensure headers object exists
     if (!config.headers) {
       config.headers = {};
@@ -37,7 +37,7 @@ api.interceptors.request.use(
         } else {
           console.warn('⚠️ User object exists but no role property found:', user);
         }
-        
+
         // Comprehensive debug logging for ALL requests (not just reports)
         console.log('🔧 Request Details:', {
           url: config.url,

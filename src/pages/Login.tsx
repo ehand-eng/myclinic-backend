@@ -84,7 +84,7 @@ const Login = () => {
         )
       };
 
-      await axios.post(`${API_URL}/auth/send-login-otp`, otpData);
+      await axios.post(`${API_URL}/mobile/auth/send-login-otp`, otpData);
 
       setOtpSent(true);
       toast({

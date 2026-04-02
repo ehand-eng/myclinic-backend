@@ -2,7 +2,7 @@ class ApiConfig {
   // Use 10.0.2.2 for Android emulator (maps to host machine's localhost)
   // Use localhost for iOS simulator
   // Use your machine's IP for physical devices
-  static const String baseUrl = 'http://192.168.1.141:5001/api';
+  static const String baseUrl = 'https://myclinic-backend-uyu3.onrender.com/api';
 
   // Auth
   static const String loginAdmin = '/custom-auth/login-admin';
