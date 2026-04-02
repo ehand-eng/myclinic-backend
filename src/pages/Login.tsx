@@ -125,7 +125,7 @@ const Login = () => {
         keepSignedIn: loginData.keepSignedIn
       };
 
-      const response = await axios.post(`${API_URL}/auth/login-mobile`, loginPayload);
+      const response = await axios.post(`${API_URL}/mobile/auth/login-mobile`, loginPayload);
 
       const user = response.data.user;
       const adminRoles = ['super-admin', 'dispensary-admin', 'dispensary-staff', 'doctor', 'channel-partner'];
