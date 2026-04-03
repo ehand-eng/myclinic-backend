@@ -19,8 +19,8 @@ import {
   FileText, AlertTriangle, CheckCircle2, Hash, Filter, QrCode
 } from 'lucide-react';
 import BookingQrDialog, { type BookingQrData } from '@/components/BookingQrDialog';
+import { API_URL } from '@/config';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 const ITEMS_PER_PAGE = 8;
 
 interface Booking {
@@ -722,18 +722,16 @@ const MyBookings = () => {
                     <button
                       key={slot.appointmentNumber}
                       onClick={() => setSelectedSlot(slot)}
-                      className={`p-3 rounded-lg border-2 text-left transition-all ${
-                        selectedSlot?.appointmentNumber === slot.appointmentNumber
+                      className={`p-3 rounded-lg border-2 text-left transition-all ${selectedSlot?.appointmentNumber === slot.appointmentNumber
                           ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500'
                           : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
-                          selectedSlot?.appointmentNumber === slot.appointmentNumber
+                        <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${selectedSlot?.appointmentNumber === slot.appointmentNumber
                             ? 'bg-blue-600 text-white'
                             : 'bg-gray-200 text-gray-700'
-                        }`}>
+                          }`}>
                           #{slot.appointmentNumber}
                         </span>
                       </div>
@@ -838,16 +836,14 @@ const MyBookings = () => {
                   <button
                     key={tab.key}
                     onClick={() => setStatusFilter(tab.key)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      statusFilter === tab.key
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${statusFilter === tab.key
                         ? 'bg-[#0a1f44] text-white shadow-sm'
                         : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     {tab.label}
-                    <span className={`ml-1.5 text-xs ${
-                      statusFilter === tab.key ? 'text-blue-200' : 'text-gray-400'
-                    }`}>
+                    <span className={`ml-1.5 text-xs ${statusFilter === tab.key ? 'text-blue-200' : 'text-gray-400'
+                      }`}>
                       {tab.count}
                     </span>
                   </button>

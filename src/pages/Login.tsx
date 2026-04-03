@@ -10,9 +10,7 @@ import { Eye, EyeOff, Phone } from "lucide-react";
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import axios from 'axios';
-
-// Get API URL from environment variables with fallback
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+import { API_URL } from '@/config';
 
 interface LoginData {
   loginType: 'mobile' | 'email';

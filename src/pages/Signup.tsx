@@ -10,8 +10,7 @@ import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+import { API_URL } from '@/config';
 
 interface FormData {
   nationality: string;
