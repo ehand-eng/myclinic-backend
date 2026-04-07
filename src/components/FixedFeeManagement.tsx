@@ -13,8 +13,7 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'react-toastify';
 import { Pencil, Trash2, Plus, AlertCircle, Loader2 } from 'lucide-react';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+import { API_URL } from '@/config';
 
 interface Doctor {
   id: string;
@@ -110,14 +109,14 @@ const FixedFeeManagement: React.FC = () => {
     try {
       setLoadingDoctors(true);
       setError('');
-      
+
       console.log('Fetching doctors from API...');
-      const response = await fetch(`${API_BASE_URL}/api/doctors`);
-      
+      const response = await fetch(`${API_URL}/api/doctors`);
+
       if (!response.ok) {
         throw new Error(`Failed to fetch doctors: ${response.status} ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       console.log('Doctors fetched successfully:', data);
       setDoctors(data);
@@ -134,10 +133,10 @@ const FixedFeeManagement: React.FC = () => {
   const fetchDispensariesForDoctor = async (doctorId: string) => {
     try {
       setLoadingDispensaries(true);
-      
+
       console.log(`Fetching dispensaries for doctor ${doctorId}...`);
-      const response = await fetch(`${API_BASE_URL}/api/dispensaries/${doctorId}`);
-      
+      const response = await fetch(`${API_URL}/api/dispensaries/${doctorId}`);
+
       if (!response.ok) {
         if (response.status === 404) {
           console.log('No dispensaries found for this doctor');
@@ -146,11 +145,11 @@ const FixedFeeManagement: React.FC = () => {
         }
         throw new Error(`Failed to fetch dispensaries: ${response.status} ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       console.log('Dispensaries fetched successfully:', data);
       setDispensaries(data);
-      
+
       // Reset dispensary selection if the previously selected one is not in the new list
       if (addFeeForm.dispensaryId && !data.some((d: Dispensary) => d.id === addFeeForm.dispensaryId)) {
         setAddFeeForm(prev => ({ ...prev, dispensaryId: '' }));
@@ -169,10 +168,10 @@ const FixedFeeManagement: React.FC = () => {
   const fetchFeesForDoctor = async (doctorId: string) => {
     try {
       setLoadingFees(true);
-      
+
       console.log(`Fetching fees for doctor ${doctorId}...`);
-      const response = await fetch(`${API_BASE_URL}/api/doctor-dispensaries/fees/${doctorId}`);
-      
+      const response = await fetch(`${API_URL}/api/doctor-dispensaries/fees/${doctorId}`);
+
       if (!response.ok) {
         if (response.status === 404) {
           console.log('No fees found for this doctor');
@@ -181,7 +180,7 @@ const FixedFeeManagement: React.FC = () => {
         }
         throw new Error(`Failed to fetch fees: ${response.status} ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       console.log('Fees fetched successfully:', data);
       setFees(data);
@@ -213,19 +212,19 @@ const FixedFeeManagement: React.FC = () => {
 
   const handleAddFeeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     console.log('Submitting add fee form...');
-    
+
     if (!selectedDoctorId) {
       toast.error('Please select a doctor first');
       return;
     }
-    
+
     if (!addFeeForm.dispensaryId) {
       toast.error('Please select a dispensary');
       return;
     }
-    
+
     if (!addFeeForm.doctorFee || !addFeeForm.dispensaryFee || !addFeeForm.onlineFee) {
       toast.error('Please fill in all fee amounts');
       return;
@@ -233,17 +232,17 @@ const FixedFeeManagement: React.FC = () => {
 
     try {
       setLoading(true);
-      
+
       const requestData = {
         dispensaryId: addFeeForm.dispensaryId,
         doctorFee: parseFloat(addFeeForm.doctorFee),
         dispensaryFee: parseFloat(addFeeForm.dispensaryFee),
         onlineFee: parseFloat(addFeeForm.onlineFee),
       };
-      
+
       console.log('Sending request to create fee:', requestData);
-      
-      const response = await fetch(`${API_BASE_URL}/api/doctor-dispensaries/fees/${selectedDoctorId}`, {
+
+      const response = await fetch(`${API_URL}/api/doctor-dispensaries/fees/${selectedDoctorId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -282,12 +281,12 @@ const FixedFeeManagement: React.FC = () => {
 
   const handleUpdateFeeSubmit = async () => {
     console.log('Submitting update fee form...');
-    
+
     if (!selectedDoctorId || !updateFeeId) {
       toast.error('Invalid update request');
       return;
     }
-    
+
     if (!updateFeeForm.doctorFee || !updateFeeForm.dispensaryFee || !updateFeeForm.onlineFee) {
       toast.error('Please fill in all fee amounts');
       return;
@@ -295,16 +294,16 @@ const FixedFeeManagement: React.FC = () => {
 
     try {
       setLoading(true);
-      
+
       const requestData = {
         doctorFee: parseFloat(updateFeeForm.doctorFee),
         dispensaryFee: parseFloat(updateFeeForm.dispensaryFee),
         onlineFee: parseFloat(updateFeeForm.onlineFee),
       };
-      
+
       console.log('Sending request to update fee:', requestData);
-      
-      const response = await fetch(`${API_BASE_URL}/api/doctor-dispensaries/fees/${selectedDoctorId}/${updateFeeId}`, {
+
+      const response = await fetch(`${API_URL}/api/doctor-dispensaries/fees/${selectedDoctorId}/${updateFeeId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -351,7 +350,7 @@ const FixedFeeManagement: React.FC = () => {
 
       console.log(`Sending delete request for fee ${feeToDelete}`);
 
-      const response = await fetch(`${API_BASE_URL}/api/doctor-dispensaries/fees/${selectedDoctorId}/${feeToDelete}`, {
+      const response = await fetch(`${API_URL}/api/doctor-dispensaries/fees/${selectedDoctorId}/${feeToDelete}`, {
         method: 'DELETE',
       });
 
@@ -560,7 +559,7 @@ const FixedFeeManagement: React.FC = () => {
               <h3 className="text-lg font-semibold mb-4">
                 Existing Fee Configurations {fees.length > 0 && `(${fees.length})`}
               </h3>
-              
+
               {fees.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   No fee configurations found for this doctor.
@@ -685,19 +684,19 @@ const FixedFeeManagement: React.FC = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setShowUpdateModal(false)} 
+            <Button
+              variant="outline"
+              onClick={() => setShowUpdateModal(false)}
               disabled={loading}
             >
               Cancel
             </Button>
-            <Button 
-              onClick={handleUpdateFeeSubmit} 
+            <Button
+              onClick={handleUpdateFeeSubmit}
               disabled={
-                loading || 
-                !updateFeeForm.doctorFee || 
-                !updateFeeForm.dispensaryFee || 
+                loading ||
+                !updateFeeForm.doctorFee ||
+                !updateFeeForm.dispensaryFee ||
                 !updateFeeForm.onlineFee
               }
             >

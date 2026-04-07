@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Loader2, Users, Shield, UserPlus, Edit, Trash2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
+import { API_URL } from '@/config';
 
 interface Role {
   _id: string;
@@ -88,13 +89,13 @@ const CustomRoleAssignment = () => {
       }
 
       const [usersRes, rolesRes, dispensariesRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/users`, {
+        fetch(`${API_URL}/admin/users`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/roles`, {
+        fetch(`${API_URL}/admin/roles`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/dispensaries`, {
+        fetch(`${API_URL}/dispensaries`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);

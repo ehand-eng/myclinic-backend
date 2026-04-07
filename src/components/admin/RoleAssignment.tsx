@@ -9,6 +9,7 @@ import { Loader2, Users, Shield, UserCheck, AlertCircle } from 'lucide-react';
 import { User, UserRole, Dispensary } from '@/api/models';
 import { AuthService, DispensaryService, UserDispensaryService } from '@/api/services';
 import { toast } from 'sonner';
+import { API_URL } from '@/config';
 
 const RoleAssignment = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -31,7 +32,7 @@ const RoleAssignment = () => {
           return;
         }
 
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/users`, {
+        const response = await fetch(`${API_URL}/admin/users`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
