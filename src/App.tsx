@@ -32,6 +32,7 @@ const ChannelPartnerReports = lazy(() => import('@/pages/reports/ChannelPartnerR
 const Signup = lazy(() => import('./pages/Signup'));
 const AdminFeeManage = lazy(() => import('./pages/AdminFeeManage'));
 const MobileHome = lazy(() => import('./pages/MobileHome'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const TimeSlotManagement = lazy(() => import('./pages/TimeSlotManagement'));
 const CustomRoleManagement = lazy(() => import('./pages/admin/CustomRoleManagement'));
 const Appointments = lazy(() => import('./pages/Appointments'));
@@ -82,6 +83,7 @@ const App = () => {
           <Route path="/doctors" element={<Doctors />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/callback" element={<Callback />} />
           <Route path="/profile" element={<Profile />} />

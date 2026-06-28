@@ -84,6 +84,16 @@ app.get('/api', (req, res) => {
   res.send('Doctor Reservation API is running');
 });
 
+// Health check endpoint (for Render keep-alive)
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    message: 'MyClinic backend is alive',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Start server
 // Create HTTP server and integrate Socket.io
 // Create HTTP server and integrate WebSocket (ws)

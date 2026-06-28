@@ -201,9 +201,10 @@ const axios = require('axios');
 // Configuration
 // Configuration
 // Fallback to hardcoded values if env vars are missing/stale
-const SMS_API_URL = process.env.DIALOG_SMS_URL || 'https://e-sms.dialog.lk/api/v2';
+const SMS_API_URL = process.env.DIALOG_SMS_URL || process.env.DIALOG_SMS_API_URL || 'https://e-sms.dialog.lk/api/v2';
 const SMS_USERNAME = process.env.DIALOG_SMS_USERNAME || 'ehands';
 const SMS_PASSWORD = process.env.DIALOG_SMS_PASSWORD || 'ANVehands!8425';
+const SMS_SOURCE_ADDRESS = process.env.DIALOG_SMS_SOURCE_ADDRESS || 'eHands';
 
 // In-memory token storage
 let cachedToken = null;
@@ -258,6 +259,24 @@ async function getToken() {
     return await login();
 }
 
+function normalizeMobileForDialog(mobile) {
+    const cleaned = String(mobile || '').replace(/\D/g, '');
+
+    if (cleaned.startsWith('94') && cleaned.length === 11) {
+        return cleaned.substring(2);
+    }
+
+    if (cleaned.startsWith('0') && cleaned.length === 10) {
+        return cleaned.substring(1);
+    }
+
+    if (cleaned.length === 9) {
+        return cleaned;
+    }
+
+    return cleaned;
+}
+
 /**
  * Send SMS to multiple numbers
  * @param {Array<string>} mobileNumbers - Array of mobile numbers (e.g., ["771234567"])
@@ -265,39 +284,50 @@ async function getToken() {
  * @param {string} sourceAddress - Optional sender mask
  */
 async function sendSMS(mobileNumbers, message, sourceAddress = null) {
-    try {
-        const token = await getToken();
+    if (!Array.isArray(mobileNumbers) || mobileNumbers.length === 0) {
+        return { success: false, error: 'At least one mobile number is required' };
+    }
 
-        // Format msisdn array
-        // The API expects: [{ "mobile": "714551682" }, ...]
-        const msisdn = mobileNumbers.map(num => ({ mobile: num }));
+    if (!message || typeof message !== 'string') {
+        return { success: false, error: 'Message is required' };
+    }
 
-        // Generate a unique transaction ID (numeric, max 18 digits)
-        // Using current timestamp (13 digits) + 4 random digits = 17 digits
-        const transaction_id = parseInt(Date.now().toString() + Math.floor(1000 + Math.random() * 9000).toString());
+    const normalizedNumbers = mobileNumbers
+        .map((num) => normalizeMobileForDialog(num))
+        .filter((num) => /^7\d{8}$/.test(num));
 
-        const payload = {
-            msisdn,
-            message,
-            transaction_id,
-            payment_method: 0 // 0 for Prepaid (required by API)
-        };
+    if (normalizedNumbers.length === 0) {
+        return { success: false, error: 'No valid Sri Lankan mobile numbers to send SMS' };
+    }
 
-        if (sourceAddress) {
-            payload.sourceAddress = sourceAddress;
-        }
+    const msisdn = normalizedNumbers.map((num) => ({ mobile: num }));
+    const transactionId = `${Date.now()}${Math.floor(1000 + Math.random() * 9000)}`;
+    const payload = {
+        msisdn,
+        message,
+        transaction_id: transactionId,
+        payment_method: 0,
+        sourceAddress: sourceAddress || SMS_SOURCE_ADDRESS
+    };
 
-        console.log(`📤 Sending SMS with TransID: ${transaction_id}`);
-
-        const response = await axios.post(`${SMS_API_URL}/sms`, payload, {
+    const postSMS = async (token) => {
+        return axios.post(`${SMS_API_URL}/sms`, payload, {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             }
         });
+    };
 
-        console.log(`✅ SMS sent successfully to ${mobileNumbers.length} numbers. TransID: ${transaction_id}`);
-        return { success: true, response: response.data, transactionId: transaction_id };
+    try {
+        const token = await getToken();
+
+        console.log(`📤 Sending SMS with TransID: ${transactionId}`);
+
+        const response = await postSMS(token);
+
+        console.log(`✅ SMS sent successfully to ${normalizedNumbers.length} numbers. TransID: ${transactionId}`);
+        return { success: true, response: response.data, transactionId };
 
     } catch (error) {
         console.error('❌ SMS sending failed:', error.message);
@@ -306,20 +336,19 @@ async function sendSMS(mobileNumbers, message, sourceAddress = null) {
         if (error.response && error.response.status === 401) {
             console.log('🔄 Auth failed, clearing token and retrying...');
             cachedToken = null;
+            tokenExpirationTime = 0;
             // Retry once
             try {
                 const newToken = await getToken();
                 console.log("🔄 Retrying SMS with new token...");
-                const response = await axios.post(`${SMS_API_URL}/sms`, payload, {
-                    headers: {
-                        'Authorization': `Bearer ${newToken}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                console.log(`✅ Retry SMS sent successfully. TransID: ${transaction_id}`);
-                return { success: true, response: response.data };
+                const response = await postSMS(newToken);
+                console.log(`✅ Retry SMS sent successfully. TransID: ${transactionId}`);
+                return { success: true, response: response.data, transactionId };
             } catch (retryError) {
                 console.error('❌ Retry SMS failed:', retryError.message);
+                if (retryError.response) {
+                    console.error('Retry response data:', retryError.response.data);
+                }
                 return { success: false, error: retryError.message };
             }
         }

@@ -125,6 +125,214 @@ router.post('/register', async (req, res) => {
 const ADMIN_ROLES = ['super-admin', 'dispensary-admin', 'dispensary-staff', 'doctor', 'channel-partner'];
 const isAdminRole = (roleName) => roleName && ADMIN_ROLES.includes(roleName.toLowerCase().replace(/_/g, '-'));
 
+const normalizeSriLankanMobile = (mobile) => {
+  const cleaned = String(mobile || '').replace(/\D/g, '');
+
+  if (cleaned.startsWith('94') && cleaned.length === 11) {
+    return `+${cleaned}`;
+  }
+
+  if (cleaned.startsWith('0') && cleaned.length === 10) {
+    return `+94${cleaned.substring(1)}`;
+  }
+
+  if (cleaned.length === 9) {
+    return `+94${cleaned}`;
+  }
+
+  return String(mobile || '').trim();
+};
+
+const buildSriLankanMobileCandidates = (mobile) => {
+  const raw = String(mobile || '').trim();
+  const cleaned = raw.replace(/\D/g, '');
+  const candidates = new Set();
+
+  if (raw) candidates.add(raw);
+  if (cleaned) candidates.add(cleaned);
+
+  if (cleaned.startsWith('94') && cleaned.length === 11) {
+    const local = cleaned.substring(2);
+    candidates.add(`+${cleaned}`);
+    candidates.add(local);
+    candidates.add(`0${local}`);
+  } else if (cleaned.startsWith('0') && cleaned.length === 10) {
+    const local = cleaned.substring(1);
+    candidates.add(local);
+    candidates.add(`94${local}`);
+    candidates.add(`+94${local}`);
+  } else if (cleaned.length === 9) {
+    candidates.add(`0${cleaned}`);
+    candidates.add(`94${cleaned}`);
+    candidates.add(`+94${cleaned}`);
+  }
+
+  return Array.from(candidates);
+};
+
+// Send OTP for forgot-password flow (regular users only)
+router.post('/forgot-password/send-otp', async (req, res) => {
+  try {
+    const { mobile, email } = req.body;
+
+    if ((!mobile || typeof mobile !== 'string') && (!email || typeof email !== 'string')) {
+      return res.status(400).json({ message: 'Mobile number or email is required' });
+    }
+
+    const OTPService = require('../services/OTPService');
+
+    if (mobile && typeof mobile === 'string') {
+      if (!OTPService.validateSriLankanMobile(mobile)) {
+        return res.status(400).json({ message: 'Invalid Sri Lankan mobile number format' });
+      }
+
+      const mobileCandidates = buildSriLankanMobileCandidates(mobile);
+      const user = await User.findOne({ mobile: { $in: mobileCandidates } }).populate('role');
+
+      if (!user) {
+        return res.status(404).json({ message: 'User not found with this mobile number' });
+      }
+
+      if (!user.isActive) {
+        return res.status(401).json({ message: 'Account is inactive' });
+      }
+
+      const roleName = user.role ? user.role.name : 'online';
+      if (isAdminRole(roleName)) {
+        return res.status(403).json({
+          code: 'USE_ADMIN_PORTAL',
+          message: 'Use the admin portal to reset the password for this account.'
+        });
+      }
+
+      const normalizedMobile = normalizeSriLankanMobile(user.mobile || mobile);
+      const result = await OTPService.sendSMSOTP(normalizedMobile);
+      if (!result.success) {
+        return res.status(500).json({ message: result.message || 'Failed to send OTP', error: result.error });
+      }
+
+      return res.json({
+        message: 'OTP sent successfully',
+        messageId: result.messageId
+      });
+    }
+
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail }).populate('role');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found with this email' });
+    }
+
+    if (!user.isActive) {
+      return res.status(401).json({ message: 'Account is inactive' });
+    }
+
+    const roleName = user.role ? user.role.name : 'online';
+    if (isAdminRole(roleName)) {
+      return res.status(403).json({
+        code: 'USE_ADMIN_PORTAL',
+        message: 'Use the admin portal to reset the password for this account.'
+      });
+    }
+
+    if (!OTPService.validateEmail(normalizedEmail)) {
+      return res.status(400).json({ message: 'Invalid email format' });
+    }
+
+    const result = await OTPService.sendEmailOTP(normalizedEmail);
+    if (!result.success) {
+      return res.status(500).json({ message: result.message || 'Failed to send OTP', error: result.error });
+    }
+
+    res.json({
+      message: 'OTP sent successfully',
+      messageId: result.messageId
+    });
+  } catch (error) {
+    console.error('Forgot password send OTP error:', error);
+    res.status(500).json({ message: 'Failed to send OTP', error: error.message });
+  }
+});
+
+// Reset password using OTP (regular users only)
+router.post('/forgot-password/reset', async (req, res) => {
+  try {
+    const { mobile, email, otp, newPassword } = req.body;
+
+    if ((!mobile && !email) || !otp || !newPassword) {
+      return res.status(400).json({ message: 'Mobile number or email, OTP, and new password are required' });
+    }
+
+    if (!isStrongPassword(newPassword)) {
+      return res.status(400).json({ message: PASSWORD_RULE_MESSAGE });
+    }
+
+    const OTPService = require('../services/OTPService');
+    let user;
+    let otpIdentifier;
+
+    if (mobile && typeof mobile === 'string') {
+      if (!OTPService.validateSriLankanMobile(mobile)) {
+        return res.status(400).json({ message: 'Invalid Sri Lankan mobile number format' });
+      }
+
+      const mobileCandidates = buildSriLankanMobileCandidates(mobile);
+      user = await User.findOne({ mobile: { $in: mobileCandidates } }).populate('role');
+      otpIdentifier = normalizeSriLankanMobile(user?.mobile || mobile);
+    } else {
+      const normalizedEmail = email.trim().toLowerCase();
+
+      if (!OTPService.validateEmail(normalizedEmail)) {
+        return res.status(400).json({ message: 'Invalid email format' });
+      }
+
+      user = await User.findOne({ email: normalizedEmail }).populate('role');
+      otpIdentifier = normalizedEmail;
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: mobile ? 'User not found with this mobile number' : 'User not found with this email' });
+    }
+
+    if (!user.isActive) {
+      return res.status(401).json({ message: 'Account is inactive' });
+    }
+
+    const roleName = user.role ? user.role.name : 'online';
+    if (isAdminRole(roleName)) {
+      return res.status(403).json({
+        code: 'USE_ADMIN_PORTAL',
+        message: 'Use the admin portal to reset the password for this account.'
+      });
+    }
+
+    const otpResult = OTPService.verifyOTP(otpIdentifier, String(otp).trim());
+    if (!otpResult.success) {
+      return res.status(400).json({ message: otpResult.message });
+    }
+
+    const isSamePassword = user.passwordHash ? await bcrypt.compare(newPassword, user.passwordHash) : false;
+    if (isSamePassword) {
+      return res.status(400).json({ message: 'New password must be different from the current password' });
+    }
+
+    const saltRounds = 10;
+    user.passwordHash = await bcrypt.hash(newPassword, saltRounds);
+    user.mustChangePassword = false;
+    user.lastLogin = new Date();
+    await user.save();
+
+    res.json({ message: 'Password reset successful' });
+  } catch (error) {
+    console.error('Forgot password reset error:', error);
+    res.status(500).json({ message: 'Failed to reset password', error: error.message });
+  }
+});
+
 // Login endpoint - for REGULAR users only (rejects admin credentials)
 router.post('/login', async (req, res) => {
   try {
