@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  backend:
+    build: ./server
+    container_name: myclinic-backend
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongodb
+    environment:
+      MONGO_URI: mongodb://mongodb:27017/myclinic
+
+  mongodb:
+    image: mongo:8
+    container_name: myclinic-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:
