@@ -8,8 +8,10 @@ services:
       - "5000:5000"
     depends_on:
       - mongodb
+    env_file:
+      - ./.env
     environment:
-      MONGO_URI: mongodb://mongodb:27017/myclinic
+      MONGODB_URI: mongodb+srv://myclinicuser:welcome!23@myclinic-cluster.ht5hi.mongodb.net/?retryWrites=true&w=majority&appName=myclinic-cluster
 
   mongodb:
     image: mongo:8
