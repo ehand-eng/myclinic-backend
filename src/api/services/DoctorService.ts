@@ -30,6 +30,7 @@ export const DoctorService = {
   getAllDoctors: async (activeOnly = false): Promise<Doctor[]> => {
     try {
       const url = activeOnly ? '/doctors?activeOnly=true' : '/doctors';
+      console.log('url', url);
       const response = await api.get(url);
 
       return response.data.map((doctor: any) => ({
@@ -48,9 +49,9 @@ export const DoctorService = {
   getDoctorById: async (id: string): Promise<Doctor | null> => {
     try {
       const response = await api.get(`/doctors/${id}`);
-      
+
       if (!response.data) return null;
-      
+
       return {
         ...response.data,
         id: response.data._id,
@@ -100,7 +101,7 @@ export const DoctorService = {
   addDoctor: async (doctor: Omit<Doctor, 'id' | 'createdAt' | 'updatedAt'>): Promise<Doctor> => {
     try {
       const response = await api.post('/doctors', doctor);
-      
+
       return {
         ...response.data,
         id: response.data._id,
@@ -117,9 +118,9 @@ export const DoctorService = {
   updateDoctor: async (id: string, doctor: Partial<Doctor>): Promise<Doctor | null> => {
     try {
       const response = await api.put(`/doctors/${id}`, doctor);
-      
+
       if (!response.data) return null;
-      
+
       return {
         ...response.data,
         id: response.data._id,
