@@ -17,7 +17,7 @@ class ApiConfig {
       if (Platform.isAndroid) {
         url = 'http://10.0.2.2:5001';
       } else {
-        url = 'http://localhost:5001';
+        url = 'https://myclinic-backend-uyu3.onrender.com';
       }
     } catch (_) {
       url = 'http://localhost:5001';
