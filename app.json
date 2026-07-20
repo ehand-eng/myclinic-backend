@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "ea1ba3a8-f42c-4523-9002-ac2d00ac4855"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.myClinic.patient",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
+  }
+}
