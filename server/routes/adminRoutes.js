@@ -16,18 +16,18 @@ const requireSuperAdmin = async (req, res, next) => {
     }
 
     let userId;
-    
+
     // Try to decode custom JWT first
     try {
       const jwt = require('jsonwebtoken');
       const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
       const decoded = jwt.verify(token, JWT_SECRET);
-      
+
       const user = await User.findById(decoded.userId).populate('role');
       if (!user || user.role.name !== 'super-admin') {
         return res.status(403).json({ message: 'Super admin access required' });
       }
-      
+
       req.user = user;
       return next();
     } catch (jwtError) {
@@ -59,6 +59,7 @@ router.get('/roles', async (req, res) => {
 // Get all users with role and dispensary info
 router.get('/users', requireSuperAdmin, async (req, res) => {
   try {
+    console.log("++++++++++++++ req.body ++++++++++++++", req.body);
     const users = await User.find({})
       .populate('role', 'name displayName')
       .populate('dispensaryIds', 'name address')
