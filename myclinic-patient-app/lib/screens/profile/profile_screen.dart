@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:myclinic_patient_app/config/theme.dart';
 import 'package:myclinic_patient_app/l10n/translations.dart';
 import 'package:myclinic_patient_app/providers/auth_provider.dart';
+import 'package:myclinic_patient_app/services/storage_service.dart';
 import 'package:myclinic_patient_app/services/user_service.dart';
 import 'package:myclinic_patient_app/utils/formatters.dart';
 import 'package:myclinic_patient_app/utils/helpers.dart';
@@ -23,11 +24,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _saving = false;
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
 
   @override
   void dispose() {
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
+    _emailCtrl.dispose();
     super.dispose();
   }
 
@@ -35,6 +38,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final user = ref.read(currentUserProvider);
     if (user == null) return;
     _nameCtrl.text = user.name;
+    _emailCtrl.text = user.email ?? '';
     _phoneCtrl.text = user.mobile ?? '';
     setState(() => _editing = true);
   }
@@ -44,10 +48,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (user == null) return;
     setState(() => _saving = true);
     try {
-      final updated = await ref.read(userServiceProvider).updateProfile({
+      final response = await ref.read(userServiceProvider).updateProfile({
         'name': _nameCtrl.text.trim(),
+        'email': _emailCtrl.text.trim(),
       });
-      ref.read(authProvider.notifier).updateUser(updated);
+      await ref.read(storageServiceProvider).saveToken(response.token);
+      ref.read(authProvider.notifier).updateUser(response.user);
       setState(() => _editing = false);
       if (mounted) showSnackBar(context, 'Profile updated');
     } catch (e) {
@@ -128,8 +134,40 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Widget _buildProfile(user) {
+    final isComplete = user?.isProfileComplete ?? true;
     return Column(
       children: [
+        if (!isComplete) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                    SizedBox(width: 8),
+                    Text('Incomplete Profile', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Text('Please complete your profile to continue using all features of the app.', style: TextStyle(fontSize: 13)),
+                const SizedBox(height: 12),
+                PrimaryButton(
+                  text: 'Complete Profile',
+                  onPressed: _startEdit,
+                ),
+              ],
+            ),
+          ).animate().fadeIn().slideY(begin: -0.1),
+          const SizedBox(height: 16),
+        ],
         Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -224,6 +262,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 Text(context.tr('editProfile'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 16),
                 AppTextInput(label: context.tr('name'), controller: _nameCtrl, prefixIcon: Icons.person_rounded, maxLength: 25),
+                const SizedBox(height: 14),
+                AppTextInput(label: context.tr('email'), controller: _emailCtrl, prefixIcon: Icons.email_rounded),
                 if (ref.read(currentUserProvider)?.mobile != null) ...[
                   const SizedBox(height: 14),
                   AppTextInput(label: context.tr('phone'), controller: _phoneCtrl, prefixIcon: Icons.phone_rounded, enabled: false),

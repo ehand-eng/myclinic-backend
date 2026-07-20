@@ -179,9 +179,9 @@ curl -X GET http://localhost:5001/api/custom-auth/me \
 ```
 
 ### Test User Management:
-```bash
+```bashs
 # Create new user
-curl -X POST http://localhost:5001/api/admin/users \
+curl -X POST http://192.168.1.6:5001/api/admin/users \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{"name":"Test User","email":"test@example.com","password":"test123","role":"doctor"}'

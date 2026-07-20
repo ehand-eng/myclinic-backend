@@ -93,7 +93,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
     await ref.read(authProvider.notifier).loginWithOtp(_fullPhone, _otpCtrl.text, keepSignedIn: _keepSignedIn);
     final auth = ref.read(authProvider);
     if (auth.isAuthenticated && mounted) {
-      context.go('/');
+      if (auth.user?.isProfileComplete == false) {
+        // New user or incomplete profile -> go to profile screen directly
+        context.go('/profile');
+      } else {
+        context.go('/');
+      }
     } else if (auth.error != null && mounted) {
       showSnackBar(context, auth.error!, isError: true);
     }

@@ -36,7 +36,7 @@ class _BookingStep2ScreenState extends ConsumerState<BookingStep2Screen> {
     if (user != null) {
       _nameCtrl.text = user.name;
       _phoneCtrl.text = user.mobile ?? '';
-      _emailCtrl.text = user.email;
+      _emailCtrl.text = user.email ?? '';
     }
     _nameCtrl.addListener(() => setState(() {}));
   }

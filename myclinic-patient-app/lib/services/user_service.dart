@@ -22,9 +22,9 @@ class UserService {
     return User.fromJson(res.data['user'] ?? res.data);
   }
 
-  Future<User> updateProfile(Map<String, dynamic> data) async {
+  Future<AuthResponse> updateProfile(Map<String, dynamic> data) async {
     final res = await _api.put(ApiConfig.currentUser, data: data);
-    return User.fromJson(res.data['user'] ?? res.data);
+    return AuthResponse.fromJson(res.data);
   }
 
   Future<void> changePassword(String id, String currentPassword, String newPassword) async {
