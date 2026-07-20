@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const userSchema = new mongoose.Schema({
   name: { 
     type: String, 
-    required: true 
+    default: ""
   },
   email: { 
     type: String, 
@@ -27,7 +27,11 @@ const userSchema = new mongoose.Schema({
   nationality: {
     type: String,
     enum: ['sri_lanka', 'other'],
-    required: true
+    default: 'sri_lanka'
+  },
+  isProfileComplete: {
+    type: Boolean,
+    default: false
   },
   passwordHash: {
     type: String,

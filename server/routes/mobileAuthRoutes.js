@@ -253,10 +253,10 @@ router.post('/send-login-otp', async (req, res) => {
       }
 
       // Check if user exists
-      user = await User.findOne({ mobile });
-      if (!user) {
-        return res.status(404).json({ message: 'User not found with this mobile number' });
-      }
+      // user = await User.findOne({ mobile });
+      // if (!user) {
+      //   return res.status(404).json({ message: 'User not found with this mobile number' });
+      // }
 
       result = await OTPService.sendSMSOTP(mobile);
     } else {
@@ -314,21 +314,34 @@ router.post('/login-mobile', async (req, res) => {
       return res.status(400).json({ message: 'Invalid Sri Lankan mobile number format' });
     }
 
-    // Find user by mobile number
-    const user = await User.findOne({ mobile });
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    // Verify OTP
+    // Verify OTP first before attempting to create/find a user
     const otpResult = OTPService.verifyOTP(mobile, otp);
     if (!otpResult.success) {
+      // Allow specific bypass for development/testing if needed here, but for now enforce validation
       return res.status(400).json({ message: otpResult.message });
     }
 
-    // Update last login
-    user.lastLogin = new Date();
-    await user.save();
+    // Find user by mobile number
+    let user = await User.findOne({ mobile });
+    let isNewUser = false;
+
+    if (!user) {
+      // Auto-create user with placeholder/temporary details
+      user = new User({
+        name: "", // Will be updated by patient in profile completion
+        mobile,
+        nationality: 'sri_lanka',
+        isProfileComplete: false,
+        isActive: true,
+        lastLogin: new Date()
+      });
+      await user.save();
+      isNewUser = true;
+    } else {
+      // Update last login
+      user.lastLogin = new Date();
+      await user.save();
+    }
 
     // Generate JWT token
     const tokenExpiry = keepSignedIn ? '7d' : '24h';
@@ -346,13 +359,15 @@ router.post('/login-mobile', async (req, res) => {
     res.json({
       message: 'Login successful',
       token,
+      isNewUser,
       user: {
         id: user._id,
         name: user.name,
         mobile: user.mobile,
         nationality: user.nationality,
         role: user.role || 'online',
-        dispensaryIds: user.dispensaryIds
+        dispensaryIds: user.dispensaryIds,
+        isProfileComplete: user.isProfileComplete || false
       }
     });
   } catch (error) {

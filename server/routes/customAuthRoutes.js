@@ -189,9 +189,9 @@ router.post('/forgot-password/send-otp', async (req, res) => {
       const mobileCandidates = buildSriLankanMobileCandidates(mobile);
       const user = await User.findOne({ mobile: { $in: mobileCandidates } }).populate('role');
 
-      if (!user) {
-        return res.status(404).json({ message: 'User not found with this mobile number' });
-      }
+      // if (!user) {
+      //   return res.status(404).json({ message: 'User not found with this mobile number' });
+      // }
 
       if (!user.isActive) {
         return res.status(401).json({ message: 'Account is inactive' });
@@ -294,9 +294,9 @@ router.post('/forgot-password/reset', async (req, res) => {
       otpIdentifier = normalizedEmail;
     }
 
-    if (!user) {
-      return res.status(404).json({ message: mobile ? 'User not found with this mobile number' : 'User not found with this email' });
-    }
+    // if (!user) {
+    //   return res.status(404).json({ message: mobile ? 'User not found with this mobile number' : 'User not found with this email' });
+    // }
 
     if (!user.isActive) {
       return res.status(401).json({ message: 'Account is inactive' });
@@ -501,7 +501,7 @@ router.get('/me', async (req, res) => {
   }
 });
 
-// Update current user basic profile (e.g. name)
+// Update current user basic profile
 router.put('/me', async (req, res) => {
   try {
     const authHeader = req.headers.authorization || '';
@@ -517,25 +517,56 @@ router.put('/me', async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const { name } = req.body;
+    const { name, email, nationality } = req.body;
 
-    if (!name || typeof name !== 'string' || name.trim().length === 0) {
-      return res.status(400).json({ message: 'Name is required' });
+    if (name && typeof name === 'string' && name.trim().length > 0) {
+      user.name = name.trim();
     }
+    if (email && typeof email === 'string' && email.trim().length > 0) {
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (emailRegex.test(email.trim())) {
+        user.email = email.trim();
+      }
+    }
+    if (nationality && typeof nationality === 'string' && nationality.trim().length > 0) {
+      user.nationality = nationality.trim();
+    }
+    
+    // Mark profile as complete if name is provided (or if user updates profile)
+    user.isProfileComplete = true;
 
-    user.name = name.trim();
     await user.save();
+    
+    // Generate new JWT token with updated info
+    const roleName = user.role ? user.role.name : 'online';
+    const newToken = jwt.sign(
+      {
+        userId: user._id,
+        email: user.email,
+        mobile: user.mobile,
+        nationality: user.nationality,
+        role: roleName,
+        permissions: user.role ? user.role.permissions : []
+      },
+      JWT_SECRET,
+      { expiresIn: '24h' } // could use existing expiry if we wanted, but 24h is fine for refresh
+    );
 
     res.json({
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      mobile: user.mobile,
-      nationality: user.nationality,
-      role: user.role ? user.role.name : 'online',
-      dispensaryIds: user.dispensaryIds,
-      permissions: user.role ? user.role.permissions : [],
-      lastLogin: user.lastLogin
+      token: newToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        mobile: user.mobile,
+        nationality: user.nationality,
+        role: roleName,
+        dispensaryIds: user.dispensaryIds,
+        permissions: user.role ? user.role.permissions : [],
+        lastLogin: user.lastLogin,
+        isProfileComplete: user.isProfileComplete
+      }
     });
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {
