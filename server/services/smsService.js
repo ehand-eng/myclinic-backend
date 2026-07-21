@@ -395,12 +395,12 @@ async function sendBookingConfirmationSMS(booking) {
 
         const dateStr = new Date(bookingDate).toDateString();
 
-        // Construct message
-        // "Hi <Name>, your booking is confirmed for <Date> at <Time>. Number: <ApptNo>. Thank you!"
-        const message = `Hi ${patientName}, your booking is confirmed for ${dateStr} at ${estimatedTime}.\nAppointment No: ${appointmentNumber}.\nThank you for using MyClinic!`;
+        // // Construct message
+        // // "Hi <Name>, your booking is confirmed for <Date> at <Time>. Number: <ApptNo>. Thank you!"
+        // const message = `Hi ${patientName}, your booking is confirmed for ${dateStr} at ${estimatedTime}.\nAppointment No: ${appointmentNumber}.\nThank you for using MyClinic!`;
 
-        // Send the SMS
-        return await sendSMS([normalizedPhone], message);
+        // // Send the SMS
+        // return await sendSMS([normalizedPhone], message);
 
     } catch (error) {
         console.error('❌ Error in sendBookingConfirmationSMS:', error);
