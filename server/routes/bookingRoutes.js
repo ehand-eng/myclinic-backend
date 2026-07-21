@@ -558,8 +558,8 @@ router.post('/', async (req, res) => {
       bookingQuery.timeSlotConfigId = configId;
     }
     const existingBookings = await Booking.find(bookingQuery).sort({ appointmentNumber: 1 });
-
-    console.log("Existing bookings count:", existingBookings.length);
+    console.log("&&&&&&&&&&&&&&&&&&&& Existing bookings:::::::::::::", existingBookings);
+    console.log("&&&&&&&&&&&&&&&&&&&& Existing bookings count:", existingBookings.length);
 
     // If all slots are booked
     if (existingBookings.length >= maxPatients) {
@@ -815,6 +815,7 @@ router.post('/', async (req, res) => {
 router.patch('/:id/status', async (req, res) => {
   try {
     const { status, checkedInTime, completedTime, notes, isPaid, isPatientVisited } = req.body;
+    console.log('Update booking status:', req.body);
 
     const updateData = {
       status,
@@ -1078,8 +1079,8 @@ router.patch('/:id/user-amend', validateCustomJwt, async (req, res) => {
     // Verify ownership
     const userId = req.user.userId || req.user.id;
     if (existingBooking.patientEmail !== req.user.email &&
-        existingBooking.bookedUser !== userId &&
-        existingBooking.bookedUser !== req.user.email) {
+      existingBooking.bookedUser !== userId &&
+      existingBooking.bookedUser !== req.user.email) {
       return res.status(403).json({ message: 'Not authorized to amend this booking' });
     }
 
