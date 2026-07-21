@@ -20,6 +20,7 @@ router.get('/webhook', (req, res) => {
 
 // Incoming messages (POST) — Meta sends all WhatsApp messages here
 router.post('/webhook', async (req, res) => {
+    console.log("&&&&&&&&&&&&&&&&&&&& whatsapp webhook POST :" + JSON.stringify(req.body));
     // Always respond 200 immediately — Meta requires acknowledgment within 5 seconds
     res.sendStatus(200);
 
