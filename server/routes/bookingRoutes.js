@@ -558,6 +558,8 @@ router.post('/', async (req, res) => {
       bookingQuery.timeSlotConfigId = configId;
     }
     const existingBookings = await Booking.find(bookingQuery).sort({ appointmentNumber: 1 });
+    const now = new Date();
+    console.log("&&&&&&&&&&&&&&&&&&&& Existing bookings Current Date Time:::::::::::::", now.toISOString());
     console.log("&&&&&&&&&&&&&&&&&&&& Existing bookings:::::::::::::", existingBookings);
     console.log("&&&&&&&&&&&&&&&&&&&& Existing bookings count:", existingBookings.length);
 
