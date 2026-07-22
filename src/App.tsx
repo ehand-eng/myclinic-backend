@@ -1,4 +1,3 @@
-
 import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
@@ -44,6 +43,7 @@ const Profile = lazy(() => import('./pages/Profile'));
 const MyBookings = lazy(() => import('./pages/MyBookings'));
 const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 const AdminChangePassword = lazy(() => import('./pages/AdminChangePassword'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 
 // Minimal full-page loading fallback
 const PageLoader = () => (
@@ -88,6 +88,7 @@ const App = () => {
           <Route path="/callback" element={<Callback />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/my-bookings" element={<MyBookings />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
           {/* Booking Summary (public — accessed via transaction link) */}
           <Route path="/booking-summary/:transactionId" element={<BookingSummary />} />

@@ -99,37 +99,51 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Stat cards
-                    GridView.count(
-                      crossAxisCount: 2,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: 1.4,
+                    // Stat cards
+                    Column(
                       children: [
-                        StatCard(
-                          title: "Today's Bookings",
-                          value: '${stats.todayBookings}',
-                          icon: Icons.calendar_today,
-                          color: AppColors.primary,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: StatCard(
+                                title: "Today's Bookings",
+                                value: '${stats.todayBookings}',
+                                icon: Icons.calendar_today,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: StatCard(
+                                title: 'Scheduled Today',
+                                value: '${stats.scheduledToday}',
+                                icon: Icons.schedule,
+                                color: AppColors.info,
+                              ),
+                            ),
+                          ],
                         ),
-                        StatCard(
-                          title: 'Scheduled Today',
-                          value: '${stats.scheduledToday}',
-                          icon: Icons.schedule,
-                          color: AppColors.info,
-                        ),
-                        StatCard(
-                          title: 'Active Doctors',
-                          value: '${stats.totalDoctors}',
-                          icon: Icons.medical_services,
-                          color: AppColors.success,
-                        ),
-                        StatCard(
-                          title: 'Completed (Month)',
-                          value: '${stats.completedThisMonth}',
-                          icon: Icons.check_circle_outline,
-                          color: AppColors.success,
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: StatCard(
+                                title: 'Active Doctors',
+                                value: '${stats.totalDoctors}',
+                                icon: Icons.medical_services,
+                                color: AppColors.success,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: StatCard(
+                                title: 'Completed (Month)',
+                                value: '${stats.completedThisMonth}',
+                                icon: Icons.check_circle_outline,
+                                color: AppColors.success,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

@@ -23,6 +23,7 @@ export interface Doctor extends BaseModel {
 // Dispensary model
 export interface Dispensary extends BaseModel {
   name: string;
+  dispensaryCode?: string;
   address: string;
   contactNumber: string;
   email: string;

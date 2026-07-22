@@ -74,6 +74,11 @@ const Footer = () => {
                   Contact Us
                 </Link>
               </li>
+              <li>
+                <Link to="/privacy-policy" className="text-medilab-body text-sm hover:text-medilab-primary transition-colors">
+                  Privacy Policy
+                </Link>
+              </li>
             </ul>
           </div>
 

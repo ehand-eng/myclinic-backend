@@ -62,6 +62,7 @@ interface DispensaryFormProps {
 
 interface DispensaryFormValues {
   name: string;
+  dispensaryCode?: string;
   address: string;
   contactNumber: string;
   email: string;
@@ -83,6 +84,7 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
   const form = useForm<DispensaryFormValues>({
     defaultValues: {
       name: '',
+      dispensaryCode: '',
       address: '',
       contactNumber: '',
       email: '',
@@ -111,6 +113,7 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
             setSelectedDoctors(doctorIds);
             form.reset({
               name: dispensaryData.name,
+              dispensaryCode: dispensaryData.dispensaryCode || '',
               address: dispensaryData.address,
               contactNumber: dispensaryData.contactNumber,
               email: dispensaryData.email,
@@ -144,6 +147,7 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
 
       const dispensaryData: Partial<Dispensary> = {
         name: data.name,
+        dispensaryCode: data.dispensaryCode || undefined, // undefined prevents empty string overwrite
         address: data.address,
         contactNumber: data.contactNumber,
         email: data.email,
@@ -227,6 +231,21 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
                   <FormControl>
                     <Input placeholder="Dispensary name" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="dispensaryCode"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Dispensary Code</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. A001 (Leave blank to auto-generate)" {...field} className="uppercase" />
+                  </FormControl>
+                  <p className="text-xs text-gray-500">Shortcode used for WhatsApp bot bookings (e.g., A001).</p>
                   <FormMessage />
                 </FormItem>
               )}
