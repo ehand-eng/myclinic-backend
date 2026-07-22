@@ -523,8 +523,8 @@ router.post('/', async (req, res) => {
     }
     const existingBookings = await Booking.find(bookingQuery).sort({ appointmentNumber: 1 });
     const now = new Date();
-    console.log("Existing bookings Current Date Time:", now.toISOString());
-    console.log("Existing bookings count:", existingBookings.length);
+    console.log("&&&&&&&&&&&&&&&&&&&& Existing bookings Current Date Time:::::::::::::", now.toISOString());
+    console.log("&&&&&&&&&&&&&&&&&&&& Existing bookings count:", existingBookings.length);
 
     if (existingBookings.length >= maxPatients) {
       return res.status(400).json({
