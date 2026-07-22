@@ -146,6 +146,29 @@ router.post('/', requireSuperAdmin, async (req, res) => {
   try {
     const dispensary = new Dispensary(req.body);
     
+    // Auto-generate dispensaryCode if missing
+    if (!dispensary.dispensaryCode) {
+      const existingCodesDocs = await Dispensary.find({ dispensaryCode: { $exists: true } }).select('dispensaryCode').lean();
+      const usedCodes = new Set(existingCodesDocs.map(d => d.dispensaryCode));
+      let seqIndex = 0;
+      let candidateCode;
+      const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+      do {
+        const letterIndex = Math.floor(seqIndex / 999);
+        if (letterIndex >= letters.length) throw new Error('Maximum shortcodes reached.');
+        const letter = letters[letterIndex];
+        const number = (seqIndex % 999) + 1;
+        candidateCode = `${letter}${String(number).padStart(3, '0')}`;
+        seqIndex++;
+      } while (usedCodes.has(candidateCode));
+
+      dispensary.dispensaryCode = candidateCode;
+    } else {
+      // Ensure uppercase formatting if provided manually
+      dispensary.dispensaryCode = dispensary.dispensaryCode.toUpperCase();
+    }
+    
     // Handle adding dispensary to doctors
     if (req.body.doctors && req.body.doctors.length > 0) {
       for (const doctorId of req.body.doctors) {
@@ -226,6 +249,10 @@ router.put('/:id', requireDispensaryEditAccess, async (req, res) => {
         },
         { $set: { bookingVisibleDays: newVisibleDays } }
       );
+    }
+
+    if (req.body.dispensaryCode) {
+      req.body.dispensaryCode = req.body.dispensaryCode.toUpperCase();
     }
 
     // Update dispensary fields

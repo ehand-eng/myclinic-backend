@@ -298,6 +298,23 @@ const translations = {
         en: '🔄 Session reset. Send *Hi* to start a new booking.',
         si: '🔄 සැසිය නැවත සකසන ලදී. නව වෙන්කිරීමක් සඳහා *Hi* යවන්න.',
         ta: '🔄 அமர்வு மீட்டமைக்கப்பட்டது. புதிய முன்பதிவுக்கு *Hi* அனுப்பவும்.'
+    },
+
+    // ─── Shortcode Features ───
+    code_not_recognized: {
+        en: '⚠️ The dispensary code you entered was not recognized. Let\'s continue normally.',
+        si: '⚠️ ඔබ ඇතුළත් කළ බෙහෙත් ශාලා කේතය හඳුනාගත නොහැක. සාමාන්‍ය පරිදි ඉදිරියට යමු.',
+        ta: '⚠️ நீங்கள் உள்ளிட்ட மருந்தகக் குறியீடு அங்கீகரிக்கப்படவில்லை. வழக்கமாக தொடருவோம்.'
+    },
+    no_doctors_shortcut: {
+        en: '😔 There are currently no doctors available at this dispensary. Type *menu* to search elsewhere.',
+        si: '😔 මෙම බෙහෙත් ශාලාවේ දැනට වෛද්‍යවරුන් නොමැත. වෙනත් තැනක සෙවීමට *menu* ටයිප් කරන්න.',
+        ta: '😔 இந்த மருந்தகத்தில் தற்போது மருத்துவர்கள் இல்லை. வேறு எங்கும் தேட *menu* என தட்டச்சு செய்யவும்.'
+    },
+    shortcut_dispensary_selected: {
+        en: '📍 Selected:',
+        si: '📍 තෝරාගත්:',
+        ta: '📍 தேர்ந்தெடுக்கப்பட்டது:'
     }
 };
 
