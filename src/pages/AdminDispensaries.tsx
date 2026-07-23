@@ -175,6 +175,7 @@ const AdminDispensaries = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
+                      <TableHead>Code</TableHead>
                       <TableHead>Address</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Contact</TableHead>
@@ -185,6 +186,7 @@ const AdminDispensaries = () => {
                     {filteredDispensaries.map((dispensary) => (
                       <TableRow key={dispensary.id}>
                         <TableCell className="font-medium">{dispensary.name}</TableCell>
+                        <TableCell>{dispensary.dispensaryCode || '-'}</TableCell>
                         <TableCell>
                           <div className="flex items-start">
                             <MapPin className="h-4 w-4 mr-1 mt-1 flex-shrink-0" />
