@@ -125,6 +125,7 @@ router.get('/:doctorId', async (req, res) => {
       id: config._id.toString(),
       doctorId: config.doctorId._id.toString(),
       dispensaryId: config.dispensaryId._id.toString(),
+      bookingCode: config.bookingCode || '',
       doctorFee: config.doctorFee || 0,
       dispensaryFee: config.dispensaryFee || 0,
       channelPartnerFee: config.channelPartnerFee || 0,
@@ -153,10 +154,10 @@ router.post('/:doctorId', async (req, res) => {
   try {
     console.log("======== doctor-dispensaries/fees ============== "+req.params.doctorId);
     const { doctorId } = req.params;
-    const { dispensaryId, doctorFee, dispensaryFee, onlineFee, channelPartnerFee } = req.body;
+    const { dispensaryId, doctorFee, dispensaryFee, onlineFee, channelPartnerFee, bookingCode } = req.body;
     
     console.log(`Creating fee for doctor ${doctorId}, dispensary ${dispensaryId}`);
-    console.log('Fee data:', { doctorFee, dispensaryFee, onlineFee, channelPartnerFee: channelPartnerFee || 0 });
+    console.log('Fee data:', { doctorFee, dispensaryFee, onlineFee, channelPartnerFee: channelPartnerFee || 0, bookingCode });
     
     // Validate inputs
     if (!dispensaryId) {
@@ -195,11 +196,32 @@ router.post('/:doctorId', async (req, res) => {
         message: 'Fee configuration already exists for this doctor-dispensary combination' 
       });
     }
+
+    // Handle bookingCode generation if missing
+    let finalBookingCode = bookingCode;
+    if (!finalBookingCode) {
+      const existingCodesDocs = await DoctorDispensary.find({ bookingCode: { $exists: true } }).select('bookingCode').lean();
+      const usedCodes = new Set(existingCodesDocs.map(d => d.bookingCode));
+      let seqIndex = 0;
+      const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+      do {
+        const letterIndex = Math.floor(seqIndex / 999);
+        if (letterIndex >= letters.length) throw new Error('Maximum shortcodes reached.');
+        const letter = letters[letterIndex];
+        const number = (seqIndex % 999) + 1;
+        finalBookingCode = `${letter}${String(number).padStart(3, '0')}`;
+        seqIndex++;
+      } while (usedCodes.has(finalBookingCode));
+    } else {
+      finalBookingCode = finalBookingCode.toUpperCase();
+    }
     
     // Create new fee configuration
     const newFeeConfig = new DoctorDispensary({
       doctorId,
       dispensaryId,
+      bookingCode: finalBookingCode,
       doctorFee: Number(doctorFee),
       dispensaryFee: Number(dispensaryFee),
       channelPartnerFee: Number(channelPartnerFee || 0),
@@ -219,6 +241,7 @@ router.post('/:doctorId', async (req, res) => {
       id: populatedFee._id.toString(),
       doctorId: populatedFee.doctorId._id.toString(),
       dispensaryId: populatedFee.dispensaryId._id.toString(),
+      bookingCode: populatedFee.bookingCode || '',
       doctorFee: populatedFee.doctorFee,
       dispensaryFee: populatedFee.dispensaryFee,
       channelPartnerFee: populatedFee.channelPartnerFee || 0,
@@ -247,10 +270,10 @@ router.put('/:doctorId/:feeId', async (req, res) => {
   try {
     console.log("==== put ==== fees ============== "+req.params.doctorId);
     const { doctorId, feeId } = req.params;
-    const { doctorFee, dispensaryFee, onlineFee, channelPartnerFee } = req.body;
+    const { doctorFee, dispensaryFee, onlineFee, channelPartnerFee, bookingCode } = req.body;
     
     console.log(`Updating fee ${feeId} for doctor ${doctorId}`);
-    console.log('New fee data:', { doctorFee, dispensaryFee, onlineFee, channelPartnerFee: channelPartnerFee || 0 });
+    console.log('New fee data:', { doctorFee, dispensaryFee, onlineFee, channelPartnerFee: channelPartnerFee || 0, bookingCode });
     
     // Validate inputs
     if (doctorFee === undefined || dispensaryFee === undefined || onlineFee === undefined) {
@@ -269,6 +292,7 @@ router.put('/:doctorId/:feeId', async (req, res) => {
         isActive: true
       },
       {
+        bookingCode: bookingCode ? bookingCode.toUpperCase() : undefined,
         doctorFee: Number(doctorFee),
         dispensaryFee: Number(dispensaryFee),
         channelPartnerFee: Number(channelPartnerFee || 0),
@@ -292,6 +316,7 @@ router.put('/:doctorId/:feeId', async (req, res) => {
       id: updatedFee._id.toString(),
       doctorId: updatedFee.doctorId._id.toString(),
       dispensaryId: updatedFee.dispensaryId._id.toString(),
+      bookingCode: updatedFee.bookingCode || '',
       doctorFee: updatedFee.doctorFee,
       dispensaryFee: updatedFee.dispensaryFee,
       channelPartnerFee: updatedFee.channelPartnerFee || 0,
@@ -375,6 +400,7 @@ router.get('/doctor-dispensaries/fees/:doctorId/:feeId', async (req, res) => {
       id: fee._id.toString(),
       doctorId: fee.doctorId._id.toString(),
       dispensaryId: fee.dispensaryId._id.toString(),
+      bookingCode: fee.bookingCode || '',
       doctorFee: fee.doctorFee,
       dispensaryFee: fee.dispensaryFee,
       onlineFee: fee.bookingCommission,

@@ -11,6 +11,13 @@ const doctorDispensarySchema = new mongoose.Schema({
     ref: 'Dispensary',
     required: true
   },
+  bookingCode: {
+    type: String,
+    unique: true,
+    sparse: true,
+    uppercase: true,
+    match: /^[A-Z][0-9]{3}$/
+  },
   doctorFee: {
     type: Number,
     default: 0

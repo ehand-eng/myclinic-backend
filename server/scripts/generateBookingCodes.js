@@ -1,6 +1,6 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
-const Dispensary = require('../models/Dispensary');
+const DoctorDispensary = require('../models/DoctorDispensary');
 
 // Connect to MongoDB
 const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/myclinic';
@@ -28,29 +28,34 @@ function generateCodeFromSequence(seqIndex) {
 
 async function runMigration() {
   try {
-    const dispensariesWithoutCode = await Dispensary.find({ 
+    const relationshipsWithoutCode = await DoctorDispensary.find({ 
       $or: [
-        { dispensaryCode: { $exists: false } },
-        { dispensaryCode: null },
-        { dispensaryCode: "" }
+        { bookingCode: { $exists: false } },
+        { bookingCode: null },
+        { bookingCode: "" }
       ]
-    });
+    }).populate('doctorId').populate('dispensaryId');
 
-    console.log(`Found ${dispensariesWithoutCode.length} dispensaries needing a shortcode.`);
+    console.log(`Found ${relationshipsWithoutCode.length} Doctor-Dispensary relationships needing a shortcode.`);
     
-    if (dispensariesWithoutCode.length === 0) {
+    if (relationshipsWithoutCode.length === 0) {
       console.log('No migration needed. Exiting.');
       process.exit(0);
     }
 
     // Get all currently used codes to avoid collisions
-    const allDispensaries = await Dispensary.find({ dispensaryCode: { $exists: true, $ne: null } }).select('dispensaryCode').lean();
-    const usedCodes = new Set(allDispensaries.map(d => d.dispensaryCode));
+    const allRels = await DoctorDispensary.find({ bookingCode: { $exists: true, $ne: null } }).select('bookingCode').lean();
+    const usedCodes = new Set(allRels.map(d => d.bookingCode));
     
     let seqIndex = 0;
     let updatedCount = 0;
 
-    for (const dispensary of dispensariesWithoutCode) {
+    for (const rel of relationshipsWithoutCode) {
+      if (!rel.doctorId || !rel.dispensaryId) {
+        console.warn(`Skipping invalid relationship ${rel._id} missing doctor or dispensary.`);
+        continue;
+      }
+
       // Find the next available code
       let candidateCode;
       do {
@@ -59,15 +64,15 @@ async function runMigration() {
       } while (usedCodes.has(candidateCode));
 
       // Assign and save
-      dispensary.dispensaryCode = candidateCode;
-      await dispensary.save();
+      rel.bookingCode = candidateCode;
+      await rel.save();
       usedCodes.add(candidateCode); // Mark as used for subsequent iterations
       
-      console.log(`Assigned code ${candidateCode} to dispensary "${dispensary.name}" (${dispensary._id})`);
+      console.log(`Assigned code ${candidateCode} to Dr. ${rel.doctorId.name} at ${rel.dispensaryId.name}`);
       updatedCount++;
     }
 
-    console.log(`Successfully migrated ${updatedCount} dispensaries.`);
+    console.log(`Successfully migrated ${updatedCount} relationships.`);
   } catch (error) {
     console.error('Migration failed:', error);
   } finally {
