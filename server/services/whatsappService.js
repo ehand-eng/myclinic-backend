@@ -754,9 +754,17 @@ async function handleConfirmation(from, session, selectedId) {
         return;
     }
 
-    const parsedDate = typeof bookingDate === 'string' && bookingDate.includes('T')
-        ? bookingDate.split('T')[0]
-        : bookingDate;
+    let parsedDate;
+    if (bookingDate instanceof Date) {
+        const yyyy = bookingDate.getFullYear();
+        const mm = String(bookingDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(bookingDate.getDate()).padStart(2, '0');
+        parsedDate = `${yyyy}-${mm}-${dd}`;
+    } else if (typeof bookingDate === 'string' && bookingDate.includes('T')) {
+        parsedDate = bookingDate.split('T')[0];
+    } else {
+        parsedDate = bookingDate;
+    }
 
     // Ensure it strictly parses as UTC midnight matching database formatting
     const normalizedBookingDate = new Date(`${parsedDate}T00:00:00.000Z`);
