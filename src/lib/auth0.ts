@@ -1,3 +1,4 @@
+import { API_URL } from '../config';
 
 export const logout = () => {
   localStorage.removeItem('auth_token');
@@ -17,7 +18,7 @@ export const getCurrentUser = () => {
 // Custom auth functions for MongoDB-based authentication
 export const login = async (email: string, password: string) => {
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/custom-auth/login`, {
+    const response = await fetch(`${API_URL}/custom-auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -50,7 +51,7 @@ export const register = async (userData: {
   dispensaryIds?: string[];
 }) => {
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/custom-auth/register`, {
+    const response = await fetch(`${API_URL}/custom-auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -82,7 +83,7 @@ export const getProfile = async () => {
       throw new Error('No token found');
     }
 
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/custom-auth/me`, {
+    const response = await fetch(`${API_URL}/custom-auth/me`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }

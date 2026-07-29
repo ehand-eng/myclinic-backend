@@ -152,22 +152,22 @@ async function handleIncomingMessage(message, metadata) {
         const cleanInput = userInput.trim().toUpperCase();
         if (cleanInput.length >= 3 && cleanInput.length <= 10 && /^[A-Z0-9]+$/.test(cleanInput)) {
             const dispensary = await Dispensary.findOne({ dispensaryCode: cleanInput }).populate('doctors').lean();
-            
+
             if (dispensary) {
                 // Start a fresh session with the shortcut context
                 clearSession(from);
                 const freshSession = getSession(from);
-                
+
                 freshSession.data.isShortcutCode = true;
                 freshSession.data.shortcutDispensary = dispensary;
-                
+
                 if (dispensary.doctors && dispensary.doctors.length === 1) {
                     freshSession.data.shortcutDoctor = dispensary.doctors[0];
                     console.log(`🚀 Shortcut activated: ${cleanInput} for Dispensary ${dispensary.name} (Single Doctor: ${dispensary.doctors[0].name})`);
                 } else {
                     console.log(`🚀 Shortcut activated: ${cleanInput} for Dispensary ${dispensary.name} (Multiple Doctors)`);
                 }
-                
+
                 await handleWelcome(from, freshSession);
                 return;
             }
@@ -259,16 +259,16 @@ async function handleLanguageSelection(from, session, selectedId) {
     // --- SHORTCUT FLOW ---
     if (session.data.isShortcutCode) {
         const dispensary = session.data.shortcutDispensary;
-        
+
         session.data.dispensaryId = dispensary._id.toString();
         session.data.dispensaryName = dispensary.name;
-        
+
         if (session.data.shortcutDoctor) {
             const doctor = session.data.shortcutDoctor;
             session.data.doctorId = doctor._id.toString();
             session.data.doctorName = doctor.name;
             session.data.doctorSpecialization = doctor.specialization;
-            
+
             await showAvailableAppointments(from, session);
             return;
         } else {
@@ -481,7 +481,7 @@ async function showAvailableAppointments(from, session) {
                 sessionStartForCutoff.setHours(csh, csm, 0, 0);
                 const cutoffOffset = ts.bookingCutoffMinutes ?? -60;
                 const cutoffTime = new Date(sessionStartForCutoff.getTime() + (cutoffOffset * 60000));
-                
+
                 if (now > cutoffTime) {
                     continue; // Skip this session as the cutoff time has passed
                 }
@@ -501,29 +501,29 @@ async function showAvailableAppointments(from, session) {
             // Find next appointment number
             const bookedNums = new Set(existingBookings.map(b => b.appointmentNumber));
             const [sH, sM] = startTime.split(':').map(Number);
-            
+
             let nextNum = 1;
             while (nextNum <= maxPatients) {
                 if (bookedNums.has(nextNum)) {
                     nextNum++;
                     continue;
                 }
-                
+
                 // If checking today, verify the specific slot hasn't already passed
                 if (dayOffset === 0) {
                     const offset = (nextNum - 1) * minutesPerPatient;
                     const tempApptTime = new Date(currentDate);
                     tempApptTime.setHours(sH, sM + offset, 0, 0);
-                    
+
                     if (new Date() > tempApptTime) {
                         nextNum++;
                         continue;
                     }
                 }
-                
+
                 break; // Found a valid available slot
             }
-            
+
             if (nextNum > maxPatients) continue; // All valid slots are taken
 
             // Calculate estimated time for this appointment number
@@ -754,10 +754,10 @@ async function handleConfirmation(from, session, selectedId) {
         return;
     }
 
-    const parsedDate = typeof bookingDate === 'string' && bookingDate.includes('T') 
-        ? bookingDate.split('T')[0] 
+    const parsedDate = typeof bookingDate === 'string' && bookingDate.includes('T')
+        ? bookingDate.split('T')[0]
         : bookingDate;
-    
+
     // Ensure it strictly parses as UTC midnight matching database formatting
     const normalizedBookingDate = new Date(`${parsedDate}T00:00:00.000Z`);
 
@@ -780,99 +780,109 @@ async function handleConfirmation(from, session, selectedId) {
         minutesPerPatient = absentSlot.minutesPerPatient || minutesPerPatient;
     }
 
-    // Race condition check — re-verify availability
-    const existingBookings = await Booking.find({
-        doctorId, dispensaryId,
-        bookingDate: { $gte: startOfDay, $lte: endOfDay },
-        status: { $ne: 'cancelled' }
-    }).lean();
+    let savedBooking = null;
+    let attempt = 0;
+    const MAX_RETRIES = 5;
 
-    if (existingBookings.length >= maxPatients) {
-        await sendText(from, t(l, 'slots_full'));
-        clearSession(from);
-        return;
-    }
+    while (!savedBooking && attempt < MAX_RETRIES) {
+        attempt++;
 
-    // Find next available appointment number (recalculate for accuracy)
-    const bookedNums = new Set(existingBookings.map(b => b.appointmentNumber));
-    let nextNum = 1;
-    while (bookedNums.has(nextNum) && nextNum <= maxPatients) nextNum++;
-
-    // Calculate estimated time
-    const [startH, startM] = startTime.split(':').map(Number);
-    const offset = (nextNum - 1) * minutesPerPatient;
-    const estDate = new Date(bookingDate);
-    estDate.setHours(startH, startM + offset, 0, 0);
-    const estimatedTime = `${String(estDate.getHours()).padStart(2, '0')}:${String(estDate.getMinutes()).padStart(2, '0')}`;
-
-    // Calculate time slot range
-    const endEst = new Date(estDate);
-    endEst.setMinutes(endEst.getMinutes() + minutesPerPatient);
-    const timeSlot = `${estimatedTime}-${String(endEst.getHours()).padStart(2, '0')}:${String(endEst.getMinutes()).padStart(2, '0')}`;
-
-    // Generate transaction ID
-    const transactionId = `TRX-WA-${Date.now()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
-
-    // Get fee configuration
-    let fees = {};
-    try {
-        const feeConfig = await DoctorDispensary.findOne({
-            doctorId, dispensaryId, isActive: true
+        // Race condition check — re-verify availability
+        const existingBookings = await Booking.find({
+            doctorId, dispensaryId,
+            bookingDate: { $gte: startOfDay, $lte: endOfDay },
+            status: { $in: ['scheduled', 'checked_in', 'completed', 'no_show'] }
         }).lean();
 
-        if (feeConfig) {
-            fees = {
-                doctorFee: feeConfig.doctorFee || 0,
-                dispensaryFee: feeConfig.dispensaryFee || 0,
-                bookingCommission: feeConfig.bookingCommission || 0,
-                channelPartnerFee: 0,
-                totalFee: (feeConfig.doctorFee || 0) + (feeConfig.dispensaryFee || 0) + (feeConfig.bookingCommission || 0)
-            };
-        }
-    } catch (feeErr) {
-        console.warn('Could not load fee config for WhatsApp booking:', feeErr.message);
-    }
-
-    // Create the booking
-    const booking = new Booking({
-        patientId: `wa-${patientPhone}`,
-        doctorId,
-        dispensaryId,
-        bookingDate: normalizedBookingDate,
-        timeSlot,
-        timeSlotConfigId: timeSlotConfig._id,
-        appointmentNumber: nextNum,
-        estimatedTime,
-        status: 'scheduled',
-        isPaid: false,
-        isPatientVisited: false,
-        patientName,
-        patientPhone,
-        transactionId,
-        fees: Object.keys(fees).length > 0 ? fees : undefined,
-        bookedUser: 'whatsapp',
-        bookedBy: 'WHATSAPP',
-        paymentMethod: 'cash',
-        paymentStatus: 'not_required',
-        smsDelivery: {
-            status: 'pending',
-            lastUpdated: new Date()
-        }
-    });
-
-    let savedBooking;
-    try {
-        savedBooking = await booking.save();
-        console.log(`✅ WhatsApp booking created: ${transactionId} for ${patientName} [${l}]`);
-    } catch (saveError) {
-        if (saveError.code === 11000 && saveError.keyPattern && saveError.keyPattern.timeSlot) {
-            console.warn("⚠️ WhatsApp Double-booking prevented by unique index!");
-            await sendText(from, t(l, 'slots_full') || "This time slot was just booked by someone else. Please start a new booking session and select another slot.");
+        if (existingBookings.length >= maxPatients) {
+            await sendText(from, t(l, 'slots_full'));
             clearSession(from);
             return;
         }
-        throw saveError; // Rethrow if it's not the unique double-booking error
-    }
+
+        // Find next available appointment number (recalculate for accuracy)
+        const bookedNums = new Set(existingBookings.map(b => b.appointmentNumber));
+        let nextNum = 1;
+        while (bookedNums.has(nextNum) && nextNum <= maxPatients) nextNum++;
+
+        // Calculate estimated time
+        const [startH, startM] = startTime.split(':').map(Number);
+        const offset = (nextNum - 1) * minutesPerPatient;
+        const estDate = new Date(bookingDate);
+        estDate.setHours(startH, startM + offset, 0, 0);
+        const estimatedTime = `${String(estDate.getHours()).padStart(2, '0')}:${String(estDate.getMinutes()).padStart(2, '0')}`;
+
+        // Calculate time slot range
+        const endEst = new Date(estDate);
+        endEst.setMinutes(endEst.getMinutes() + minutesPerPatient);
+        const timeSlot = `${estimatedTime}-${String(endEst.getHours()).padStart(2, '0')}:${String(endEst.getMinutes()).padStart(2, '0')}`;
+
+        // Generate transaction ID
+        const transactionId = `TRX-WA-${Date.now()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+
+        // Get fee configuration
+        let fees = {};
+        try {
+            const feeConfig = await DoctorDispensary.findOne({
+                doctorId, dispensaryId, isActive: true
+            }).lean();
+
+            if (feeConfig) {
+                fees = {
+                    doctorFee: feeConfig.doctorFee || 0,
+                    dispensaryFee: feeConfig.dispensaryFee || 0,
+                    bookingCommission: feeConfig.bookingCommission || 0,
+                    channelPartnerFee: 0,
+                    totalFee: (feeConfig.doctorFee || 0) + (feeConfig.dispensaryFee || 0) + (feeConfig.bookingCommission || 0)
+                };
+            }
+        } catch (feeErr) {
+            console.warn('Could not load fee config for WhatsApp booking:', feeErr.message);
+        }
+
+        // Create the booking
+        const booking = new Booking({
+            patientId: `wa-${patientPhone}`,
+            doctorId,
+            dispensaryId,
+            bookingDate: normalizedBookingDate,
+            timeSlot,
+            timeSlotConfigId: timeSlotConfig._id,
+            appointmentNumber: nextNum,
+            estimatedTime,
+            status: 'scheduled',
+            isPaid: false,
+            isPatientVisited: false,
+            patientName,
+            patientPhone,
+            transactionId,
+            fees: Object.keys(fees).length > 0 ? fees : undefined,
+            bookedUser: 'whatsapp',
+            bookedBy: 'WHATSAPP',
+            paymentMethod: 'cash',
+            paymentStatus: 'not_required',
+            smsDelivery: {
+                status: 'pending',
+                lastUpdated: new Date()
+            }
+        });
+
+        try {
+            savedBooking = await booking.save();
+            console.log(`✅ WhatsApp booking created on attempt ${attempt}: ${transactionId} for ${patientName} [${l}]`);
+        } catch (saveError) {
+            if (saveError.code === 11000 && saveError.keyPattern && saveError.keyPattern.timeSlot) {
+                console.warn(`⚠️ WhatsApp Double-booking prevented by unique index on attempt ${attempt}. Retrying...`);
+                if (attempt >= MAX_RETRIES) {
+                    await sendText(from, t(l, 'slots_full') || "This time slot was just booked by someone else. Please start a new booking session and select another slot.");
+                    clearSession(from);
+                    return;
+                }
+                continue;
+            }
+            throw saveError; // Rethrow if it's not the unique double-booking error
+        }
+    } // End of retry while loop
 
     // Send localized confirmation
     const dateStr = formatDateWithDay(bookingDate, l);

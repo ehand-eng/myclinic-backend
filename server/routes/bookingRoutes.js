@@ -521,189 +521,202 @@ router.post('/', async (req, res) => {
     if (req.body.timeSlotConfigId) {
       bookingQuery.timeSlotConfigId = configId;
     }
-    const existingBookings = await Booking.find(bookingQuery).sort({ appointmentNumber: 1 });
-    const now = new Date();
-    console.log("&&&&&&&&&&&&&&&&&&&& Existing bookings Current Date Time:::::::::::::", now.toISOString());
-    console.log("&&&&&&&&&&&&&&&&&&&& Existing bookings count:", existingBookings.length);
 
-    if (existingBookings.length >= maxPatients) {
-      return res.status(400).json({
-        message: 'All appointments for this session are booked'
-      });
-    }
+    let savedBooking = null;
+    let attempt = 0;
+    const MAX_RETRIES = 5;
 
-    let nextAppointmentNumber = 1;
+    while (!savedBooking && attempt < MAX_RETRIES) {
+      attempt++;
 
-    const bookedAppointments = new Set();
-    existingBookings.forEach(booking => {
-      bookedAppointments.add(booking.appointmentNumber);
-    });
+      const existingBookings = await Booking.find(bookingQuery).sort({ appointmentNumber: 1 });
+      const now = new Date();
+      console.log("&&&&&&&&&&&&&&&&&&&& Existing bookings Current Date Time:::::::::::::", now.toISOString());
+      console.log("&&&&&&&&&&&&&&&&&&&& Existing bookings count:", existingBookings.length);
 
-    while (bookedAppointments.has(nextAppointmentNumber) && nextAppointmentNumber <= maxPatients) {
-      nextAppointmentNumber++;
-    }
-
-    console.log("Next appointment number:", nextAppointmentNumber);
-
-    const [startHour, startMinute] = startTime.split(':').map(Number);
-    const appointmentOffset = (nextAppointmentNumber - 1) * minutesPerPatient;
-
-    const appointmentDateTime = new Date(parsedBookingDate);
-    appointmentDateTime.setHours(startHour, startMinute, 0, 0);
-    appointmentDateTime.setMinutes(appointmentDateTime.getMinutes() + appointmentOffset);
-
-    const estimatedHours = appointmentDateTime.getHours().toString().padStart(2, '0');
-    const estimatedMinutes = appointmentDateTime.getMinutes().toString().padStart(2, '0');
-    const estimatedTime = `${estimatedHours}:${estimatedMinutes}`;
-
-    console.log("Estimated time:", estimatedTime);
-
-    const endOfAppointment = new Date(appointmentDateTime);
-    endOfAppointment.setMinutes(endOfAppointment.getMinutes() + minutesPerPatient);
-
-    const endHours = endOfAppointment.getHours().toString().padStart(2, '0');
-    const endMinutes = endOfAppointment.getMinutes().toString().padStart(2, '0');
-
-    const timeSlot = `${estimatedHours}:${estimatedMinutes}-${endHours}:${endMinutes}`;
-
-    let bookedUser = 'online';
-    let bookedBy = 'ONLINE';
-
-    console.log("Incoming booking request role sources:", {
-      reqUser: req.user,
-      headerRole: req.headers['x-user-role'],
-      bodyRole: req.body.userRole,
-      bookedUser: req.body.bookedUser
-    });
-
-    let userRole = null;
-    if (req.user && req.user.role) {
-      userRole = req.user.role.toLowerCase();
-      bookedUser = req.user.id || req.user._id || 'online';
-    } else if (req.headers['x-user-role']) {
-      userRole = req.headers['x-user-role'].toLowerCase();
-      bookedUser = req.body.bookedUser || req.user?.id || 'online';
-    } else if (req.body.userRole) {
-      userRole = req.body.userRole.toLowerCase();
-      bookedUser = req.body.bookedUser || 'online';
-    }
-
-    console.log("======== userRole ==========" + userRole);
-
-    const normalizedUserRole = userRole ? userRole.toLowerCase().replace(/\s+/g, '-') : '';
-
-    console.log("Checking role access:", {
-      userRole: userRole,
-      normalizedUserRole: normalizedUserRole,
-      operation: 'booking creation'
-    });
-
-    if (normalizedUserRole === 'channel-partner') {
-      bookedBy = 'CHANNEL-PARTNER';
-      bookedUser = req.body.bookedUser || req.user?.id || bookedUser;
-    } else if (normalizedUserRole === 'super-admin') {
-      bookedBy = 'SUPER-ADMIN';
-    } else if (normalizedUserRole === 'dispensary-admin') {
-      bookedBy = 'DISPENSARY-ADMIN';
-    } else if (normalizedUserRole === 'dispensary-staff') {
-      bookedBy = 'DISPENSARY-STAFF';
-    }
-
-    console.log(`Final booking role assignment:`, {
-      userRole,
-      bookedBy,
-      bookedUser,
-      isChannelPartner: bookedBy === 'CHANNEL-PARTNER'
-    });
-
-    let processedFees = { ...fees };
-
-    const feeConfig = await DoctorDispensary.findOne({
-      doctorId,
-      dispensaryId,
-      isActive: true
-    });
-
-    if (bookedBy === 'CHANNEL-PARTNER' && feeConfig && feeConfig.channelPartnerFee > 0) {
-      const originalBookingCommission = processedFees.bookingCommission || 0;
-      const channelPartnerFee = feeConfig.channelPartnerFee;
-      const adjustedBookingCommission = Math.max(0, originalBookingCommission - channelPartnerFee);
-
-      processedFees = {
-        ...processedFees,
-        channelPartnerFee: channelPartnerFee,
-        bookingCommission: adjustedBookingCommission
-      };
-
-      console.log(`Channel partner fee applied - Fee: ${channelPartnerFee}, Adjusted commission: ${adjustedBookingCommission}`);
-    } else {
-      processedFees = {
-        ...processedFees,
-        channelPartnerFee: 0
-      };
-    }
-
-    const doctorFee = processedFees.doctorFee || 0;
-    const dispensaryFee = processedFees.dispensaryFee || 0;
-    const channelPartnerFee = processedFees.channelPartnerFee || 0;
-    const bookingCommission = processedFees.bookingCommission || 0;
-
-    processedFees.totalFee = doctorFee + dispensaryFee + channelPartnerFee + bookingCommission;
-
-    console.log(`Final fee calculation:`, {
-      doctorFee,
-      dispensaryFee,
-      channelPartnerFee,
-      bookingCommission,
-      totalFee: processedFees.totalFee,
-      bookedBy
-    });
-
-    const booking = new Booking({
-      patientId,
-      doctorId,
-      dispensaryId,
-      bookingDate: parsedBookingDate,
-      timeSlot,
-      timeSlotConfigId: timeSlotConfig._id,
-      appointmentNumber: nextAppointmentNumber,
-      estimatedTime,
-      status: 'scheduled',
-      symptoms: symptoms || undefined,
-      isPaid: false,
-      isPatientVisited: false,
-      patientName,
-      patientPhone,
-      patientEmail,
-      transactionId,
-      fees: processedFees,
-      bookedUser,
-      bookedBy,
-      paymentMethod: paymentMethod || 'cash',
-      paymentStatus: paymentStatus || (paymentMethod === 'online' ? 'pending' : 'not_required'),
-      paymentGateway: paymentMethod === 'online' ? 'dialog_genie' : null,
-      smsDelivery: {
-        status: 'pending',
-        lastUpdated: new Date()
-      }
-    });
-
-    // STEP 1: Save booking to DB first and confirm it's persisted
-    let savedBooking;
-    try {
-      savedBooking = await booking.save();
-      console.log("✅ Booking saved successfully:", savedBooking._id);
-    } catch (saveError) {
-      if (saveError.code === 11000 && saveError.keyPattern && saveError.keyPattern.timeSlot) {
-        console.warn("⚠️ Double-booking prevented by unique index!");
-        return res.status(409).json({
-          success: false,
-          error: "SLOT_ALREADY_BOOKED",
-          message: "This time slot has just been booked by someone else. Please choose another slot."
+      if (existingBookings.length >= maxPatients) {
+        return res.status(400).json({
+          message: 'All appointments for this session are booked'
         });
       }
-      throw saveError; // Re-throw if it's not the specific double-booking error
-    }
+
+      let nextAppointmentNumber = 1;
+
+      const bookedAppointments = new Set();
+      existingBookings.forEach(booking => {
+        bookedAppointments.add(booking.appointmentNumber);
+      });
+
+      while (bookedAppointments.has(nextAppointmentNumber) && nextAppointmentNumber <= maxPatients) {
+        nextAppointmentNumber++;
+      }
+
+      console.log("Next appointment number:", nextAppointmentNumber);
+
+      const [startHour, startMinute] = startTime.split(':').map(Number);
+      const appointmentOffset = (nextAppointmentNumber - 1) * minutesPerPatient;
+
+      const appointmentDateTime = new Date(parsedBookingDate);
+      appointmentDateTime.setHours(startHour, startMinute, 0, 0);
+      appointmentDateTime.setMinutes(appointmentDateTime.getMinutes() + appointmentOffset);
+
+      const estimatedHours = appointmentDateTime.getHours().toString().padStart(2, '0');
+      const estimatedMinutes = appointmentDateTime.getMinutes().toString().padStart(2, '0');
+      const estimatedTime = `${estimatedHours}:${estimatedMinutes}`;
+
+      console.log("Estimated time:", estimatedTime);
+
+      const endOfAppointment = new Date(appointmentDateTime);
+      endOfAppointment.setMinutes(endOfAppointment.getMinutes() + minutesPerPatient);
+
+      const endHours = endOfAppointment.getHours().toString().padStart(2, '0');
+      const endMinutes = endOfAppointment.getMinutes().toString().padStart(2, '0');
+
+      const timeSlot = `${estimatedHours}:${estimatedMinutes}-${endHours}:${endMinutes}`;
+
+      let bookedUser = 'online';
+      let bookedBy = 'ONLINE';
+
+      console.log("Incoming booking request role sources:", {
+        reqUser: req.user,
+        headerRole: req.headers['x-user-role'],
+        bodyRole: req.body.userRole,
+        bookedUser: req.body.bookedUser
+      });
+
+      let userRole = null;
+      if (req.user && req.user.role) {
+        userRole = req.user.role.toLowerCase();
+        bookedUser = req.user.id || req.user._id || 'online';
+      } else if (req.headers['x-user-role']) {
+        userRole = req.headers['x-user-role'].toLowerCase();
+        bookedUser = req.body.bookedUser || req.user?.id || 'online';
+      } else if (req.body.userRole) {
+        userRole = req.body.userRole.toLowerCase();
+        bookedUser = req.body.bookedUser || 'online';
+      }
+
+      console.log("======== userRole ==========" + userRole);
+
+      const normalizedUserRole = userRole ? userRole.toLowerCase().replace(/\s+/g, '-') : '';
+
+      console.log("Checking role access:", {
+        userRole: userRole,
+        normalizedUserRole: normalizedUserRole,
+        operation: 'booking creation'
+      });
+
+      if (normalizedUserRole === 'channel-partner') {
+        bookedBy = 'CHANNEL-PARTNER';
+        bookedUser = req.body.bookedUser || req.user?.id || bookedUser;
+      } else if (normalizedUserRole === 'super-admin') {
+        bookedBy = 'SUPER-ADMIN';
+      } else if (normalizedUserRole === 'dispensary-admin') {
+        bookedBy = 'DISPENSARY-ADMIN';
+      } else if (normalizedUserRole === 'dispensary-staff') {
+        bookedBy = 'DISPENSARY-STAFF';
+      }
+
+      console.log(`Final booking role assignment:`, {
+        userRole,
+        bookedBy,
+        bookedUser,
+        isChannelPartner: bookedBy === 'CHANNEL-PARTNER'
+      });
+
+      let processedFees = { ...fees };
+
+      const feeConfig = await DoctorDispensary.findOne({
+        doctorId,
+        dispensaryId,
+        isActive: true
+      });
+
+      if (bookedBy === 'CHANNEL-PARTNER' && feeConfig && feeConfig.channelPartnerFee > 0) {
+        const originalBookingCommission = processedFees.bookingCommission || 0;
+        const channelPartnerFee = feeConfig.channelPartnerFee;
+        const adjustedBookingCommission = Math.max(0, originalBookingCommission - channelPartnerFee);
+
+        processedFees = {
+          ...processedFees,
+          channelPartnerFee: channelPartnerFee,
+          bookingCommission: adjustedBookingCommission
+        };
+
+        console.log(`Channel partner fee applied - Fee: ${channelPartnerFee}, Adjusted commission: ${adjustedBookingCommission}`);
+      } else {
+        processedFees = {
+          ...processedFees,
+          channelPartnerFee: 0
+        };
+      }
+
+      const doctorFee = processedFees.doctorFee || 0;
+      const dispensaryFee = processedFees.dispensaryFee || 0;
+      const channelPartnerFee = processedFees.channelPartnerFee || 0;
+      const bookingCommission = processedFees.bookingCommission || 0;
+
+      processedFees.totalFee = doctorFee + dispensaryFee + channelPartnerFee + bookingCommission;
+
+      console.log(`Final fee calculation:`, {
+        doctorFee,
+        dispensaryFee,
+        channelPartnerFee,
+        bookingCommission,
+        totalFee: processedFees.totalFee,
+        bookedBy
+      });
+
+      const booking = new Booking({
+        patientId,
+        doctorId,
+        dispensaryId,
+        bookingDate: parsedBookingDate,
+        timeSlot,
+        timeSlotConfigId: timeSlotConfig._id,
+        appointmentNumber: nextAppointmentNumber,
+        estimatedTime,
+        status: 'scheduled',
+        symptoms: symptoms || undefined,
+        isPaid: false,
+        isPatientVisited: false,
+        patientName,
+        patientPhone,
+        patientEmail,
+        transactionId,
+        fees: processedFees,
+        bookedUser,
+        bookedBy,
+        paymentMethod: paymentMethod || 'cash',
+        paymentStatus: paymentStatus || (paymentMethod === 'online' ? 'pending' : 'not_required'),
+        paymentGateway: paymentMethod === 'online' ? 'dialog_genie' : null,
+        smsDelivery: {
+          status: 'pending',
+          lastUpdated: new Date()
+        }
+      });
+
+      // STEP 1: Save booking to DB first and confirm it's persisted
+      try {
+        savedBooking = await booking.save();
+        console.log(`✅ Booking saved successfully on attempt ${attempt}:`, savedBooking._id);
+      } catch (saveError) {
+        if (saveError.code === 11000 && saveError.keyPattern && saveError.keyPattern.timeSlot) {
+          console.warn(`⚠️ Double-booking prevented by unique index on attempt ${attempt}. Retrying...`);
+          if (attempt >= MAX_RETRIES) {
+            return res.status(409).json({
+              success: false,
+              error: "SLOT_ALREADY_BOOKED",
+              message: "The server is currently busy and those slots were just taken. Please try again."
+            });
+          }
+          // Loop will continue and recalculate the next appointment number
+          continue;
+        }
+        throw saveError; // Re-throw if it's not the specific double-booking error
+      }
+
+    } // End of retry while loop
 
     // STEP 2: Respond to the client immediately — booking is confirmed
     // in the database regardless of what happens with SMS/FCM afterward

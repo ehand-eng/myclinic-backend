@@ -172,7 +172,7 @@ const CustomRoleAssignment = () => {
       setIsUpdating(true);
       const token = localStorage.getItem('auth_token');
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/users`, {
+      const response = await fetch(`${API_URL}/admin/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -217,7 +217,7 @@ const CustomRoleAssignment = () => {
       setIsUpdating(true);
       const token = localStorage.getItem('auth_token');
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/users/${editingUser._id}`, {
+      const response = await fetch(`${API_URL}/admin/users/${editingUser._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -255,7 +255,7 @@ const CustomRoleAssignment = () => {
     try {
       const token = localStorage.getItem('auth_token');
 
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'}/api/admin/users/${userToDelete._id}`, {
+      const response = await fetch(`${API_URL}/admin/users/${userToDelete._id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
