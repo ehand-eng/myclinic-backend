@@ -625,10 +625,14 @@ router.get('/available/:doctorId/:dispensaryId/:date', async (req, res) => {
       const slots = [];
       for (let i = 1; i <= maxPossible; i++) {
         const isBooked = sessionBookings.some(b => b.appointmentNumber === i);
-        if (!isBooked) {
-          const offset = (i - 1) * minutesPerPatient;
-          const apptTime = new Date(startOfDay);
-          apptTime.setHours(sH, sM + offset, 0, 0);
+        const offset = (i - 1) * minutesPerPatient;
+        const apptTime = new Date(startOfDay);
+        apptTime.setHours(sH, sM + offset, 0, 0);
+
+        // Skip slot if it's today and the appointment time has already passed
+        const isPastTime = isToday && (now > apptTime);
+
+        if (!isBooked && !isPastTime) {
           const hours = apptTime.getHours().toString().padStart(2, '0');
           const mins = apptTime.getMinutes().toString().padStart(2, '0');
 

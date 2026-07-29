@@ -500,12 +500,34 @@ async function showAvailableAppointments(from, session) {
 
             // Find next appointment number
             const bookedNums = new Set(existingBookings.map(b => b.appointmentNumber));
+            const [sH, sM] = startTime.split(':').map(Number);
+            
             let nextNum = 1;
-            while (bookedNums.has(nextNum) && nextNum <= maxPatients) nextNum++;
+            while (nextNum <= maxPatients) {
+                if (bookedNums.has(nextNum)) {
+                    nextNum++;
+                    continue;
+                }
+                
+                // If checking today, verify the specific slot hasn't already passed
+                if (dayOffset === 0) {
+                    const offset = (nextNum - 1) * minutesPerPatient;
+                    const tempApptTime = new Date(currentDate);
+                    tempApptTime.setHours(sH, sM + offset, 0, 0);
+                    
+                    if (new Date() > tempApptTime) {
+                        nextNum++;
+                        continue;
+                    }
+                }
+                
+                break; // Found a valid available slot
+            }
+            
+            if (nextNum > maxPatients) continue; // All valid slots are taken
 
             // Calculate estimated time for this appointment number
             // Same formula as /available API: startTime + (appointmentNumber - 1) * minutesPerPatient
-            const [sH, sM] = startTime.split(':').map(Number);
             const apptOffset = (nextNum - 1) * minutesPerPatient;
             const apptDate = new Date(currentDate);
             apptDate.setHours(sH, sM + apptOffset, 0, 0);
