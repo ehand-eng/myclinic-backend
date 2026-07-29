@@ -473,6 +473,20 @@ async function showAvailableAppointments(from, session) {
                 minutesPerPatient = absentSlot.minutesPerPatient || ts.minutesPerPatient || 15;
             }
 
+            // Apply booking cutoff validation for today
+            if (dayOffset === 0) {
+                const now = new Date();
+                const [csh, csm] = startTime.split(':').map(Number);
+                const sessionStartForCutoff = new Date(currentDate);
+                sessionStartForCutoff.setHours(csh, csm, 0, 0);
+                const cutoffOffset = ts.bookingCutoffMinutes ?? -60;
+                const cutoffTime = new Date(sessionStartForCutoff.getTime() + (cutoffOffset * 60000));
+                
+                if (now > cutoffTime) {
+                    continue; // Skip this session as the cutoff time has passed
+                }
+            }
+
             // Count existing bookings for this session
             const existingBookings = await Booking.find({
                 doctorId, dispensaryId,

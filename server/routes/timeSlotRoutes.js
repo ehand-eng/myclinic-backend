@@ -459,9 +459,7 @@ router.get('/available/:doctorId/:dispensaryId/:date', async (req, res) => {
       });
     }
 
-    // Get dispensary-level booking cutoff
-    const dispensaryForCutoff = await Dispensary.findById(dispensaryId).lean();
-    const cutoffMinutes = dispensaryForCutoff?.bookingCutoffMinutes ?? 60;
+    // Get current time
     const now = new Date();
 
     // 2. Check date-range absences (full day)
@@ -603,7 +601,8 @@ router.get('/available/:doctorId/:dispensaryId/:date', async (req, res) => {
         const [csh, csm] = startTime.split(':').map(Number);
         const sessionStartForCutoff = new Date(startOfDay);
         sessionStartForCutoff.setHours(csh, csm, 0, 0);
-        const cutoffTime = new Date(sessionStartForCutoff.getTime() - cutoffMinutes * 60000);
+        const cutoffOffset = config.bookingCutoffMinutes ?? -60;
+        const cutoffTime = new Date(sessionStartForCutoff.getTime() + (cutoffOffset * 60000));
         if (now > cutoffTime) {
           expiredSessionCount++;
           continue;
@@ -762,10 +761,6 @@ router.get('/next-available/:doctorId/:dispensaryId', async (req, res) => {
       });
     }
 
-    // Get dispensary-level booking cutoff setting
-    const dispensaryDoc = await Dispensary.findById(dispensaryId).lean();
-    const dispensaryCutoffMinutes = dispensaryDoc?.bookingCutoffMinutes ?? 60;
-
     const BookingModel = mongoose.models.Booking || mongoose.model('Booking', new mongoose.Schema({}));
     const availableDays = [];
     let daysChecked = 0;
@@ -818,7 +813,8 @@ router.get('/next-available/:doctorId/:dispensaryId', async (req, res) => {
             const [sh, sm] = config.startTime.split(':').map(Number);
             const ss = new Date(currentDate);
             ss.setHours(sh, sm, 0, 0);
-            const co = new Date(ss.getTime() - dispensaryCutoffMinutes * 60000);
+            const cutoffOffset = config.bookingCutoffMinutes ?? -60;
+            const co = new Date(ss.getTime() + (cutoffOffset * 60000));
             return now <= co;
           });
           if (!hasOpenSession) {
