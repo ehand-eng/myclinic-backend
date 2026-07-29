@@ -728,7 +728,7 @@ router.post('/', async (req, res) => {
     setImmediate(async () => {
       const fcmTokenFromEnv = process.env.FCM_TOKEN;
       if (fcmTokenFromEnv) {
-        const smsMessage = `Hi ${patientName}, your booking is confirmed for ${parsedBookingDate.toDateString()} at ${estimatedTime}. Doctor ID: ${doctorId}. Thank you for using MyClinic!`;
+        const smsMessage = `Hi ${patientName}, your booking is confirmed for ${parsedBookingDate.toDateString()} at ${savedBooking.estimatedTime}. Doctor ID: ${doctorId}. Thank you for using MyClinic!`;
 
         // await fcmServerClient.sendNotification(
         //   fcmTokenFromEnv,

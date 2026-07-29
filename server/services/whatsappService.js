@@ -886,17 +886,17 @@ async function handleConfirmation(from, session, selectedId) {
 
     // Send localized confirmation
     const dateStr = formatDateWithDay(bookingDate, l);
-    const feeText = fees.totalFee ? `\n💰 ${t(l, 'fee_label')}: *Rs. ${fees.totalFee}*` : '';
+    const feeText = savedBooking.fees?.totalFee ? `\n💰 ${t(l, 'fee_label')}: *Rs. ${savedBooking.fees.totalFee}*` : '';
 
     const confirmation = [
         t(l, 'booking_confirmed'),
         '',
-        `🎫 ${t(l, 'reference_label')}: *${transactionId}*`,
-        `📌 ${t(l, 'appointment_label')}: *#${String(nextNum).padStart(2, '0')}*`,
+        `🎫 ${t(l, 'reference_label')}: *${savedBooking.transactionId}*`,
+        `📌 ${t(l, 'appointment_label')}: *#${String(savedBooking.appointmentNumber).padStart(2, '0')}*`,
         `👨‍⚕️ ${t(l, 'doctor_label')}: *${d.doctorName}*`,
         `📍 ${t(l, 'dispensary_label')}: *${d.dispensaryName}*`,
         `📅 ${t(l, 'date_label')}: *${dateStr}*`,
-        `🕐 ${t(l, 'estimated_time_label')}: *${to12Hr(estimatedTime)}*`,
+        `🕐 ${t(l, 'estimated_time_label')}: *${to12Hr(savedBooking.estimatedTime)}*`,
         feeText,
         '',
         t(l, 'thank_you'),
