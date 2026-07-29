@@ -148,7 +148,7 @@ router.get('/comprehensive', validateJwt, roleMiddleware.requireRole(['super-adm
       else if (b.status === 'no_show') summary.noShow++;
 
       // Revenue
-      if (b.fees) {
+      if (b.fees && b.status === 'checked_in') {
         revenue.totalFee += b.fees.totalFee || 0;
         revenue.doctorFee += b.fees.doctorFee || 0;
         revenue.dispensaryFee += b.fees.dispensaryFee || 0;
@@ -165,7 +165,9 @@ router.get('/comprehensive', validateJwt, roleMiddleware.requireRole(['super-adm
         trendMap[dayKey] = { date: dayKey, bookings: 0, revenue: 0 };
       }
       trendMap[dayKey].bookings++;
-      trendMap[dayKey].revenue += (b.fees && b.fees.totalFee) || 0;
+      if (b.status === 'checked_in') {
+        trendMap[dayKey].revenue += (b.fees && b.fees.totalFee) || 0;
+      }
 
       // Status distribution
       statusCounts[b.status] = (statusCounts[b.status] || 0) + 1;
@@ -181,7 +183,7 @@ router.get('/comprehensive', validateJwt, roleMiddleware.requireRole(['super-adm
         };
       }
       doctorMap[dId].bookingCount++;
-      if (b.fees) {
+      if (b.fees && b.status === 'checked_in') {
         doctorMap[dId].totalFee += b.fees.totalFee || 0;
         doctorMap[dId].doctorFee += b.fees.doctorFee || 0;
         doctorMap[dId].dispensaryFee += b.fees.dispensaryFee || 0;
@@ -377,12 +379,12 @@ router.post('/generate/monthly-summary', validateJwt, roleMiddleware.requireRole
 
     // Process booking data for the report
     const totalBookings = bookings.length;
-    const completedBookings = bookings.filter(b => b.status === 'completed').length;
+    const checkedInBookings = bookings.filter(b => b.status === 'checked_in').length;
     const cancelledBookings = bookings.filter(b => b.status === 'cancelled').length;
     const noShowBookings = bookings.filter(b => b.status === 'no_show').length;
 
-    // Calculate revenue (assuming each completed booking has a fixed price of $100)
-    const revenue = completedBookings * 100;
+    // Calculate revenue (assuming each checked_in booking has a fixed price of $100)
+    const revenue = checkedInBookings * 100;
 
     // Group bookings by doctor
     const doctorBookings = {};
@@ -407,7 +409,7 @@ router.post('/generate/monthly-summary', validateJwt, roleMiddleware.requireRole
     // Create the report data
     const reportData = {
       totalBookings,
-      completedBookings,
+      checkedInBookings,
       cancelledBookings,
       noShowBookings,
       revenue,
@@ -565,7 +567,7 @@ router.post('/generate/dispensary-revenue', validateJwt, roleMiddleware.requireR
         $gte: new Date(startDate),
         $lte: new Date(endDate)
       },
-      status: 'completed' // Only count completed bookings for revenue
+      status: 'checked_in' // Only count checked_in bookings for revenue
     };
 
     if (dispensaryId) {
@@ -574,7 +576,7 @@ router.post('/generate/dispensary-revenue', validateJwt, roleMiddleware.requireR
 
     const bookings = await Booking.find(bookingQuery);
 
-    // Calculate total revenue (assuming each completed booking has a fixed price of $100)
+    // Calculate total revenue (assuming each checked_in booking has a fixed price of $100)
     const totalRevenue = bookings.length * 100;
 
     // Mock revenue by service (would come from a real system with service details)
@@ -596,7 +598,7 @@ router.post('/generate/dispensary-revenue', validateJwt, roleMiddleware.requireR
           revenue: 0
         };
       }
-      doctorRevenue[doctorId].revenue += 100; // $100 per completed booking
+      doctorRevenue[doctorId].revenue += 100; // $100 per checked_in booking
     }
 
     const revenueByDoctor = Object.values(doctorRevenue);
@@ -719,7 +721,7 @@ router.get('/daily-bookings', validateJwt, roleMiddleware.requireRole(['super-ad
       // Let's sum up for all valid bookings (not cancelled/no_show for revenue projections, but let's see requirement)
       // Requirement: "Total Booking Amount, Total Commission. Must be calculated from filtered results"
       // We will sum for all displayed bookings.
-      if (booking.fees) {
+      if (booking.fees && booking.status === 'checked_in') {
         if (booking.fees.totalFee) totalAmount += booking.fees.totalFee;
         if (booking.fees.bookingCommission) totalCommission += booking.fees.bookingCommission;
       }
