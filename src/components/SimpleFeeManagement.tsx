@@ -39,6 +39,7 @@ interface Fee {
   doctorName: string;
   dispensaryName: string;
   dispensaryAddress: string;
+  bookingCode?: string;
 }
 
 const SimpleFeeManagement: React.FC = () => {
@@ -56,6 +57,7 @@ const SimpleFeeManagement: React.FC = () => {
   // Form state
   const [feeForm, setFeeForm] = useState({
     dispensaryId: '',
+    bookingCode: '',
     doctorFee: '',
     dispensaryFee: '',
     onlineFee: '',
@@ -66,6 +68,7 @@ const SimpleFeeManagement: React.FC = () => {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [updateFeeId, setUpdateFeeId] = useState<string>('');
   const [updateForm, setUpdateForm] = useState({
+    bookingCode: '',
     doctorFee: '',
     dispensaryFee: '',
     onlineFee: '',
@@ -130,6 +133,7 @@ const SimpleFeeManagement: React.FC = () => {
     setFees([]);
     setFeeForm({
       dispensaryId: '',
+      bookingCode: '',
       doctorFee: '',
       dispensaryFee: '',
       onlineFee: '',
@@ -237,6 +241,7 @@ const SimpleFeeManagement: React.FC = () => {
       
       const requestData = {
         dispensaryId: feeForm.dispensaryId,
+        bookingCode: feeForm.bookingCode || undefined,
         doctorFee: parseFloat(feeForm.doctorFee),
         dispensaryFee: parseFloat(feeForm.dispensaryFee),
         onlineFee: parseFloat(feeForm.onlineFee),
@@ -263,6 +268,7 @@ const SimpleFeeManagement: React.FC = () => {
       // Reset form
       setFeeForm({
         dispensaryId: '',
+        bookingCode: '',
         doctorFee: '',
         dispensaryFee: '',
         onlineFee: '',
@@ -283,6 +289,7 @@ const SimpleFeeManagement: React.FC = () => {
   const handleUpdateFee = (fee: Fee) => {
     setUpdateFeeId(fee.id);
     setUpdateForm({
+      bookingCode: fee.bookingCode || '',
       doctorFee: fee.doctorFee.toString(),
       dispensaryFee: fee.dispensaryFee.toString(),
       onlineFee: fee.onlineFee.toString(),
@@ -301,6 +308,7 @@ const SimpleFeeManagement: React.FC = () => {
       setLoading(true);
       
       const requestData = {
+        bookingCode: updateForm.bookingCode || undefined,
         doctorFee: parseFloat(updateForm.doctorFee),
         dispensaryFee: parseFloat(updateForm.dispensaryFee),
         onlineFee: parseFloat(updateForm.onlineFee),
@@ -511,6 +519,19 @@ const SimpleFeeManagement: React.FC = () => {
                 </div>
 
                 <div>
+                  <Label htmlFor="booking-code">WhatsApp Code</Label>
+                  <Input
+                    id="booking-code"
+                    type="text"
+                    value={feeForm.bookingCode}
+                    onChange={(e) => setFeeForm(prev => ({ ...prev, bookingCode: e.target.value.toUpperCase() }))}
+                    placeholder="e.g. B001 (Blank = Auto)"
+                    className="uppercase"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div>
                   <Label htmlFor="doctor-fee">Doctor Fee (Rs)</Label>
                   <Input
                     id="doctor-fee"
@@ -610,6 +631,7 @@ const SimpleFeeManagement: React.FC = () => {
                     <TableRow>
                       <TableHead>Dispensary</TableHead>
                       <TableHead>Address</TableHead>
+                      <TableHead>WA Code</TableHead>
                       <TableHead className="text-right">Doctor Fee</TableHead>
                       <TableHead className="text-right">Dispensary Fee</TableHead>
                       <TableHead className="text-right">Online Fee</TableHead>
@@ -623,6 +645,7 @@ const SimpleFeeManagement: React.FC = () => {
                       <TableRow key={fee.id}>
                         <TableCell className="font-medium">{fee.dispensaryName}</TableCell>
                         <TableCell className="text-sm text-gray-600">{fee.dispensaryAddress}</TableCell>
+                        <TableCell className="font-mono text-medical-600 font-bold">{fee.bookingCode || 'N/A'}</TableCell>
                         <TableCell className="text-right font-mono">Rs {fee.doctorFee}</TableCell>
                         <TableCell className="text-right font-mono">Rs {fee.dispensaryFee}</TableCell>
                         <TableCell className="text-right font-mono">Rs {fee.onlineFee}</TableCell>
@@ -674,6 +697,18 @@ const SimpleFeeManagement: React.FC = () => {
             <DialogTitle>Update Fee Configuration</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            <div>
+              <Label htmlFor="update-booking-code">WhatsApp Code</Label>
+              <Input
+                id="update-booking-code"
+                type="text"
+                value={updateForm.bookingCode}
+                onChange={(e) => setUpdateForm(prev => ({ ...prev, bookingCode: e.target.value.toUpperCase() }))}
+                placeholder="e.g. B001"
+                className="uppercase"
+                disabled={loading}
+              />
+            </div>
             <div>
               <Label htmlFor="update-doctor-fee">Doctor Fee (Rs)</Label>
               <Input

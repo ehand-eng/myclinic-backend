@@ -42,7 +42,6 @@ const validatePhoneNumber = (phone: string): boolean | string => {
   return true;
 };
 
-// Email validation regex (optional field - must be valid if provided)
 const validateOptionalEmail = (email: string): boolean | string => {
   if (!email || email.trim() === '') return true; // Allow empty
 
@@ -55,6 +54,20 @@ const validateOptionalEmail = (email: string): boolean | string => {
   return true;
 };
 
+// Dispensary Code validation (optional, but if provided must be alphanumeric 3-10 chars)
+const validateDispensaryCode = (code: string | undefined): boolean | string => {
+  if (!code || code.trim() === '') return true;
+  
+  const cleanCode = code.trim();
+  const codeRegex = /^[A-Za-z0-9]{3,10}$/;
+  
+  if (!codeRegex.test(cleanCode)) {
+    return 'Code must be 3-10 alphanumeric characters only (no spaces or special characters)';
+  }
+  
+  return true;
+};
+
 interface DispensaryFormProps {
   dispensaryId?: string;
   isEdit?: boolean;
@@ -62,7 +75,7 @@ interface DispensaryFormProps {
 
 interface DispensaryFormValues {
   name: string;
-  dispensaryCode?: string;
+  dispensaryCode: string;
   address: string;
   contactNumber: string;
   email: string;
@@ -147,7 +160,7 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
 
       const dispensaryData: Partial<Dispensary> = {
         name: data.name,
-        dispensaryCode: data.dispensaryCode || undefined, // undefined prevents empty string overwrite
+        dispensaryCode: data.dispensaryCode,
         address: data.address,
         contactNumber: data.contactNumber,
         email: data.email,
@@ -239,13 +252,16 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
             <FormField
               control={form.control}
               name="dispensaryCode"
+              rules={{
+                validate: validateDispensaryCode
+              }}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Dispensary Code</FormLabel>
+                  <FormLabel>Short Code (Optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. A001 (Leave blank to auto-generate)" {...field} className="uppercase" />
+                    <Input placeholder="e.g. CLINIC1" {...field} />
                   </FormControl>
-                  <p className="text-xs text-gray-500">Shortcode used for WhatsApp bot bookings (e.g., A001).</p>
+                  <p className="text-xs text-gray-500">Patients can use this alphanumeric code in WhatsApp to quickly find this dispensary.</p>
                   <FormMessage />
                 </FormItem>
               )}
