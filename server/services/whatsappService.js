@@ -754,8 +754,15 @@ async function handleConfirmation(from, session, selectedId) {
         return;
     }
 
-    const startOfDay = new Date(bookingDate); startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(bookingDate); endOfDay.setHours(23, 59, 59, 999);
+    const parsedDate = typeof bookingDate === 'string' && bookingDate.includes('T') 
+        ? bookingDate.split('T')[0] 
+        : bookingDate;
+    
+    // Ensure it strictly parses as UTC midnight matching database formatting
+    const normalizedBookingDate = new Date(`${parsedDate}T00:00:00.000Z`);
+
+    const startOfDay = new Date(normalizedBookingDate); startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(normalizedBookingDate); endOfDay.setHours(23, 59, 59, 999);
 
     // Check for modified session
     const absentSlot = await AbsentTimeSlot.findOne({
@@ -831,7 +838,7 @@ async function handleConfirmation(from, session, selectedId) {
         patientId: `wa-${patientPhone}`,
         doctorId,
         dispensaryId,
-        bookingDate: new Date(bookingDate),
+        bookingDate: normalizedBookingDate,
         timeSlot,
         timeSlotConfigId: timeSlotConfig._id,
         appointmentNumber: nextNum,
@@ -853,8 +860,19 @@ async function handleConfirmation(from, session, selectedId) {
         }
     });
 
-    await booking.save();
-    console.log(`✅ WhatsApp booking created: ${transactionId} for ${patientName} [${l}]`);
+    let savedBooking;
+    try {
+        savedBooking = await booking.save();
+        console.log(`✅ WhatsApp booking created: ${transactionId} for ${patientName} [${l}]`);
+    } catch (saveError) {
+        if (saveError.code === 11000 && saveError.keyPattern && saveError.keyPattern.timeSlot) {
+            console.warn("⚠️ WhatsApp Double-booking prevented by unique index!");
+            await sendText(from, t(l, 'slots_full') || "This time slot was just booked by someone else. Please start a new booking session and select another slot.");
+            clearSession(from);
+            return;
+        }
+        throw saveError; // Rethrow if it's not the unique double-booking error
+    }
 
     // Send localized confirmation
     const dateStr = formatDateWithDay(bookingDate, l);

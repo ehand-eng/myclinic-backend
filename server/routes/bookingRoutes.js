@@ -415,7 +415,7 @@ router.post('/', async (req, res) => {
     const transactionId = `TRX-${timestamp}-${random}`;
 
     const parsedDate = bookingDate.split('T')[0];
-    const parsedBookingDate = new Date(bookingDate);
+    const parsedBookingDate = new Date(`${parsedDate}T00:00:00.000Z`);
 
     console.log("Parsed booking date:", parsedBookingDate);
 
@@ -689,8 +689,21 @@ router.post('/', async (req, res) => {
     });
 
     // STEP 1: Save booking to DB first and confirm it's persisted
-    const savedBooking = await booking.save();
-    console.log("✅ Booking saved successfully:", savedBooking._id);
+    let savedBooking;
+    try {
+      savedBooking = await booking.save();
+      console.log("✅ Booking saved successfully:", savedBooking._id);
+    } catch (saveError) {
+      if (saveError.code === 11000 && saveError.keyPattern && saveError.keyPattern.timeSlot) {
+        console.warn("⚠️ Double-booking prevented by unique index!");
+        return res.status(409).json({
+          success: false,
+          error: "SLOT_ALREADY_BOOKED",
+          message: "This time slot has just been booked by someone else. Please choose another slot."
+        });
+      }
+      throw saveError; // Re-throw if it's not the specific double-booking error
+    }
 
     // STEP 2: Respond to the client immediately — booking is confirmed
     // in the database regardless of what happens with SMS/FCM afterward

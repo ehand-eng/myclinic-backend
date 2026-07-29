@@ -158,4 +158,16 @@ bookingSchema.pre('save', async function (next) {
   next();
 });
 
+// Enforce unique active bookings for a doctor, dispensary, date, and specific time slot.
+// We use a partialFilterExpression so that cancelled bookings don't block that slot from being rebooked.
+// This solves double-booking race conditions at the database level.
+bookingSchema.index(
+  { doctorId: 1, dispensaryId: 1, bookingDate: 1, timeSlot: 1 },
+  { 
+    unique: true, 
+    partialFilterExpression: { status: { $in: ['scheduled', 'checked_in', 'completed', 'no_show'] } }, 
+    name: 'uniq_active_slot_booking' 
+  }
+);
+
 module.exports = mongoose.model('Booking', bookingSchema);
