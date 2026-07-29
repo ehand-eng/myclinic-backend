@@ -10,7 +10,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { PlusCircle, Trash2, Save, Edit, Clock, Users, Timer } from 'lucide-react';
+import { PlusCircle, Trash2, Save, Edit, Clock, Users, Timer, Minus, Plus } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -45,6 +45,7 @@ const TimeSlotScheduler = ({ doctorId, dispensaryId }: TimeSlotSchedulerProps) =
   const [endTime, setEndTime] = useState<string>('17:00');
   const [maxPatients, setMaxPatients] = useState<number>(10);
   const [minutesPerPatient, setMinutesPerPatient] = useState<number>(15);
+  const [bookingCutoffMinutes, setBookingCutoffMinutes] = useState<number>(-60);
 
   const fetchTimeSlots = async () => {
     try {
@@ -98,7 +99,8 @@ const TimeSlotScheduler = ({ doctorId, dispensaryId }: TimeSlotSchedulerProps) =
         startTime,
         endTime,
         maxPatients,
-        minutesPerPatient
+        minutesPerPatient,
+        bookingCutoffMinutes
       });
 
       toast({ title: 'Success', description: 'Time slot added successfully' });
@@ -108,6 +110,7 @@ const TimeSlotScheduler = ({ doctorId, dispensaryId }: TimeSlotSchedulerProps) =
       setEndTime('17:00');
       setMaxPatients(10);
       setMinutesPerPatient(15);
+      setBookingCutoffMinutes(-60);
       fetchTimeSlots();
     } catch (error) {
       console.error('Error adding time slot:', error);
@@ -167,7 +170,7 @@ const TimeSlotScheduler = ({ doctorId, dispensaryId }: TimeSlotSchedulerProps) =
       {/* Add New Time Slot */}
       <Card className="p-4 bg-gray-50">
         <h3 className="text-lg font-medium mb-4">Add New Session</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
           <div>
             <Label htmlFor="dayOfWeek">Day of Week</Label>
             <Select value={dayOfWeek} onValueChange={setDayOfWeek}>
@@ -198,6 +201,24 @@ const TimeSlotScheduler = ({ doctorId, dispensaryId }: TimeSlotSchedulerProps) =
           <div>
             <Label htmlFor="minutesPerPatient">Min/Patient</Label>
             <Input id="minutesPerPatient" type="number" min="5" value={minutesPerPatient} onChange={(e) => setMinutesPerPatient(parseInt(e.target.value))} />
+          </div>
+          <div>
+            <Label htmlFor="bookingCutoffMinutes" title="-60 = 1 hr before, 60 = 1 hr after">Cutoff (Mins)</Label>
+            <div className="flex items-center space-x-2">
+              <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0 flex items-center justify-center" onClick={() => setBookingCutoffMinutes(prev => prev - 15)}>
+                <Minus className="h-4 w-4" />
+              </Button>
+              <Input 
+                id="bookingCutoffMinutes" 
+                type="number" 
+                className="h-9 text-center p-1 font-mono flex-1 min-w-[50px]" 
+                value={bookingCutoffMinutes} 
+                onChange={(e) => setBookingCutoffMinutes(parseInt(e.target.value) || 0)} 
+              />
+              <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0 flex items-center justify-center" onClick={() => setBookingCutoffMinutes(prev => prev + 15)}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           <div className="flex items-end">
             <Button onClick={handleAddTimeSlot} className="w-full">
@@ -253,7 +274,7 @@ const TimeSlotScheduler = ({ doctorId, dispensaryId }: TimeSlotSchedulerProps) =
                           {editMode === slot.id ? (
                             /* Edit Mode */
                             <div className="space-y-3">
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                                 <div>
                                   <Label className="text-xs">Start Time</Label>
                                   <Input
@@ -291,6 +312,23 @@ const TimeSlotScheduler = ({ doctorId, dispensaryId }: TimeSlotSchedulerProps) =
                                     onChange={(e) => handleEditField(slot.id, 'minutesPerPatient', parseInt(e.target.value))}
                                     className="mt-1 h-9"
                                   />
+                                </div>
+                                <div className="col-span-2">
+                                  <Label className="text-xs" title="-60 = 1 hr before, 60 = 1 hr after">Cutoff (Mins)</Label>
+                                  <div className="flex items-center space-x-2 mt-1">
+                                    <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0 flex items-center justify-center" onClick={() => handleEditField(slot.id, 'bookingCutoffMinutes', (slot.bookingCutoffMinutes ?? -60) - 15)}>
+                                      <Minus className="h-4 w-4" />
+                                    </Button>
+                                    <Input
+                                      type="number"
+                                      className="h-9 text-center p-1 font-mono flex-1 min-w-[50px]"
+                                      value={slot.bookingCutoffMinutes ?? -60}
+                                      onChange={(e) => handleEditField(slot.id, 'bookingCutoffMinutes', parseInt(e.target.value) || 0)}
+                                    />
+                                    <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0 flex items-center justify-center" onClick={() => handleEditField(slot.id, 'bookingCutoffMinutes', (slot.bookingCutoffMinutes ?? -60) + 15)}>
+                                      <Plus className="h-4 w-4" />
+                                    </Button>
+                                  </div>
                                 </div>
                               </div>
                               <div className="flex justify-end gap-2">

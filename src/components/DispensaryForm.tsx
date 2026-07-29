@@ -84,7 +84,6 @@ interface DispensaryFormValues {
   latitude?: number;
   longitude?: number;
   bookingVisibleDays: number;
-  bookingCutoffMinutes: number;
 }
 
 const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) => {
@@ -105,8 +104,7 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
       doctors: [],
       latitude: undefined,
       longitude: undefined,
-      bookingVisibleDays: 30,
-      bookingCutoffMinutes: 60
+      bookingVisibleDays: 30
     }
   });
 
@@ -134,8 +132,7 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
               doctors: doctorIds,
               latitude: dispensaryData.location?.latitude,
               longitude: dispensaryData.location?.longitude,
-              bookingVisibleDays: dispensaryData.bookingVisibleDays ?? 30,
-              bookingCutoffMinutes: dispensaryData.bookingCutoffMinutes ?? 60
+              bookingVisibleDays: dispensaryData.bookingVisibleDays ?? 30
             });
           }
         }
@@ -166,8 +163,7 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
         email: data.email,
         description: data.description,
         doctors: selectedDoctors,
-        bookingVisibleDays: selectedDoctors.length > 0 ? data.bookingVisibleDays : undefined,
-        bookingCutoffMinutes: data.bookingCutoffMinutes
+        bookingVisibleDays: selectedDoctors.length > 0 ? data.bookingVisibleDays : undefined
       };
 
       // Add location if both latitude and longitude are provided
@@ -423,37 +419,6 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
                         />
                       </FormControl>
                       <p className="text-xs text-gray-500">Number of future days patients can book online at this dispensary</p>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="bookingCutoffMinutes"
-                  rules={{
-                    required: 'Booking cutoff time is required',
-                    min: { value: 0, message: 'Must be 0 or more minutes' },
-                    max: { value: 1440, message: 'Must be at most 1440 minutes (24 hours)' }
-                  }}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Booking Cutoff Time (minutes before session)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min={0}
-                          max={1440}
-                          placeholder="60"
-                          {...field}
-                          value={field.value ?? 60}
-                          onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value, 10) : 60)}
-                        />
-                      </FormControl>
-                      <p className="text-xs text-gray-500">
-                        Online booking will be disabled this many minutes before the session starts.
-                        E.g. 15 = booking closes 15 minutes before session start time.
-                      </p>
                       <FormMessage />
                     </FormItem>
                   )}

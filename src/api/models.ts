@@ -34,7 +34,6 @@ export interface Dispensary extends BaseModel {
     longitude: number;
   };
   bookingVisibleDays?: number;
-  bookingCutoffMinutes?: number;
 }
 
 // Time slot configuration for doctor at a specific dispensary
@@ -46,6 +45,7 @@ export interface TimeSlotConfig extends BaseModel {
   endTime: string; // Format: "HH:MM" in 24-hour format
   maxPatients: number; // Maximum number of patients per slot
   minutesPerPatient: number; // Minutes allocated per patient
+  bookingCutoffMinutes?: number; // Cutoff offset in minutes (e.g., -60 means 60 minutes before start time)
 }
 
 // Absent time slot (when doctor is unavailable)

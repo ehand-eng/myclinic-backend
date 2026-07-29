@@ -1,4 +1,5 @@
 import api from '../../lib/axios';
+import { TimeSlotConfig as ModelTimeSlotConfig } from '../models';
 
 export interface AvailableTimeSlot {
   appointmentNumber: number;
@@ -42,18 +43,12 @@ export interface TimeSlotFees {
   bookingCommission: number;
 }
 
-export interface TimeSlotConfig {
-  id: string;
-  doctorId: string;
-  doctorName: string;
-  dispensaryId: string;
-  dispensaryName: string;
-  minutesPerPatient: number;
-  doctorFee: number;
-  dispensaryFee: number;
-  bookingCommission: number;
-  createdAt: Date;
-  updatedAt: Date;
+export interface TimeSlotConfig extends ModelTimeSlotConfig {
+  doctorName?: string;
+  dispensaryName?: string;
+  doctorFee?: number;
+  dispensaryFee?: number;
+  bookingCommission?: number;
 }
 
 export interface Dispensary {
