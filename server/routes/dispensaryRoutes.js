@@ -144,6 +144,17 @@ router.get('/location/nearby', async (req, res) => {
 // Create a new dispensary
 router.post('/', requireSuperAdmin, async (req, res) => {
   try {
+    // Handle dispensaryCode logic
+    if (req.body.dispensaryCode && req.body.dispensaryCode.trim() !== '') {
+      req.body.dispensaryCode = req.body.dispensaryCode.trim().toUpperCase();
+      const existing = await Dispensary.findOne({ dispensaryCode: req.body.dispensaryCode });
+      if (existing) {
+        return res.status(400).json({ message: 'Dispensary code is already in use by another dispensary' });
+      }
+    } else {
+      delete req.body.dispensaryCode;
+    }
+
     const dispensary = new Dispensary(req.body);
     
     
@@ -188,6 +199,23 @@ router.put('/:id', requireDispensaryEditAccess, async (req, res) => {
     if (!dispensary) {
       return res.status(404).json({ message: 'Dispensary not found' });
     }
+    
+    // Handle dispensaryCode logic
+    if (req.body.dispensaryCode !== undefined) {
+      if (req.body.dispensaryCode.trim() === '') {
+        req.body.dispensaryCode = undefined;
+      } else {
+        req.body.dispensaryCode = req.body.dispensaryCode.trim().toUpperCase();
+        const existing = await Dispensary.findOne({ 
+          dispensaryCode: req.body.dispensaryCode, 
+          _id: { $ne: req.params.id } 
+        });
+        if (existing) {
+          return res.status(400).json({ message: 'Dispensary code is already in use by another dispensary' });
+        }
+      }
+    }
+    
     console.log("======== dispensary ============== "+JSON.stringify(dispensary));
     // Handle doctor associations if they've changed
     if (req.body.doctors && JSON.stringify(dispensary.doctors) !== JSON.stringify(req.body.doctors)) {

@@ -146,34 +146,32 @@ async function handleIncomingMessage(message, metadata) {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // Shortcode Intercept (e.g., A001)
+    // Shortcode Intercept (e.g., CLINIC1)
     // ─────────────────────────────────────────────────────────────
-    if (userInput && userInput.trim().length === 4) {
-        const codeMatch = userInput.trim().toUpperCase().match(/^[A-Z][0-9]{3}$/);
-        if (codeMatch) {
-            const shortcode = codeMatch[0];
-            const doctorDispensary = await DoctorDispensary.findOne({ bookingCode: shortcode, isActive: true })
-                .populate('doctorId')
-                .populate('dispensaryId')
-                .lean();
+    if (userInput) {
+        const cleanInput = userInput.trim().toUpperCase();
+        if (cleanInput.length >= 3 && cleanInput.length <= 10 && /^[A-Z0-9]+$/.test(cleanInput)) {
+            const dispensary = await Dispensary.findOne({ dispensaryCode: cleanInput }).populate('doctors').lean();
             
-            if (doctorDispensary && doctorDispensary.doctorId && doctorDispensary.dispensaryId) {
+            if (dispensary) {
                 // Start a fresh session with the shortcut context
                 clearSession(from);
                 const freshSession = getSession(from);
                 
                 freshSession.data.isShortcutCode = true;
-                freshSession.data.shortcutDispensary = doctorDispensary.dispensaryId;
-                freshSession.data.shortcutDoctor = doctorDispensary.doctorId;
+                freshSession.data.shortcutDispensary = dispensary;
                 
-                console.log(`🚀 Shortcut activated: ${shortcode} for Dr. ${doctorDispensary.doctorId.name} at ${doctorDispensary.dispensaryId.name}`);
+                if (dispensary.doctors && dispensary.doctors.length === 1) {
+                    freshSession.data.shortcutDoctor = dispensary.doctors[0];
+                    console.log(`🚀 Shortcut activated: ${cleanInput} for Dispensary ${dispensary.name} (Single Doctor: ${dispensary.doctors[0].name})`);
+                } else {
+                    console.log(`🚀 Shortcut activated: ${cleanInput} for Dispensary ${dispensary.name} (Multiple Doctors)`);
+                }
+                
                 await handleWelcome(from, freshSession);
                 return;
-            } else {
-                await sendText(from, t(lang(session), 'code_not_recognized'));
-                // Just return, letting them continue what they were doing or try again
-                return;
             }
+            // Fall through if not found, as it might be a valid name input during the flow
         }
     }
 
@@ -261,17 +259,45 @@ async function handleLanguageSelection(from, session, selectedId) {
     // --- SHORTCUT FLOW ---
     if (session.data.isShortcutCode) {
         const dispensary = session.data.shortcutDispensary;
-        const doctor = session.data.shortcutDoctor;
         
         session.data.dispensaryId = dispensary._id.toString();
         session.data.dispensaryName = dispensary.name;
         
-        session.data.doctorId = doctor._id.toString();
-        session.data.doctorName = doctor.name;
-        session.data.doctorSpecialization = doctor.specialization;
-        
-        await showAvailableAppointments(from, session);
-        return;
+        if (session.data.shortcutDoctor) {
+            const doctor = session.data.shortcutDoctor;
+            session.data.doctorId = doctor._id.toString();
+            session.data.doctorName = doctor.name;
+            session.data.doctorSpecialization = doctor.specialization;
+            
+            await showAvailableAppointments(from, session);
+            return;
+        } else {
+            // Need to select doctor
+            const doctors = await Doctor.find({ dispensaries: dispensary._id }).select('name specialization').limit(10).lean();
+
+            if (doctors.length === 0) {
+                await sendText(from, t(l, 'no_doctors'));
+                clearSession(from);
+                return;
+            }
+
+            session.data.doctorsList = doctors;
+            session.step = 'SELECT_DOCTOR';
+
+            const rows = doctors.map(d => ({
+                id: `doc_${d._id}`,
+                title: d.name.substring(0, 24),
+                description: (d.specialization || '').substring(0, 72)
+            }));
+
+            await sendList(from,
+                t(l, 'select_doctor_header'),
+                `📍 *${dispensary.name}*\n\n${t(l, 'select_doctor_body')}${t(l, 'cancel_hint')}`,
+                t(l, 'view_doctors_btn'),
+                [{ title: t(l, 'doctors_section_title'), rows }]
+            );
+            return;
+        }
     }
     // --- END SHORTCUT FLOW ---
 

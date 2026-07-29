@@ -6,6 +6,14 @@ const dispensarySchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  dispensaryCode: {
+    type: String,
+    unique: true,
+    sparse: true,
+    uppercase: true,
+    trim: true,
+    match: /^[A-Z0-9]{3,10}$/
+  },
   address: {
     type: String,
     required: true
