@@ -1411,7 +1411,7 @@ router.post('/sms-delivery-status', async (req, res) => {
 });
 
 // Cancel entire session and broadcast SMS
-router.post('/session/cancel', roleMiddleware.requireAdvancedBookingAccess, async (req, res) => {
+router.post('/session/cancel', validateCustomJwt, roleMiddleware.requireAdvancedBookingAccess, async (req, res) => {
   try {
     const { doctorId, dispensaryId, bookingDate, timeSlotConfigId } = req.body;
 
@@ -1504,7 +1504,7 @@ router.post('/session/cancel', roleMiddleware.requireAdvancedBookingAccess, asyn
 });
 
 // Postpone entire session and broadcast SMS
-router.post('/session/postpone', roleMiddleware.requireAdvancedBookingAccess, async (req, res) => {
+router.post('/session/postpone', validateCustomJwt, roleMiddleware.requireAdvancedBookingAccess, async (req, res) => {
   try {
     const { doctorId, dispensaryId, bookingDate, timeSlotConfigId, newDate, newTimeSlot } = req.body;
 
