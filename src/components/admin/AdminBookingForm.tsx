@@ -46,7 +46,7 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
       const session = availability.sessions.find((s: any) => s.timeSlotConfigId === selectedSession);
       return session?.slots?.[0] || null;
     }
-    return getActiveSlot() || null;
+    return availability?.slots?.[0] || null;
   };
 
   const getActiveSessionConfigId = () => {
