@@ -14,8 +14,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'react-toastify';
 import { Pencil, Trash2, Plus, AlertCircle, Loader2 } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
-
+import { API_BASE_URL } from '@/config';
 interface Doctor {
   _id: string;
   name: string;
@@ -388,42 +387,6 @@ const SimpleFeeManagement: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Debug Info */}
-          <div className="mb-4 p-3 bg-gray-100 rounded text-sm space-y-2">
-            <div><strong>Debug Status:</strong></div>
-            <div>• Doctors loaded: {doctors.length} ({doctors.map(d => `${d.name}(${d._id})`).join(', ')})</div>
-            <div>• Selected Doctor ID: "{selectedDoctorId}" (type: {typeof selectedDoctorId})</div>
-            <div>• Dispensaries: {dispensaries.length} | Fees: {fees.length}</div>
-            <div>• Loading states: {loadingDispensaries ? 'Dispensaries' : ''} {loadingFees ? 'Fees' : ''}</div>
-            
-            {/* Manual Test Button */}
-            {selectedDoctorId && (
-              <div className="flex gap-2 mt-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    console.log('🧪 MANUAL TEST: Calling APIs for doctor:', selectedDoctorId);
-                    loadDispensariesForDoctor(selectedDoctorId);
-                    loadFeesForDoctor(selectedDoctorId);
-                  }}
-                >
-                  🧪 Test API Calls
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    console.log('🎯 MANUAL TEST: Simulating doctor select');
-                    handleDoctorSelect(selectedDoctorId);
-                  }}
-                >
-                  🎯 Test handleDoctorSelect
-                </Button>
-              </div>
-            )}
-          </div>
-
           {/* Doctor Selection */}
           <div className="mb-6">
             <Label htmlFor="doctor-select">Select Doctor</Label>
