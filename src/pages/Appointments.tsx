@@ -28,7 +28,8 @@ import {
   XCircle,
   Clock,
   Search,
-  X
+  X,
+  Plus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -74,6 +75,7 @@ const Appointments = () => {
   const [bookings, setBookings] = useState<any[]>([]);
   const [isLoadingBookings, setIsLoadingBookings] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
   // Check-in / check-out state
   const [isCheckingIn, setIsCheckingIn] = useState<string | null>(null);
@@ -250,13 +252,22 @@ const Appointments = () => {
     return Math.floor(diffMs / 1000);
   };
 
-  if (canCreate) {
+  if (canCreate || isCreating) {
     return (
       <div className="flex flex-col min-h-screen">
         <AdminHeader />
         <main className="flex-grow bg-gradient-to-br from-medicalBlue-50 via-white to-medicalTeal-50">
           <div className="container mx-auto px-4 py-8">
             <div className="mb-8">
+              {!canCreate && (
+                <Button 
+                  variant="ghost" 
+                  className="mb-4 -ml-4 text-medical-600 hover:text-medical-800 hover:bg-medical-50 w-fit" 
+                  onClick={() => setIsCreating(false)}
+                >
+                  &larr; Back to Bookings Dashboard
+                </Button>
+              )}
               <h1 className="text-3xl font-bold medical-text-gradient">Admin Bookings</h1>
               <p className="text-medicalGray-600 mt-2">Manage all appointments and bookings</p>
             </div>
@@ -279,6 +290,14 @@ const Appointments = () => {
               <p className="text-medicalGray-600 mt-1">View bookings for the selected date</p>
             </div>
             <div className="flex items-center gap-2">
+              <Button 
+                onClick={() => setIsCreating(true)} 
+                className="bg-medical-600 hover:bg-medical-700 text-white shadow-sm" 
+                size="sm"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add Booking
+              </Button>
               {format(selectedDate, 'yyyy-MM-dd') !== format(new Date(), 'yyyy-MM-dd') && (
                 <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date())}>
                   Today
