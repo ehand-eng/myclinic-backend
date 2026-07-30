@@ -113,11 +113,45 @@ const AbsentSlotManager = ({ doctorId, dispensaryId }: AbsentSlotManagerProps) =
       return;
     }
     const dayOfWeek = selectedDate.getDay();
+    const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+    
+    // Find absences for the selected date
+    const absencesForDate = absentSlots.filter((a: any) => {
+      if (a.isDateRange) {
+        return new Date(a.startDate) <= selectedDate && new Date(a.endDate) >= selectedDate;
+      }
+      return a.date && format(new Date(a.date), 'yyyy-MM-dd') === formattedDate;
+    });
+
     const sessionsForDay = timeSlotConfigs
       .filter((c: any) => c.dayOfWeek === dayOfWeek)
+      .map((c: any) => {
+        const id = c.id || c._id;
+        const sessionRecord = { ...c };
+        
+        // Check for specific absence for this config
+        const absence = absencesForDate.find((a: any) => 
+          (a.timeSlotConfigId === id) || 
+          (!a.timeSlotConfigId) // Full day absence affects all slots
+        );
+
+        if (absence) {
+          if (absence.isModifiedSession) {
+            sessionRecord.isModified = true;
+            sessionRecord.startTime = absence.startTime;
+            sessionRecord.endTime = absence.endTime;
+            sessionRecord.maxPatients = absence.maxPatients;
+          } else {
+            sessionRecord.isAbsent = true; // Fully absent
+          }
+        }
+        return sessionRecord;
+      })
       .sort((a: any, b: any) => a.startTime.localeCompare(b.startTime));
+      
     setDaySessions(sessionsForDay);
     setSelectedSessionIds(new Set());
+    
     // Initialize modifiedSessions with current config values
     const mods: Record<string, any> = {};
     sessionsForDay.forEach((s: any) => {
@@ -130,7 +164,7 @@ const AbsentSlotManager = ({ doctorId, dispensaryId }: AbsentSlotManagerProps) =
       };
     });
     setModifiedSessions(mods);
-  }, [selectedDate, timeSlotConfigs]);
+  }, [selectedDate, timeSlotConfigs, absentSlots]);
 
   const toggleSessionSelection = (configId: string) => {
     setSelectedSessionIds(prev => {
@@ -561,30 +595,45 @@ const AbsentSlotManager = ({ doctorId, dispensaryId }: AbsentSlotManagerProps) =
                             return (
                               <button
                                 key={id}
-                                onClick={() => toggleSessionSelection(id)}
+                                onClick={() => !session.isAbsent && toggleSessionSelection(id)}
+                                disabled={session.isAbsent}
                                 className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
+                                  session.isAbsent ? 'border-gray-200 bg-gray-50 opacity-70 cursor-not-allowed' :
                                   isSelected
                                     ? 'border-red-500 bg-red-50'
                                     : 'border-gray-200 hover:border-red-300'
                                 }`}
                               >
                                 <div className="flex items-center">
-                                  <div className={`w-5 h-5 rounded border-2 mr-3 flex items-center justify-center ${
-                                    isSelected ? 'border-red-500 bg-red-500' : 'border-gray-300'
+                                  <div className={`w-5 h-5 rounded border-2 mr-3 flex items-center justify-center flex-shrink-0 ${
+                                    session.isAbsent ? 'border-gray-300 bg-gray-200' : isSelected ? 'border-red-500 bg-red-500' : 'border-gray-300'
                                   }`}>
-                                    {isSelected && (
+                                    {isSelected && !session.isAbsent && (
                                       <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                                       </svg>
                                     )}
                                   </div>
                                   <div>
-                                    <span className={`font-semibold ${isSelected ? 'text-red-700' : 'text-gray-700'}`}>
+                                    <span className={`font-semibold ${session.isAbsent ? 'text-gray-400 line-through' : isSelected ? 'text-red-700' : 'text-gray-700'}`}>
                                       {session.startTime} - {session.endTime}
                                     </span>
-                                    <span className="text-xs text-gray-500 ml-2">
-                                      ({session.maxPatients} patients max)
-                                    </span>
+                                    {session.isAbsent ? (
+                                      <span className="text-xs text-gray-500 ml-2 font-semibold">
+                                        (Already Absent)
+                                      </span>
+                                    ) : (
+                                      <>
+                                        <span className="text-xs text-gray-500 ml-2">
+                                          ({session.maxPatients} patients max)
+                                        </span>
+                                        {session.isModified && (
+                                          <span className="text-xs text-amber-600 ml-2 font-semibold bg-amber-50 px-1 py-0.5 rounded">
+                                            (Modified)
+                                          </span>
+                                        )}
+                                      </>
+                                    )}
                                   </div>
                                 </div>
                               </button>
@@ -682,25 +731,39 @@ const AbsentSlotManager = ({ doctorId, dispensaryId }: AbsentSlotManagerProps) =
                             >
                               {/* Session header with toggle */}
                               <button
-                                onClick={() => toggleModifiedSession(id)}
+                                onClick={() => !session.isAbsent && toggleModifiedSession(id)}
+                                disabled={session.isAbsent}
                                 className="w-full p-3 flex items-center text-left"
                               >
                                 <div className={`w-5 h-5 rounded border-2 mr-3 flex items-center justify-center flex-shrink-0 ${
-                                  mod.selected ? 'border-amber-500 bg-amber-500' : 'border-gray-300'
+                                  session.isAbsent ? 'border-gray-300 bg-gray-200' : mod.selected ? 'border-amber-500 bg-amber-500' : 'border-gray-300'
                                 }`}>
-                                  {mod.selected && (
+                                  {mod.selected && !session.isAbsent && (
                                     <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                                     </svg>
                                   )}
                                 </div>
                                 <div>
-                                  <span className={`font-semibold ${mod.selected ? 'text-amber-700' : 'text-gray-700'}`}>
+                                  <span className={`font-semibold ${session.isAbsent ? 'text-gray-400 line-through' : mod.selected ? 'text-amber-700' : 'text-gray-700'}`}>
                                     {session.startTime} - {session.endTime}
                                   </span>
-                                  <span className="text-xs text-gray-500 ml-2">
-                                    (Original: {session.maxPatients} patients max)
-                                  </span>
+                                  {session.isAbsent ? (
+                                    <span className="text-xs text-gray-500 ml-2 font-semibold">
+                                      (Already Absent)
+                                    </span>
+                                  ) : (
+                                    <>
+                                      <span className="text-xs text-gray-500 ml-2">
+                                        ({session.maxPatients} patients max)
+                                      </span>
+                                      {session.isModified && (
+                                        <span className="text-xs text-amber-600 ml-2 font-semibold bg-amber-50 px-1 py-0.5 rounded">
+                                          (Modified)
+                                        </span>
+                                      )}
+                                    </>
+                                  )}
                                 </div>
                               </button>
 

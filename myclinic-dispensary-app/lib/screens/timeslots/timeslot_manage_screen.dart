@@ -656,26 +656,59 @@ class _AbsencesTab extends ConsumerWidget {
                     try {
                       final configs = await TimeSlotService()
                           .getConfigs(params.doctorId, params.dispensaryId);
+                      final absentsList = ref.read(absentSlotsProvider(params)).value ?? [];    
                       final dayOfWeek = picked.weekday % 7; // 0=Sun
                       final filtered = configs
                           .where((c) => c.dayOfWeek == dayOfWeek)
                           .toList();
+                          
+                      final fmtDate = DateFormat('yyyy-MM-dd').format(picked);    
+                          
                       setDialogState(() {
                         sessionsForDay = filtered;
                         modifiedEntries = filtered
-                            .map((c) => _ModifiedSessionEntry(
+                            .map((c) {
+                                // Check for overlapping absence
+                                final absence = absentsList.where((a) {
+                                  if (a.isDateRange) {
+                                    return a.startDate != null && a.endDate != null &&
+                                           picked.isAfter(a.startDate!.subtract(const Duration(days: 1))) && 
+                                           picked.isBefore(a.endDate!.add(const Duration(days: 1)));
+                                  } else {
+                                    return a.date != null && DateFormat('yyyy-MM-dd').format(a.date!) == fmtDate && (a.timeSlotConfigId == c.id || a.timeSlotConfigId == null);
+                                  }
+                                }).firstOrNull;
+                                
+                                bool isAbsent = absence != null && !absence.isModifiedSession;
+                                bool isModified = absence != null && absence.isModifiedSession;
+                                
+                                String displayTime = '${c.startTime} - ${c.endTime}';
+                                String startTime = c.startTime;
+                                String endTime = c.endTime;
+                                int maxPatients = c.maxPatients;
+                                
+                                if (isModified) {
+                                  displayTime = '${absence.startTime} - ${absence.endTime}';
+                                  startTime = absence.startTime ?? c.startTime;
+                                  endTime = absence.endTime ?? c.endTime;
+                                  maxPatients = absence.maxPatients ?? c.maxPatients;
+                                }
+                                
+                                return _ModifiedSessionEntry(
                                   configId: c.id,
-                                  originalTime:
-                                      '${c.startTime} - ${c.endTime}',
-                                  originalMax: c.maxPatients,
+                                  originalTime: displayTime,
+                                  originalMax: maxPatients,
+                                  isAbsent: isAbsent,
+                                  isModified: isModified,
                                   startTimeCtrl:
-                                      TextEditingController(text: c.startTime),
+                                      TextEditingController(text: startTime),
                                   endTimeCtrl:
-                                      TextEditingController(text: c.endTime),
+                                      TextEditingController(text: endTime),
                                   maxPatientsCtrl: TextEditingController(
-                                      text: '${c.maxPatients}'),
+                                      text: '$maxPatients'),
                                   selected: false,
-                                ))
+                                );
+                            })
                             .toList();
                       });
                     } catch (_) {}
@@ -713,12 +746,12 @@ class _AbsencesTab extends ConsumerWidget {
                     margin: const EdgeInsets.only(bottom: 10),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: mod.selected
+                      color: mod.isAbsent ? AppColors.background.withOpacity(0.5) : mod.selected
                           ? AppColors.warningLight
                           : AppColors.background,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: mod.selected
+                        color: mod.isAbsent ? AppColors.border.withOpacity(0.5) : mod.selected
                             ? AppColors.warning
                             : AppColors.border,
                       ),
@@ -730,20 +763,39 @@ class _AbsencesTab extends ConsumerWidget {
                           children: [
                             Checkbox(
                               value: mod.selected,
-                              onChanged: (v) => setDialogState(() =>
+                              onChanged: mod.isAbsent ? null : (v) => setDialogState(() =>
                                   modifiedEntries[i] = mod.copyWith(
                                       selected: v ?? false)),
                             ),
                             Expanded(
-                              child: Text(
-                                '${mod.originalTime} (Max: ${mod.originalMax})',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w500),
+                              child: RichText(
+                                text: TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: '${mod.originalTime} (Max: ${mod.originalMax})',
+                                      style: TextStyle(
+                                        color: mod.isAbsent ? Colors.grey : Colors.black87,
+                                        fontWeight: FontWeight.w500,
+                                        decoration: mod.isAbsent ? TextDecoration.lineThrough : null,
+                                      ),
+                                    ),
+                                    if (mod.isAbsent)
+                                      const TextSpan(
+                                        text: '  (Already Absent)',
+                                        style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.normal),
+                                      ),
+                                    if (mod.isModified && !mod.isAbsent)
+                                      const TextSpan(
+                                        text: '  (Modified)',
+                                        style: TextStyle(color: AppColors.warning, fontSize: 12, fontWeight: FontWeight.bold),
+                                      ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
                         ),
-                        if (mod.selected) ...[
+                        if (mod.selected && !mod.isAbsent) ...[
                           const SizedBox(height: 8),
                           Row(
                             children: [
@@ -1012,6 +1064,8 @@ class _ModifiedSessionEntry {
   final TextEditingController endTimeCtrl;
   final TextEditingController maxPatientsCtrl;
   final bool selected;
+  final bool isAbsent;
+  final bool isModified;
 
   _ModifiedSessionEntry({
     required this.configId,
@@ -1021,6 +1075,8 @@ class _ModifiedSessionEntry {
     required this.endTimeCtrl,
     required this.maxPatientsCtrl,
     required this.selected,
+    this.isAbsent = false,
+    this.isModified = false,
   });
 
   _ModifiedSessionEntry copyWith({bool? selected}) {
@@ -1032,6 +1088,9 @@ class _ModifiedSessionEntry {
       endTimeCtrl: endTimeCtrl,
       maxPatientsCtrl: maxPatientsCtrl,
       selected: selected ?? this.selected,
+      isAbsent: isAbsent,
+      isModified: isModified,
     );
   }
 }
+
