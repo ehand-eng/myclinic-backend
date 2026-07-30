@@ -668,7 +668,7 @@ class _AbsencesTab extends ConsumerWidget {
                         sessionsForDay = filtered;
                         modifiedEntries = filtered
                             .map((c) {
-                                // Check for overlapping absence
+                                // Check for overlapping absence (pick later modification)
                                 final absence = absentsList.where((a) {
                                   if (a.isDateRange) {
                                     return a.startDate != null && a.endDate != null &&
@@ -677,7 +677,7 @@ class _AbsencesTab extends ConsumerWidget {
                                   } else {
                                     return a.date != null && DateFormat('yyyy-MM-dd').format(a.date!) == fmtDate && (a.timeSlotConfigId == c.id || a.timeSlotConfigId == null);
                                   }
-                                }).firstOrNull;
+                                }).lastOrNull;
                                 
                                 bool isAbsent = absence != null && !absence.isModifiedSession;
                                 bool isModified = absence != null && absence.isModifiedSession;

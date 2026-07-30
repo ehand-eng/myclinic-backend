@@ -129,8 +129,9 @@ const AbsentSlotManager = ({ doctorId, dispensaryId }: AbsentSlotManagerProps) =
         const id = c.id || c._id;
         const sessionRecord = { ...c };
         
-        // Check for specific absence for this config
-        const absence = absencesForDate.find((a: any) => 
+        // Check for specific absence for this config (pick the latest one)
+        const reversedAbsences = [...absencesForDate].reverse();
+        const absence = reversedAbsences.find((a: any) => 
           (a.timeSlotConfigId === id) || 
           (!a.timeSlotConfigId) // Full day absence affects all slots
         );
