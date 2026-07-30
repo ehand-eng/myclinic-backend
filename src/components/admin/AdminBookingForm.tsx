@@ -291,7 +291,7 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
       try {
         setIsLoading(true);
         const formattedDate = format(selectedDate, 'yyyy-MM-dd');
-        const response = await api.get(`/timeslots/available/${selectedDoctor}/${selectedDispensary}/${formattedDate}`);
+        const response = await api.get(`/timeslots/available/${selectedDoctor}/${selectedDispensary}/${formattedDate}?channel=offline`);
         setAvailability(response.data);
       } catch (error) {
         console.error('Error fetching availability:', error);
