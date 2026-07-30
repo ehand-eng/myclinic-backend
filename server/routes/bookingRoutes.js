@@ -1410,4 +1410,198 @@ router.post('/sms-delivery-status', async (req, res) => {
   }
 });
 
+// Cancel entire session and broadcast SMS
+router.post('/session/cancel', roleMiddleware.requireAdvancedBookingAccess, async (req, res) => {
+  try {
+    const { doctorId, dispensaryId, bookingDate, timeSlotConfigId } = req.body;
+
+    if (!doctorId || !dispensaryId || !bookingDate) {
+      return res.status(400).json({ message: 'doctorId, dispensaryId, and bookingDate are required' });
+    }
+
+    const startOfDay = new Date(bookingDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(bookingDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const query = {
+      doctorId,
+      dispensaryId,
+      bookingDate: { $gte: startOfDay, $lte: endOfDay },
+      status: { $in: ['scheduled'] }
+    };
+
+    if (timeSlotConfigId) {
+      query.timeSlotConfigId = timeSlotConfigId;
+    }
+
+    const bookings = await Booking.find(query).populate('doctorId').populate('dispensaryId');
+
+    if (bookings.length === 0) {
+      return res.status(200).json({ success: true, patientsNotified: 0, smsFailed: 0, message: 'No active bookings found for this session.' });
+    }
+
+    // Update all to cancelled
+    await Booking.updateMany(
+      { _id: { $in: bookings.map(b => b._id) } },
+      { $set: { status: 'cancelled' } }
+    );
+
+    // Send SMS
+    let notifiedCount = 0;
+    let failedCount = 0;
+
+    // Run async tasks in parallel for speed assuming sms is handled gracefully. Or sequence them
+    for (const booking of bookings) {
+      if (booking.patientPhone) {
+        const dispensaryPhone = booking.dispensaryId?.contactNumber || '';
+        const dateStr = new Date(booking.bookingDate).toDateString();
+        const message = `Dear ${booking.patientName}, your appointment with Dr. ${booking.doctorId?.name} at ${booking.dispensaryId?.name} on ${dateStr} (${booking.timeSlot}) has been CANCELLED. Please contact ${dispensaryPhone} to reschedule. - ${booking.dispensaryId?.name}`;
+
+        try {
+          const smsResult = await smsService.sendSMS([booking.patientPhone], message);
+          if (smsResult && smsResult.success) {
+            notifiedCount++;
+            await Booking.updateOne({ _id: booking._id }, {
+              $set: {
+                'smsDelivery.status': 'sent',
+                'smsDelivery.sentAt': new Date(),
+                'smsDelivery.lastUpdated': new Date(),
+                'smsDelivery.details': `Cancel Session TransID: ${smsResult.transactionId}`
+              }
+            });
+          } else {
+            failedCount++;
+             await Booking.updateOne({ _id: booking._id }, {
+              $set: {
+                'smsDelivery.status': 'failed',
+                'smsDelivery.failedAt': new Date(),
+                'smsDelivery.lastUpdated': new Date(),
+                'smsDelivery.details': `Failed: ${smsResult.error || 'Unknown error'}`
+              }
+            });
+          }
+        } catch(err) {
+          failedCount++;
+        }
+      } else {
+        // No patient phone
+        failedCount++;
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      patientsNotified: notifiedCount,
+      smsFailed: failedCount,
+      message: `Session cancelled. ${notifiedCount} patients notified, ${failedCount} SMS failed.`
+    });
+
+  } catch (error) {
+    console.error('Error cancelling session:', error);
+    res.status(500).json({ message: 'Error cancelling session', error: error.message });
+  }
+});
+
+// Postpone entire session and broadcast SMS
+router.post('/session/postpone', roleMiddleware.requireAdvancedBookingAccess, async (req, res) => {
+  try {
+    const { doctorId, dispensaryId, bookingDate, timeSlotConfigId, newDate, newTimeSlot } = req.body;
+
+    if (!doctorId || !dispensaryId || !bookingDate || !newDate) {
+      return res.status(400).json({ message: 'doctorId, dispensaryId, bookingDate, and newDate are required' });
+    }
+
+    const startOfDay = new Date(bookingDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(bookingDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const query = {
+      doctorId,
+      dispensaryId,
+      bookingDate: { $gte: startOfDay, $lte: endOfDay },
+      status: { $in: ['scheduled'] }
+    };
+
+    if (timeSlotConfigId) {
+      query.timeSlotConfigId = timeSlotConfigId;
+    }
+
+    const bookings = await Booking.find(query).populate('doctorId').populate('dispensaryId');
+
+    if (bookings.length === 0) {
+      return res.status(200).json({ success: true, patientsNotified: 0, smsFailed: 0, message: 'No active bookings found for this session.' });
+    }
+
+    // Update all to postponed
+    await Booking.updateMany(
+      { _id: { $in: bookings.map(b => b._id) } },
+      { $set: { 
+          status: 'postponed',
+          postponedTo: {
+             date: newDate,
+             timeSlot: newTimeSlot || ''
+          }
+        } 
+      }
+    );
+
+    // Send SMS
+    let notifiedCount = 0;
+    let failedCount = 0;
+
+    for (const booking of bookings) {
+      if (booking.patientPhone) {
+        const dispensaryPhone = booking.dispensaryId?.contactNumber || '';
+        const oldDateStr = new Date(booking.bookingDate).toDateString();
+        const newDateStr = new Date(newDate).toDateString();
+        const newTimeStr = newTimeSlot ? ` ${newTimeSlot}` : '';
+        const message = `Dear ${booking.patientName}, your appointment with Dr. ${booking.doctorId?.name} at ${booking.dispensaryId?.name} on ${oldDateStr} has been POSTPONED to ${newDateStr}${newTimeStr}. Please contact ${dispensaryPhone} for questions. - ${booking.dispensaryId?.name}`;
+
+        try {
+          const smsResult = await smsService.sendSMS([booking.patientPhone], message);
+          if (smsResult && smsResult.success) {
+            notifiedCount++;
+            await Booking.updateOne({ _id: booking._id }, {
+              $set: {
+                'smsDelivery.status': 'sent',
+                'smsDelivery.sentAt': new Date(),
+                'smsDelivery.lastUpdated': new Date(),
+                'smsDelivery.details': `Postpone Session TransID: ${smsResult.transactionId}`
+              }
+            });
+          } else {
+            failedCount++;
+             await Booking.updateOne({ _id: booking._id }, {
+              $set: {
+                'smsDelivery.status': 'failed',
+                'smsDelivery.failedAt': new Date(),
+                'smsDelivery.lastUpdated': new Date(),
+                'smsDelivery.details': `Failed: ${smsResult.error || 'Unknown error'}`
+              }
+            });
+          }
+        } catch (err) {
+           failedCount++;
+        }
+      } else {
+        // No phone
+        failedCount++;
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      patientsNotified: notifiedCount,
+      smsFailed: failedCount,
+      message: `Session postponed. ${notifiedCount} patients notified, ${failedCount} SMS failed.`
+    });
+
+  } catch (error) {
+    console.error('Error postponing session:', error);
+    res.status(500).json({ message: 'Error postponing session', error: error.message });
+  }
+});
+
 module.exports = router;

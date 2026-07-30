@@ -38,8 +38,12 @@ const bookingSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['scheduled', 'checked_in', 'completed', 'cancelled', 'no_show'],
+    enum: ['scheduled', 'checked_in', 'completed', 'cancelled', 'no_show', 'postponed'],
     default: 'scheduled'
+  },
+  postponedTo: {
+    date: String,
+    timeSlot: String
   },
   paymentId: {
     type: String
