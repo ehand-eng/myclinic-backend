@@ -39,6 +39,10 @@ const dispensarySchema = new mongoose.Schema({
     type: Number,
     default: 30,
     min: 1
+  },
+  allowOngoingSessionBookings: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: {

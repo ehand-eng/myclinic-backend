@@ -451,6 +451,9 @@ router.get('/available/:doctorId/:dispensaryId/:date', async (req, res) => {
       dayOfWeek
     }).sort({ startTime: 1 });
 
+    const dispensary = await Dispensary.findById(dispensaryId).lean();
+    const allowOngoingSessionBookings = dispensary ? !!dispensary.allowOngoingSessionBookings : false;
+
     if (!timeSlotConfigs || timeSlotConfigs.length === 0) {
       return res.status(200).json({
         available: false,
@@ -603,9 +606,15 @@ router.get('/available/:doctorId/:dispensaryId/:date', async (req, res) => {
         sessionStartForCutoff.setHours(csh, csm, 0, 0);
         const cutoffOffset = config.bookingCutoffMinutes ?? -60;
         const cutoffTime = new Date(sessionStartForCutoff.getTime() + (cutoffOffset * 60000));
+        
         if (now > cutoffTime) {
-          expiredSessionCount++;
-          continue;
+          if (req.query.channel === 'offline' && allowOngoingSessionBookings) {
+            // Bypass hiding the session because it's an offline manual booking attempt 
+            // and the dispensary permits it
+          } else {
+            expiredSessionCount++;
+            continue;
+          }
         }
       }
 
@@ -1102,8 +1111,13 @@ router.get('/sessions-by-dispensary/:dispensaryId/:date', async (req, res) => {
       bookingDate: { $gte: startOfDay, $lte: endOfDay },
     }).select('doctorId timeSlotConfigId status').lean();
 
+    const dispensary = await Dispensary.findById(dispensaryId).lean();
+    const allowOngoingSessionBookings = dispensary ? !!dispensary.allowOngoingSessionBookings : false;
+
     // Build sessions array
     const sessions = [];
+    const now = new Date();
+    const isToday = startOfDay.toDateString() === now.toDateString();
 
     for (const ts of timeSlots) {
       const doctorIdStr = ts.doctorId.toString();
@@ -1124,6 +1138,18 @@ router.get('/sessions-by-dispensary/:dispensaryId/:date', async (req, res) => {
         startTime = absent.startTime || ts.startTime;
         endTime = absent.endTime || ts.endTime;
         isModified = true;
+      }
+
+      let isPastCutoff = false;
+      if (isToday) {
+        const [csh, csm] = startTime.split(':').map(Number);
+        const sessionStartForCutoff = new Date(startOfDay);
+        sessionStartForCutoff.setHours(csh, csm, 0, 0);
+        const cutoffOffset = ts.bookingCutoffMinutes ?? -60;
+        const cutoffTime = new Date(sessionStartForCutoff.getTime() + (cutoffOffset * 60000));
+        if (now > cutoffTime) {
+          isPastCutoff = true;
+        }
       }
 
       // Count bookings for this specific session
@@ -1148,6 +1174,7 @@ router.get('/sessions-by-dispensary/:dispensaryId/:date', async (req, res) => {
         endTime,
         timeSlotConfigId: ts._id.toString(),
         isModified,
+        isPastCutoff,
         bookingStats
       });
     }
@@ -1158,7 +1185,10 @@ router.get('/sessions-by-dispensary/:dispensaryId/:date', async (req, res) => {
       return a.startTime.localeCompare(b.startTime);
     });
 
-    res.status(200).json({ sessions });
+    res.status(200).json({ 
+      allowOngoingSessionBookings,
+      sessions 
+    });
   } catch (error) {
     console.error('Error getting sessions by dispensary:', error);
     res.status(500).json({ message: 'Error fetching sessions', error: error.message });

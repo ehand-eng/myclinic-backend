@@ -4,6 +4,7 @@ const Booking = require('../models/Booking');
 const TimeSlotConfig = require('../models/TimeSlotConfig');
 const AbsentTimeSlot = require('../models/AbsentTimeSlot');
 const DoctorDispensary = require('../models/DoctorDispensary');
+const Dispensary = require('../models/Dispensary');
 const mongoose = require('mongoose');
 const roleMiddleware = require('../middleware/roleMiddleware');
 const { validateCustomJwt } = require('../middleware/customAuthMiddleware');
@@ -623,6 +624,37 @@ router.post('/', async (req, res) => {
         bookedUser,
         isChannelPartner: bookedBy === 'CHANNEL-PARTNER'
       });
+
+      // --- ONGOING SESSION CUTOFF ENFORCEMENT ---
+      const isToday = startOfDay.toDateString() === new Date().toDateString();
+      if (isToday) {
+        const [csh, csm] = startTime.split(':').map(Number);
+        const sessionStartForCutoff = new Date(startOfDay);
+        sessionStartForCutoff.setHours(csh, csm, 0, 0);
+        const cutoffOffset = timeSlotConfig.bookingCutoffMinutes ?? -60;
+        const cutoffTime = new Date(sessionStartForCutoff.getTime() + (cutoffOffset * 60000));
+        
+        if (new Date() > cutoffTime) {
+          if (bookedBy === 'ONLINE') {
+            return res.status(400).json({
+              success: false,
+              error: "CUTOFF_TIME_PASSED",
+              message: "The booking cutoff time for this session has already passed."
+            });
+          } else {
+            // For offline/assisted bookings, check if dispensary allows it
+            const dispensary = await Dispensary.findById(dispensaryId).lean();
+            if (!dispensary || !dispensary.allowOngoingSessionBookings) {
+              return res.status(400).json({
+                success: false,
+                error: "ONGOING_SESSION_BOOKING_NOT_ALLOWED",
+                message: "This dispensary does not allow bookings during ongoing sessions."
+              });
+            }
+          }
+        }
+      }
+      // ------------------------------------------
 
       let processedFees = { ...fees };
 
