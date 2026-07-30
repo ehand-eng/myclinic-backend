@@ -84,6 +84,7 @@ interface DispensaryFormValues {
   latitude?: number;
   longitude?: number;
   bookingVisibleDays: number;
+  allowOngoingSessionBookings: boolean;
 }
 
 const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) => {
@@ -104,7 +105,8 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
       doctors: [],
       latitude: undefined,
       longitude: undefined,
-      bookingVisibleDays: 30
+      bookingVisibleDays: 30,
+      allowOngoingSessionBookings: false
     }
   });
 
@@ -132,7 +134,8 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
               doctors: doctorIds,
               latitude: dispensaryData.location?.latitude,
               longitude: dispensaryData.location?.longitude,
-              bookingVisibleDays: dispensaryData.bookingVisibleDays ?? 30
+              bookingVisibleDays: dispensaryData.bookingVisibleDays ?? 30,
+              allowOngoingSessionBookings: dispensaryData.allowOngoingSessionBookings ?? false
             });
           }
         }
@@ -163,7 +166,8 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
         email: data.email,
         description: data.description,
         doctors: selectedDoctors,
-        bookingVisibleDays: selectedDoctors.length > 0 ? data.bookingVisibleDays : undefined
+        bookingVisibleDays: selectedDoctors.length > 0 ? data.bookingVisibleDays : undefined,
+        allowOngoingSessionBookings: data.allowOngoingSessionBookings
       };
 
       // Add location if both latitude and longitude are provided
@@ -425,6 +429,29 @@ const DispensaryForm = ({ dispensaryId, isEdit = false }: DispensaryFormProps) =
                 />
               </>
             )}
+
+            <FormField
+              control={form.control}
+              name="allowOngoingSessionBookings"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 mt-6">
+                  <div className="space-y-0.5 pr-4">
+                    <FormLabel className="text-base">
+                      Allow bookings during ongoing session
+                    </FormLabel>
+                    <p className="text-sm text-gray-500">
+                      When enabled, dispensary staff can manually book appointments for patients even after the normal booking cutoff time, as long as the session is ongoing.
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
           </CardContent>
           <CardFooter className="flex justify-between">
             <Button

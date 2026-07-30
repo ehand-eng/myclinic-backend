@@ -34,6 +34,7 @@ export interface Dispensary extends BaseModel {
     longitude: number;
   };
   bookingVisibleDays?: number;
+  allowOngoingSessionBookings?: boolean;
 }
 
 // Time slot configuration for doctor at a specific dispensary

@@ -79,7 +79,8 @@ class _QrScanScreenState extends State<QrScanScreen> {
       return;
     }
 
-    if (data['bookingId'] == null || data['transactionId'] == null) {
+    final parsedBookingId = data['bookingId']?.toString();
+    if (parsedBookingId == null || parsedBookingId.isEmpty) {
       _showErrorWithCooldown('Invalid QR code — not a booking');
       return;
     }

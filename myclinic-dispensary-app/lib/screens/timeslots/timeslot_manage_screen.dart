@@ -9,6 +9,7 @@ import '../../services/dispensary_service.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/full_dialog.dart';
+import '../../utils/time_formatter.dart';
 
 final timeSlotConfigsProvider = FutureProvider.family<List<TimeSlotConfig>,
     ({String doctorId, String dispensaryId})>((ref, p) async {
@@ -234,6 +235,7 @@ class _RegularScheduleTab extends ConsumerWidget {
         TextEditingController(text: '${existing?.maxPatients ?? 20}');
     final minCtrl =
         TextEditingController(text: '${existing?.minutesPerPatient ?? 15}');
+    int bookingCutoffMinutes = existing?.bookingCutoffMinutes ?? -60;
 
     showFullDialog(
       context: context,
@@ -254,12 +256,16 @@ class _RegularScheduleTab extends ConsumerWidget {
           const SizedBox(height: 16),
           TextField(
             controller: startCtrl,
+            keyboardType: TextInputType.number,
+            inputFormatters: [TimeTextInputFormatter()],
             decoration:
                 const InputDecoration(labelText: 'Start Time (HH:MM)'),
           ),
           const SizedBox(height: 16),
           TextField(
             controller: endCtrl,
+            keyboardType: TextInputType.number,
+            inputFormatters: [TimeTextInputFormatter()],
             decoration:
                 const InputDecoration(labelText: 'End Time (HH:MM)'),
           ),
@@ -275,6 +281,42 @@ class _RegularScheduleTab extends ConsumerWidget {
             keyboardType: TextInputType.number,
             decoration:
                 const InputDecoration(labelText: 'Minutes Per Patient'),
+          ),
+          const SizedBox(height: 16),
+          const Text('Booking Cutoff (Minutes offset from start)',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              IconButton(
+                onPressed: () => setDialogState(
+                    () => bookingCutoffMinutes -= 15),
+                icon: const Icon(Icons.remove_circle_outline),
+                color: AppColors.primary,
+              ),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    border: Border.all(color: AppColors.border),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '$bookingCutoffMinutes min',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: () => setDialogState(
+                    () => bookingCutoffMinutes += 15),
+                icon: const Icon(Icons.add_circle_outline),
+                color: AppColors.primary,
+              ),
+            ],
           ),
         ],
       ),
@@ -296,6 +338,7 @@ class _RegularScheduleTab extends ConsumerWidget {
                 'endTime': endCtrl.text,
                 'maxPatients': int.tryParse(maxCtrl.text) ?? 20,
                 'minutesPerPatient': int.tryParse(minCtrl.text) ?? 15,
+                'bookingCutoffMinutes': bookingCutoffMinutes,
               };
               if (existing != null) {
                 await TimeSlotService().updateConfig(existing.id, data);
@@ -707,6 +750,8 @@ class _AbsencesTab extends ConsumerWidget {
                               Expanded(
                                 child: TextField(
                                   controller: mod.startTimeCtrl,
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [TimeTextInputFormatter()],
                                   decoration: const InputDecoration(
                                     labelText: 'Start',
                                     contentPadding: EdgeInsets.symmetric(
@@ -718,6 +763,8 @@ class _AbsencesTab extends ConsumerWidget {
                               Expanded(
                                 child: TextField(
                                   controller: mod.endTimeCtrl,
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [TimeTextInputFormatter()],
                                   decoration: const InputDecoration(
                                     labelText: 'End',
                                     contentPadding: EdgeInsets.symmetric(

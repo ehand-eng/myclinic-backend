@@ -232,7 +232,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
                           backgroundColor: AppColors.warning,
                           foregroundColor: AppColors.textWhite),
                       icon: const Icon(Icons.logout),
-                      label: const Text('Check-Out',
+                      label: const Text('Undo',
                           style: TextStyle(
                               fontSize: 16, fontWeight: FontWeight.w600)),
                     ),

@@ -611,13 +611,13 @@ const MyBookings = () => {
             onClick={() => {
               setQrData({
                 bookingId: b._id || '',
-                transactionId: b.transactionId,
-                phone: b.patientPhone,
+                transactionId: b.transactionId || '',
+                phone: b.patientPhone || '',
                 doctor: b.doctor?.name || '',
                 dispensary: b.dispensary?.name || '',
                 date: b.bookingDate?.split('T')[0] || '',
                 time: b.timeSlot || '',
-                aptNo: b.appointmentNumber,
+                aptNo: b.appointmentNumber || 0,
                 estTime: b.estimatedTime || '',
               });
               setShowQr(true);

@@ -166,12 +166,23 @@ class _DoctorFormScreenState extends ConsumerState<DoctorFormScreen> {
                           : null,
                     ),
                     const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _specController,
+                    DropdownButtonFormField<String>(
+                      value: _specController.text.isNotEmpty ? _specController.text : null,
                       decoration: const InputDecoration(
                         labelText: 'Specialization *',
                         prefixIcon: Icon(Icons.medical_services_outlined),
                       ),
+                      items: [
+                        'Cardiologist', 'Dermatologist', 'Neurologist', 'Orthopedic Surgeon',
+                        'Pediatrician', 'Psychiatrist', 'General Practitioner', 'Gynecologist', 'Ophthalmologist'
+                      ].map((spec) => DropdownMenuItem(value: spec, child: Text(spec))).toList(),
+                      onChanged: (v) {
+                        if (v != null) {
+                          setState(() {
+                            _specController.text = v;
+                          });
+                        }
+                      },
                       validator: (v) => v == null || v.trim().isEmpty
                           ? 'Specialization is required'
                           : null,

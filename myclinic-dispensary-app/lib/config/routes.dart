@@ -16,6 +16,7 @@ import '../screens/timeslots/timeslot_selector_screen.dart';
 import '../screens/timeslots/timeslot_manage_screen.dart';
 import '../screens/dispensaries/dispensary_edit_screen.dart';
 import '../screens/bookings/booking_detail_screen.dart';
+import '../screens/bookings/create_booking_screen.dart';
 import '../screens/reports/reports_screen.dart';
 import '../screens/qrscan/qr_scan_screen.dart';
 
@@ -177,6 +178,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
       // Booking detail
+      GoRoute(
+        path: '/create-booking',
+        builder: (_, __) => const CreateBookingScreen(),
+      ),
       GoRoute(
         path: '/bookings/:id',
         builder: (_, state) => BookingDetailScreen(

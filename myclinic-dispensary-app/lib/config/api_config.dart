@@ -43,7 +43,7 @@ class ApiConfig {
   static String updateTimeSlotConfig(String id) => '/timeslots/config/$id';
   static String deleteTimeSlotConfig(String id) => '/timeslots/config/$id';
   static String sessions(String doctorId, String dispensaryId, String date) =>
-      '/timeslots/sessions/$doctorId/$dispensaryId/$date';
+      '/timeslots/available/$doctorId/$dispensaryId/$date?channel=offline';
   static String sessionsByDispensary(String dispensaryId, String date) =>
       '/timeslots/sessions-by-dispensary/$dispensaryId/$date';
 

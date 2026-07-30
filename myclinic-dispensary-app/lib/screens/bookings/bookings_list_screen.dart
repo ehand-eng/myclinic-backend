@@ -5,8 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../config/theme.dart';
 import '../../models/booking.dart';
-import '../../providers/auth_provider.dart';
 import '../../services/booking_service.dart';
+import '../../services/timeslot_service.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state.dart';
@@ -27,6 +27,7 @@ class _BookingsListScreenState extends ConsumerState<BookingsListScreen> {
   Timer? _timer;
   final ValueNotifier<DateTime> _nowNotifier = ValueNotifier(DateTime.now());
   Timer? _searchDebounce;
+  bool _isAddDisabled = false;
 
   @override
   void initState() {
@@ -87,8 +88,25 @@ class _BookingsListScreenState extends ConsumerState<BookingsListScreen> {
         dateStr,
         dispensaryId: dispensaryId,
       );
+
+      bool isAddDisabled = false;
+      if (dispensaryId != null) {
+        try {
+          final sessionsRes = await TimeSlotService().getSessionsByDispensary(dispensaryId, dateStr);
+          if (!sessionsRes.allowOngoingSessionBookings && sessionsRes.sessions.isNotEmpty) {
+            // Disabled if all existing sessions have passed cutoff and ongoing isn't permitted
+            isAddDisabled = sessionsRes.sessions.every((s) => s.isPastCutoff);
+          }
+        } catch (e) {
+          debugPrint('Error getting session status: $e');
+        }
+      }
+
       if (mounted) {
-        setState(() => _bookings = bookings);
+        setState(() {
+          _bookings = bookings;
+          _isAddDisabled = isAddDisabled;
+        });
         _startTimerIfNeeded();
       }
     } catch (e) {
@@ -351,6 +369,30 @@ class _BookingsListScreenState extends ConsumerState<BookingsListScreen> {
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          if (_isAddDisabled) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'This dispensary is not allowed to book appointments in the ongoing session.'
+                ),
+                backgroundColor: AppColors.error,
+              ),
+            );
+            return;
+          }
+          final result = await context.push<bool>('/create-booking');
+          if (result == true) {
+            _loadBookings();
+          }
+        },
+        backgroundColor: _isAddDisabled ? AppColors.textLight : AppColors.primary,
+        tooltip: 'Book Appointment',
+        child: Icon(Icons.add, 
+          color: _isAddDisabled ? AppColors.textWhite.withOpacity(0.6) : AppColors.textWhite
+        ),
+      ),
     );
   }
 }
@@ -551,7 +593,7 @@ class _BookingCard extends StatelessWidget {
                       ? onCheckOut
                       : null,
                   icon: const Icon(Icons.logout, size: 16),
-                  label: const Text('Check-Out'),
+                  label: const Text('Undo'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.warning,
                     foregroundColor: AppColors.textWhite,

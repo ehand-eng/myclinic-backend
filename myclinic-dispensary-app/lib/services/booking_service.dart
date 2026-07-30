@@ -106,4 +106,13 @@ class BookingService {
   Future<void> checkOutBooking(String id) async {
     await _api.patch(ApiConfig.checkOutBooking(id));
   }
+
+  /// Create a new booking for a patient
+  Future<Booking> createBooking(Map<String, dynamic> data) async {
+    final response = await _api.post(ApiConfig.bookings, data: data);
+    final result = response.data is Map && response.data.containsKey('booking')
+        ? response.data['booking']
+        : response.data;
+    return Booking.fromJson(result);
+  }
 }

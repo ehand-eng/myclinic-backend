@@ -7,7 +7,7 @@ class TimeSlotConfig {
   final String endTime;
   final int maxPatients;
   final int minutesPerPatient;
-  final int bookingCutoverTime;
+  final int bookingCutoffMinutes;
   final bool isActive;
 
   TimeSlotConfig({
@@ -19,7 +19,7 @@ class TimeSlotConfig {
     required this.endTime,
     this.maxPatients = 20,
     this.minutesPerPatient = 15,
-    this.bookingCutoverTime = 60,
+    this.bookingCutoffMinutes = -60,
     this.isActive = true,
   });
 
@@ -37,7 +37,7 @@ class TimeSlotConfig {
       endTime: json['endTime'] ?? '',
       maxPatients: json['maxPatients'] ?? 20,
       minutesPerPatient: json['minutesPerPatient'] ?? 15,
-      bookingCutoverTime: json['bookingCutoverTime'] ?? 60,
+      bookingCutoffMinutes: json['bookingCutoffMinutes'] ?? -60,
       isActive: json['isActive'] ?? true,
     );
   }
@@ -51,7 +51,7 @@ class TimeSlotConfig {
       'endTime': endTime,
       'maxPatients': maxPatients,
       'minutesPerPatient': minutesPerPatient,
-      'bookingCutoverTime': bookingCutoverTime,
+      'bookingCutoffMinutes': bookingCutoffMinutes,
     };
   }
 

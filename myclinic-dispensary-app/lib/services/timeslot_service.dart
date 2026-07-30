@@ -2,6 +2,43 @@ import '../config/api_config.dart';
 import '../models/time_slot.dart';
 import 'api_service.dart';
 
+class SessionStatus {
+  final String timeSlotConfigId;
+  final bool isPastCutoff;
+
+  SessionStatus({
+    required this.timeSlotConfigId,
+    required this.isPastCutoff,
+  });
+
+  factory SessionStatus.fromJson(Map<String, dynamic> json) {
+    return SessionStatus(
+      timeSlotConfigId: json['timeSlotConfigId'] ?? '',
+      isPastCutoff: json['isPastCutoff'] ?? false,
+    );
+  }
+}
+
+class DispensarySessionsResponse {
+  final bool allowOngoingSessionBookings;
+  final List<SessionStatus> sessions;
+
+  DispensarySessionsResponse({
+    required this.allowOngoingSessionBookings,
+    required this.sessions,
+  });
+
+  factory DispensarySessionsResponse.fromJson(Map<String, dynamic> json) {
+    return DispensarySessionsResponse(
+      allowOngoingSessionBookings: json['allowOngoingSessionBookings'] ?? false,
+      sessions: (json['sessions'] as List?)
+              ?.map((e) => SessionStatus.fromJson(e))
+              .toList() ??
+          [],
+    );
+  }
+}
+
 class TimeSlotService {
   final _api = ApiService();
 
@@ -42,14 +79,11 @@ class TimeSlotService {
     return (data as List).map((e) => Session.fromJson(e)).toList();
   }
 
-  Future<List<Session>> getSessionsByDispensary(
+  Future<DispensarySessionsResponse> getSessionsByDispensary(
       String dispensaryId, String date) async {
     final response =
         await _api.get(ApiConfig.sessionsByDispensary(dispensaryId, date));
-    final data = response.data is List
-        ? response.data
-        : response.data['sessions'] ?? [];
-    return (data as List).map((e) => Session.fromJson(e)).toList();
+    return DispensarySessionsResponse.fromJson(response.data);
   }
 
   // Absent slots — backend requires startDate and endDate query params
