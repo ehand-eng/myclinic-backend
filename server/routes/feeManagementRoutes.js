@@ -238,26 +238,39 @@ router.post('/:doctorId', async (req, res) => {
       .lean();
     
     const responseData = {
-      id: populatedFee._id.toString(),
-      doctorId: populatedFee.doctorId._id.toString(),
-      dispensaryId: populatedFee.dispensaryId._id.toString(),
-      bookingCode: populatedFee.bookingCode || '',
-      doctorFee: populatedFee.doctorFee,
-      dispensaryFee: populatedFee.dispensaryFee,
-      channelPartnerFee: populatedFee.channelPartnerFee || 0,
-      onlineFee: populatedFee.bookingCommission,
-      doctorName: populatedFee.doctorId.name,
-      doctorSpecialization: populatedFee.doctorId.specialization,
-      dispensaryName: populatedFee.dispensaryId.name,
-      dispensaryAddress: populatedFee.dispensaryId.address,
-      createdAt: populatedFee.createdAt,
-      updatedAt: populatedFee.updatedAt
+      id: populatedFee?._id?.toString() || newFeeConfig._id.toString(),
+      doctorId: populatedFee?.doctorId?._id?.toString() || doctorId,
+      dispensaryId: populatedFee?.dispensaryId?._id?.toString() || dispensaryId,
+      bookingCode: populatedFee?.bookingCode || finalBookingCode,
+      doctorFee: populatedFee?.doctorFee || Number(doctorFee),
+      dispensaryFee: populatedFee?.dispensaryFee || Number(dispensaryFee),
+      channelPartnerFee: populatedFee?.channelPartnerFee || Number(channelPartnerFee || 0),
+      onlineFee: populatedFee?.bookingCommission || Number(onlineFee),
+      doctorName: populatedFee?.doctorId?.name || doctor.name,
+      doctorSpecialization: populatedFee?.doctorId?.specialization || doctor.specialization,
+      dispensaryName: populatedFee?.dispensaryId?.name || dispensary.name,
+      dispensaryAddress: populatedFee?.dispensaryId?.address || dispensary.address,
+      createdAt: populatedFee?.createdAt || new Date(),
+      updatedAt: populatedFee?.updatedAt || new Date()
     };
     
     console.log('Created fee configuration:', responseData.id);
     res.status(201).json(responseData);
   } catch (error) {
     console.error('Error creating fee:', error);
+    if (error.code === 11000) {
+      const field = error.keyPattern && error.keyPattern.bookingCode ? 'Booking code' : 'Combination';
+      return res.status(409).json({ 
+        message: `${field} already exists and must be unique.`, 
+        error: error.message 
+      });
+    }
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ 
+        message: 'Validation error. Please check your inputs.', 
+        error: error.message 
+      });
+    }
     res.status(500).json({ 
       message: 'Failed to create fee', 
       error: error.message 
@@ -313,26 +326,38 @@ router.put('/:doctorId/:feeId', async (req, res) => {
     }
     
     const responseData = {
-      id: updatedFee._id.toString(),
-      doctorId: updatedFee.doctorId._id.toString(),
-      dispensaryId: updatedFee.dispensaryId._id.toString(),
-      bookingCode: updatedFee.bookingCode || '',
-      doctorFee: updatedFee.doctorFee,
-      dispensaryFee: updatedFee.dispensaryFee,
-      channelPartnerFee: updatedFee.channelPartnerFee || 0,
-      onlineFee: updatedFee.bookingCommission,
-      doctorName: updatedFee.doctorId.name,
-      doctorSpecialization: updatedFee.doctorId.specialization,
-      dispensaryName: updatedFee.dispensaryId.name,
-      dispensaryAddress: updatedFee.dispensaryId.address,
-      createdAt: updatedFee.createdAt,
-      updatedAt: updatedFee.updatedAt
+      id: updatedFee?._id?.toString() || feeId,
+      doctorId: updatedFee?.doctorId?._id?.toString() || doctorId,
+      dispensaryId: updatedFee?.dispensaryId?._id?.toString() || '',
+      bookingCode: updatedFee?.bookingCode || '',
+      doctorFee: updatedFee?.doctorFee || 0,
+      dispensaryFee: updatedFee?.dispensaryFee || 0,
+      channelPartnerFee: updatedFee?.channelPartnerFee || 0,
+      onlineFee: updatedFee?.bookingCommission || 0,
+      doctorName: updatedFee?.doctorId?.name || '',
+      doctorSpecialization: updatedFee?.doctorId?.specialization || '',
+      dispensaryName: updatedFee?.dispensaryId?.name || '',
+      dispensaryAddress: updatedFee?.dispensaryId?.address || '',
+      createdAt: updatedFee?.createdAt,
+      updatedAt: updatedFee?.updatedAt
     };
     
     console.log('Updated fee configuration:', responseData.id);
     res.json(responseData);
   } catch (error) {
     console.error('Error updating fee:', error);
+    if (error.code === 11000) {
+      return res.status(409).json({ 
+        message: 'This booking code is already in use.', 
+        error: error.message 
+      });
+    }
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ 
+        message: 'Validation error. Please check your inputs.', 
+        error: error.message 
+      });
+    }
     res.status(500).json({ 
       message: 'Failed to update fee', 
       error: error.message 
