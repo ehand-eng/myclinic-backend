@@ -481,18 +481,6 @@ const SimpleFeeManagement: React.FC = () => {
                   </Select>
                 </div>
 
-                <div>
-                  <Label htmlFor="booking-code">WhatsApp Code</Label>
-                  <Input
-                    id="booking-code"
-                    type="text"
-                    value={feeForm.bookingCode}
-                    onChange={(e) => setFeeForm(prev => ({ ...prev, bookingCode: e.target.value.toUpperCase() }))}
-                    placeholder="e.g. B001 (Blank = Auto)"
-                    className="uppercase"
-                    disabled={loading}
-                  />
-                </div>
 
                 <div>
                   <Label htmlFor="doctor-fee">Doctor Fee (Rs)</Label>
