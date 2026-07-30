@@ -67,6 +67,7 @@ class _AmendBookingScreenState extends ConsumerState<AmendBookingScreen> {
                     firstDay: DateTime.now(),
                     lastDay: DateTime.now().add(const Duration(days: 30)),
                     focusedDay: _focusedDay,
+                    availableGestures: AvailableGestures.horizontalSwipe,
                     selectedDayPredicate: (day) => isSameDay(_selectedDate, day),
                     enabledDayPredicate: (day) => !_disabledDates.any((d) => isSameDay(d, day)),
                     onDaySelected: (selected, focused) {

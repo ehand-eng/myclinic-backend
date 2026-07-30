@@ -222,6 +222,7 @@ class _BookingStep1ScreenState extends ConsumerState<BookingStep1Screen> {
                               ?? 30,
                         )),
                         focusedDay: _focusedDay,
+                        availableGestures: AvailableGestures.horizontalSwipe,
                         selectedDayPredicate: (day) => isSameDay(state.selectedDate, day),
                         enabledDayPredicate: (day) => !state.disabledDates.any((d) => isSameDay(d, day)),
                         onDaySelected: (selected, focused) {
