@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../config/theme.dart';
 import '../../models/booking.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/booking_service.dart';
 import '../../services/timeslot_service.dart';
 import '../../widgets/status_badge.dart';
