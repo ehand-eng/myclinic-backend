@@ -76,44 +76,62 @@ class _MainShellState extends ConsumerState<MainShell> {
           }
         }),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _initializedTabs.add(index);
-            _currentIndex = index;
-          });
-        },
-        backgroundColor: AppColors.card,
-        indicatorColor: AppColors.primarySurface,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard, color: AppColors.primary),
-            label: 'Dashboard',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.event_note_outlined),
-            selectedIcon: Icon(Icons.event_note, color: AppColors.primary),
-            label: 'Bookings',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.how_to_reg_outlined),
-            selectedIcon: Icon(Icons.how_to_reg, color: AppColors.primary),
-            label: 'Check-In',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.medical_services_outlined),
-            selectedIcon:
-                Icon(Icons.medical_services, color: AppColors.primary),
-            label: 'Doctors',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outlined),
-            selectedIcon: Icon(Icons.person, color: AppColors.primary),
-            label: 'Profile',
-          ),
-        ],
+      bottomNavigationBar: NavigationBarTheme(
+        data: NavigationBarThemeData(
+          labelTextStyle: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
+              );
+            }
+            return const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textSecondary,
+            );
+          }),
+        ),
+        child: NavigationBar(
+          selectedIndex: _currentIndex,
+          onDestinationSelected: (index) {
+            setState(() {
+              _initializedTabs.add(index);
+              _currentIndex = index;
+            });
+          },
+          backgroundColor: AppColors.card,
+          indicatorColor: AppColors.primarySurface,
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.dashboard_outlined),
+              selectedIcon: Icon(Icons.dashboard, color: AppColors.primary),
+              label: 'Dashboard',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.event_note_outlined),
+              selectedIcon: Icon(Icons.event_note, color: AppColors.primary),
+              label: 'Bookings',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.how_to_reg_outlined),
+              selectedIcon: Icon(Icons.how_to_reg, color: AppColors.primary),
+              label: 'Check-In',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.medical_services_outlined),
+              selectedIcon:
+                  Icon(Icons.medical_services, color: AppColors.primary),
+              label: 'Doctors',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outlined),
+              selectedIcon: Icon(Icons.person, color: AppColors.primary),
+              label: 'Profile',
+            ),
+          ],
+        ),
       ),
     );
   }
