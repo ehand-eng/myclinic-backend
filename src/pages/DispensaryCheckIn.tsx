@@ -13,6 +13,7 @@ import { BookingService } from '@/api/services/BookingService';
 import { DoctorService } from '@/api/services/DoctorService';
 import { DispensaryService } from '@/api/services/DispensaryService';
 import { TimeSlotService } from '@/api/services/TimeSlotService';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Booking, BookingStatus } from '@/api/models';
 import { Search, Loader2, CheckCircle2, Calendar, LogOut, TimerReset, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -51,7 +52,7 @@ const DispensaryCheckIn = () => {
   const [patientName, setPatientName] = useState('');
   
   // Form state - Bulk mode
-  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
   const [selectedSessionId, setSelectedSessionId] = useState<string>('');
   
@@ -61,6 +62,14 @@ const DispensaryCheckIn = () => {
   const [isCheckingIn, setIsCheckingIn] = useState<string | null>(null);
   const [isCheckingOut, setIsCheckingOut] = useState<string | null>(null);
   const [now, setNow] = useState<Date>(new Date());
+  
+  // Broadcast state
+  const [isCancelSessionOpen, setIsCancelSessionOpen] = useState(false);
+  const [isPostponeSessionOpen, setIsPostponeSessionOpen] = useState(false);
+  const [postponeDate, setPostponeDate] = useState('');
+  const [postponeTime, setPostponeTime] = useState('');
+  const [postponeTimeError, setPostponeTimeError] = useState('');
+  const [isBroadcasting, setIsBroadcasting] = useState(false);
 
   // Global timer tick (updates every second for countdowns)
   useEffect(() => {
@@ -283,6 +292,73 @@ const DispensaryCheckIn = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const activeBookingsCount = bookings.filter(b => b.status === BookingStatus.SCHEDULED).length;
+
+  const handleCancelSession = async () => {
+    if (!selectedDispensaryId || !selectedDoctorId || !selectedDate) return;
+    try {
+      setIsBroadcasting(true);
+      const res = await BookingService.cancelSession({
+        doctorId: selectedDoctorId,
+        dispensaryId: selectedDispensaryId,
+        bookingDate: selectedDate,
+        timeSlotConfigId: selectedSessionId && selectedSessionId !== 'all' ? selectedSessionId : undefined
+      });
+      setIsCancelSessionOpen(false);
+      toast({
+        title: 'Success',
+        description: res.message
+      });
+      handleLoadBookings();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to cancel session',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsBroadcasting(false);
+    }
+  };
+
+  const handlePostponeSession = async () => {
+    if (!selectedDispensaryId || !selectedDoctorId || !selectedDate || !postponeDate) return;
+    
+    setPostponeTimeError('');
+    if (postponeTime.trim()) {
+      const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)\s*-\s*([01]\d|2[0-3]):([0-5]\d)$/;
+      if (!timeRegex.test(postponeTime.trim())) {
+        setPostponeTimeError("Invalid time range. Use format HH:mm - HH:mm (e.g. 09:00 - 14:00)");
+        return;
+      }
+    }
+    try {
+      setIsBroadcasting(true);
+      const res = await BookingService.postponeSession({
+        doctorId: selectedDoctorId,
+        dispensaryId: selectedDispensaryId,
+        bookingDate: selectedDate,
+        timeSlotConfigId: selectedSessionId && selectedSessionId !== 'all' ? selectedSessionId : undefined,
+        newDate: postponeDate,
+        newTimeSlot: postponeTime
+      });
+      setIsPostponeSessionOpen(false);
+      toast({
+        title: 'Success',
+        description: res.message
+      });
+      handleLoadBookings();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to postpone session',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsBroadcasting(false);
     }
   };
 
@@ -648,6 +724,36 @@ const DispensaryCheckIn = () => {
                     </>
                   )}
                 </Button>
+                
+                {selectedDoctorId && selectedDate && (
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <Button 
+                      variant="destructive" 
+                      onClick={() => setIsCancelSessionOpen(true)}
+                    >
+                      Cancel Session
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="border-amber-500 text-amber-500 hover:bg-amber-50" 
+                      onClick={() => {
+                        setPostponeDate(selectedDate);
+                        let defaultTime = '';
+                        if (selectedSessionId && selectedSessionId !== 'all') {
+                          const session = sessions.find(s => s.timeSlotConfigId === selectedSessionId);
+                          if (session) {
+                            defaultTime = `${session.startTime}-${session.endTime}`;
+                          }
+                        }
+                        setPostponeTime(defaultTime);
+                        setPostponeTimeError('');
+                        setIsPostponeSessionOpen(true);
+                      }}
+                    >
+                      Postpone Session
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -655,8 +761,10 @@ const DispensaryCheckIn = () => {
           {/* Bookings Table */}
           {bookings.length > 0 && (
             <Card>
-              <CardHeader>
-                <CardTitle>Bookings ({bookings.length})</CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Bookings ({bookings.length})</CardTitle>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
@@ -780,6 +888,60 @@ const DispensaryCheckIn = () => {
         </div>
       </main>
       
+      {/* Modals */}
+      <Dialog open={isCancelSessionOpen} onOpenChange={setIsCancelSessionOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel Session</DialogTitle>
+            <DialogDescription>
+              You are about to cancel this session. This will notify <strong className="text-foreground">{activeBookingsCount}</strong> patient(s) via SMS. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCancelSessionOpen(false)}>Go Back</Button>
+            <Button variant="destructive" onClick={handleCancelSession} disabled={isBroadcasting}>
+              {isBroadcasting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Yes, Cancel Session & Notify Patients
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isPostponeSessionOpen} onOpenChange={setIsPostponeSessionOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Postpone Session</DialogTitle>
+            <DialogDescription>
+              You are about to postpone this session. This will notify <strong className="text-foreground">{activeBookingsCount}</strong> patient(s) via SMS.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>New Date</Label>
+              <Input type="date" value={postponeDate} readOnly className="bg-gray-100 text-gray-500 cursor-not-allowed" />
+            </div>
+            <div>
+              <Label>New Time Slot (Optional)</Label>
+              <Input type="text" placeholder="e.g. 17:00-19:00" value={postponeTime} onChange={e => {
+                setPostponeTime(e.target.value);
+                if (postponeTimeError) setPostponeTimeError('');
+              }} />
+              {postponeTimeError && <p className="text-sm text-red-500 mt-1">{postponeTimeError}</p>}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPostponeSessionOpen(false)}>Go Back</Button>
+            <Button 
+               className="bg-amber-500 hover:bg-amber-600 text-white" 
+               onClick={handlePostponeSession} 
+               disabled={isBroadcasting || !postponeDate}>
+              {isBroadcasting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Yes, Postpone Session & Notify Patients
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <AdminFooter />
     </div>
   );

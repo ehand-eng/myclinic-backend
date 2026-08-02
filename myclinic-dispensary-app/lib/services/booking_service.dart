@@ -115,4 +115,46 @@ class BookingService {
         : response.data;
     return Booking.fromJson(result);
   }
+
+  Future<Map<String, dynamic>> cancelSession({
+    required String doctorId,
+    required String dispensaryId,
+    required String bookingDate,
+    String? timeSlotConfigId,
+  }) async {
+    final data = {
+      'doctorId': doctorId,
+      'dispensaryId': dispensaryId,
+      'bookingDate': bookingDate,
+    };
+    if (timeSlotConfigId != null) {
+      data['timeSlotConfigId'] = timeSlotConfigId;
+    }
+    final response = await _api.post(ApiConfig.sessionCancel, data: data);
+    return response.data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> postponeSession({
+    required String doctorId,
+    required String dispensaryId,
+    required String bookingDate,
+    required String newDate,
+    String? newTimeSlot,
+    String? timeSlotConfigId,
+  }) async {
+    final data = {
+      'doctorId': doctorId,
+      'dispensaryId': dispensaryId,
+      'bookingDate': bookingDate,
+      'newDate': newDate,
+    };
+    if (timeSlotConfigId != null) {
+      data['timeSlotConfigId'] = timeSlotConfigId;
+    }
+    if (newTimeSlot != null && newTimeSlot.isNotEmpty) {
+      data['newTimeSlot'] = newTimeSlot;
+    }
+    final response = await _api.post(ApiConfig.sessionPostpone, data: data);
+    return response.data as Map<String, dynamic>;
+  }
 }

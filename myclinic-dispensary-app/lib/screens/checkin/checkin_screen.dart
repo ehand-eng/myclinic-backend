@@ -31,6 +31,7 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
   Session? _selectedSession;
   List<Booking> _bookings = [];
   bool _isLoading = false;
+  bool _isBroadcasting = false;
   Timer? _timer;
   final ValueNotifier<DateTime> _nowNotifier = ValueNotifier(DateTime.now());
 
@@ -210,6 +211,157 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
     }
   }
 
+  Future<void> _cancelSession() async {
+    final activeBookingsCount = _bookings.where((b) => b.status == 'scheduled').length;
+    if (_selectedDoctor == null) return;
+    
+    final auth = ref.read(authProvider);
+    final dispensaryId = auth.selectedDispensary?.id;
+    if (dispensaryId == null) return;
+    
+    final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
+
+    final shouldCancel = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cancel Session'),
+        content: Text('You are about to cancel this session. This will notify $activeBookingsCount patient(s) via SMS. This action cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Go Back')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true), 
+            child: const Text('Yes, Cancel')
+          ),
+        ],
+      ),
+    );
+
+    if (shouldCancel != true) return;
+
+    setState(() => _isBroadcasting = true);
+    try {
+      final res = await BookingService().cancelSession(
+        doctorId: _selectedDoctor!.id,
+        dispensaryId: dispensaryId,
+        bookingDate: dateStr,
+        timeSlotConfigId: _selectedSession?.configId,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['message'] ?? 'Cancelled sucessfully'), backgroundColor: AppColors.success));
+      }
+      _reload();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error));
+      }
+    } finally {
+      if (mounted) setState(() => _isBroadcasting = false);
+    }
+  }
+
+  Future<void> _postponeSession() async {
+    final activeBookingsCount = _bookings.where((b) => b.status == 'scheduled').length;
+    if (_selectedDoctor == null) return;
+
+    final auth = ref.read(authProvider);
+    final dispensaryId = auth.selectedDispensary?.id;
+    if (dispensaryId == null) return;
+    
+    final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
+    
+    final dateController = TextEditingController(text: dateStr);
+    
+    String defaultTime = '';
+    if (_selectedSession != null) {
+      defaultTime = _selectedSession!.display;
+    }
+    final timeController = TextEditingController(text: defaultTime);
+
+    final shouldPostpone = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        String? timeError;
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              title: const Text('Postpone Session'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('You are about to postpone this session. This will notify $activeBookingsCount patient(s) via SMS.'),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: dateController,
+                      decoration: const InputDecoration(labelText: 'Date', border: OutlineInputBorder(), filled: true, fillColor: Color(0xFFF3F4F6)),
+                      readOnly: true,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: timeController,
+                      decoration: InputDecoration(
+                        labelText: 'New Time Slot', 
+                        hintText: 'e.g. 17:00-19:00', 
+                        border: const OutlineInputBorder(),
+                        errorText: timeError,
+                      ),
+                      onChanged: (_) {
+                        if (timeError != null) setModalState(() => timeError = null);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Go Back')),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white),
+                  onPressed: () {
+                    final timeText = timeController.text.trim();
+                    if (timeText.isNotEmpty) {
+                      final regex = RegExp(r'^([01]\d|2[0-3]):([0-5]\d)\s*-\s*([01]\d|2[0-3]):([0-5]\d)$');
+                      if (!regex.hasMatch(timeText)) {
+                        setModalState(() => timeError = 'Invalid format. Use HH:mm - HH:mm');
+                        return;
+                      }
+                    }
+                    Navigator.pop(ctx, true);
+                  }, 
+                  child: const Text('Yes, Postpone')
+                ),
+              ],
+            );
+          }
+        );
+      },
+    );
+
+    if (shouldPostpone != true) return;
+
+    setState(() => _isBroadcasting = true);
+    try {
+      final res = await BookingService().postponeSession(
+        doctorId: _selectedDoctor!.id,
+        dispensaryId: dispensaryId,
+        bookingDate: dateStr,
+        newDate: dateController.text,
+        newTimeSlot: timeController.text.trim(),
+        timeSlotConfigId: _selectedSession?.configId,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['message'] ?? 'Postponed sucessfully'), backgroundColor: AppColors.success));
+      }
+      _reload();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error));
+      }
+    } finally {
+      if (mounted) setState(() => _isBroadcasting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -344,6 +496,28 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
                           child: const Text('Load Bookings'),
                         ),
                       ),
+                      if (!_isSearchMode && _selectedDoctor != null) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: _isBroadcasting ? null : _cancelSession,
+                                style: ElevatedButton.styleFrom(backgroundColor: AppColors.error, foregroundColor: Colors.white),
+                                child: _isBroadcasting ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Cancel Session'),
+                              )
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: _isBroadcasting ? null : _postponeSession,
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white),
+                                child: _isBroadcasting ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Postpone'),
+                              )
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
               ],

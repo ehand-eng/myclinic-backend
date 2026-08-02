@@ -525,5 +525,27 @@ export const BookingService = {
       console.error('Error checking out booking:', error);
       throw new Error('Failed to check out booking');
     }
+  },
+
+  // Cancel entire session and notify patients
+  cancelSession: async (params: { doctorId: string; dispensaryId: string; bookingDate: string; timeSlotConfigId?: string }) => {
+    try {
+      const response = await api.post('/bookings/session/cancel', params);
+      return response.data;
+    } catch (error) {
+      console.error('Error cancelling session:', error);
+      throw error;
+    }
+  },
+
+  // Postpone entire session and notify patients
+  postponeSession: async (params: { doctorId: string; dispensaryId: string; bookingDate: string; timeSlotConfigId?: string; newDate: string; newTimeSlot?: string }) => {
+    try {
+      const response = await api.post('/bookings/session/postpone', params);
+      return response.data;
+    } catch (error) {
+      console.error('Error postponing session:', error);
+      throw error;
+    }
   }
 };

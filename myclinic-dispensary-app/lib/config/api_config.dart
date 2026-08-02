@@ -66,6 +66,8 @@ class ApiConfig {
       '/bookings/doctor/$doctorId/dispensary/$dispensaryId/date/$date';
   static String updateBookingStatus(String id) => '/bookings/$id/status';
   static String cancelBooking(String id) => '/bookings/$id/cancel';
+  static const String sessionCancel = '/bookings/session/cancel';
+  static const String sessionPostpone = '/bookings/session/postpone';
 
   // Dispensary Check-In
   static const String checkInSearch = '/dispensary/bookings/search';
