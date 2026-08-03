@@ -326,7 +326,7 @@ async function sendSMS(mobileNumbers, message, sourceAddress = null) {
 
         const response = await postSMS(token);
 
-        console.log(`✅ SMS sent successfully to ${normalizedNumbers.length} numbers. TransID: ${transactionId}`);
+        console.log(`✅ SMS sent successfully to ${normalizedNumbers.length} numbers. TransID: ${transactionId}. Response: ${JSON.stringify(response.data)}`);
         return { success: true, response: response.data, transactionId };
 
     } catch (error) {

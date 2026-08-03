@@ -203,7 +203,7 @@ class OTPService {
   static async sendSMSOTP(phoneNumber) {
     try {
       const otp = this.generateOTP();
-      
+
       // Dialog API operates properly with 9-digit Sri Lankan numbers.
       let normalizedNumber = phoneNumber.replace(/\D/g, '');
       if (normalizedNumber.startsWith('94')) {
@@ -215,10 +215,10 @@ class OTPService {
 
       const message = `Your MyClinic Connect verification code is: ${otp}. This code will expire in 5 minutes.`;
 
-      console.log(`Sending OTP via Dialog SMS API to ${normalizedNumber}`);
-      
+      console.log(`Sending OTP via Dialog SMS API to ${normalizedNumber}. OTP: ${otp}`);
+
       const result = await smsService.sendSMS([normalizedNumber], message);
-      
+
       if (!result.success) {
         throw new Error(result.error || 'Failed to send SMS via Dialog API');
       }
