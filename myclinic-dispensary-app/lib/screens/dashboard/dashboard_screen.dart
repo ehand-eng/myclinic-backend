@@ -7,6 +7,7 @@ import '../../widgets/stat_card.dart';
 import '../../widgets/loading_widget.dart';
 import '../../models/booking.dart';
 import '../../widgets/status_badge.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 final dashboardStatsProvider =
     FutureProvider.family<DashboardStats, String?>((ref, range) async {
@@ -21,7 +22,7 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  String _range = 'last_week';
+  String _range = 'today';
 
   @override
   Widget build(BuildContext context) {
@@ -75,14 +76,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               // Range selector
               Row(
                 children: [
-                  _RangeChip('Last 7 Days', 'last_week',
+                  _RangeChip('Today', 'today',
+                      _range == 'today', () => setState(() => _range = 'today')),
+                  const SizedBox(width: 8),
+                  _RangeChip('7 Days', 'last_week',
                       _range == 'last_week', () => setState(() => _range = 'last_week')),
                   const SizedBox(width: 8),
-                  _RangeChip('Last 30 Days', 'last_month',
+                  _RangeChip('1 Month', 'last_month',
                       _range == 'last_month', () => setState(() => _range = 'last_month')),
-                  const SizedBox(width: 8),
-                  _RangeChip('All Time', 'all_time',
-                      _range == 'all_time', () => setState(() => _range = 'all_time')),
                 ],
               ),
               const SizedBox(height: 16),
@@ -99,26 +100,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Stat cards
-                    // Stat cards
                     Column(
                       children: [
                         Row(
                           children: [
                             Expanded(
                               child: StatCard(
-                                title: "Today's Bookings",
-                                value: '${stats.todayBookings}',
-                                icon: Icons.calendar_today,
+                                title: _range == 'today' ? "Scheduled Today" : "Scheduled",
+                                value: '${stats.periodScheduled}',
+                                icon: Icons.schedule,
                                 color: AppColors.primary,
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: StatCard(
-                                title: 'Scheduled Today',
-                                value: '${stats.scheduledToday}',
-                                icon: Icons.schedule,
-                                color: AppColors.info,
+                                title: _range == 'today' ? 'Completed Today' : 'Completed',
+                                value: '${stats.periodCompleted}',
+                                icon: Icons.check_circle_outline,
+                                color: AppColors.success,
                               ),
                             ),
                           ],
@@ -131,16 +131,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                 title: 'Active Doctors',
                                 value: '${stats.totalDoctors}',
                                 icon: Icons.medical_services,
-                                color: AppColors.success,
+                                color: AppColors.info,
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: StatCard(
-                                title: 'Completed (Month)',
-                                value: '${stats.completedThisMonth}',
-                                icon: Icons.check_circle_outline,
-                                color: AppColors.success,
+                                title: 'Active Dispensaries',
+                                value: '${stats.totalDispensaries}',
+                                icon: Icons.local_hospital_outlined,
+                                color: AppColors.info,
                               ),
                             ),
                           ],
@@ -148,6 +148,96 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ],
                     ),
                     const SizedBox(height: 24),
+
+                    // Daily charts
+                    if (stats.dailyStats.isNotEmpty) ...[
+                      const Text(
+                        'Daily Trends',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.text,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        height: 220,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.card,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: BarChart(
+                          BarChartData(
+                            alignment: BarChartAlignment.spaceAround,
+                            barTouchData: BarTouchData(enabled: true),
+                            titlesData: FlTitlesData(
+                              show: true,
+                              bottomTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  getTitlesWidget: (val, meta) {
+                                    if (val.toInt() < 0 || val.toInt() >= stats.dailyStats.length) {
+                                      return const SizedBox();
+                                    }
+                                    final dateStr = stats.dailyStats[val.toInt()]['date'] as String;
+                                    // Parse date string (YYYY-MM-DD) -> short representation
+                                    final parts = dateStr.split('-');
+                                    if (parts.length == 3) {
+                                      // Return only MM/DD or just DD depending on range, for mobile width we'll use DD
+                                      return Text('${parts[2]}', style: const TextStyle(fontSize: 10, color: AppColors.textSecondary));
+                                    }
+                                    return const SizedBox();
+                                  },
+                                  reservedSize: 22,
+                                ),
+                              ),
+                              leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            ),
+                            gridData: const FlGridData(show: false),
+                            borderData: FlBorderData(show: false),
+                            barGroups: stats.dailyStats.asMap().entries.map((e) {
+                              final scheduled = (e.value['scheduled'] as num).toDouble();
+                              final completed = (e.value['completed'] as num).toDouble();
+                              return BarChartGroupData(
+                                x: e.key,
+                                barRods: [
+                                  BarChartRodData(
+                                    toY: scheduled,
+                                    color: AppColors.primary,
+                                    width: 8,
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                  BarChartRodData(
+                                    toY: completed,
+                                    color: AppColors.success,
+                                    width: 8,
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                ],
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(width: 12, height: 12, color: AppColors.primary),
+                          const SizedBox(width: 4),
+                          const Text('Scheduled', style: TextStyle(fontSize: 12)),
+                          const SizedBox(width: 16),
+                          Container(width: 12, height: 12, color: AppColors.success),
+                          const SizedBox(width: 4),
+                          const Text('Completed', style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                    ],
 
                     // Status breakdown
                     if (stats.bookingsByStatus.isNotEmpty) ...[

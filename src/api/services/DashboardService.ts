@@ -1,6 +1,6 @@
 import api from '@/lib/axios';
 
-export type DashboardRange = 'last_week' | 'last_month' | 'all_time';
+export type DashboardRange = 'today' | 'last_week' | 'last_month';
 
 export interface DashboardStatsParams {
   range?: DashboardRange;
@@ -12,13 +12,11 @@ export interface DashboardStats {
   totalDispensaries: number;
   totalDoctors: number;
   todayBookings: number;
-  weekBookings: number;
-  monthBookings: number;
-  completedThisMonth: number;
-  scheduledToday: number;
-  periodBookings?: number;
+  periodScheduled: number;
+  periodCompleted: number;
+  periodBookings: number;
   bookingsByStatus: Record<string, number>;
-  bookingsLast7Days: { date: string; count: number }[];
+  dailyStats: { date: string; scheduled: number; completed: number }[];
   recentBookings: {
     _id: string;
     transactionId: string;

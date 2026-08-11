@@ -66,23 +66,19 @@ router.get('/stats', validateCustomJwt, async (req, res) => {
     console.log('[Dashboard] Final dispensaryIds for query:', dispensaryIds);
 
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    // Use UTC consistently to match DB date parsing
+    const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
+    const todayEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
 
-    // Range filter: last_week | last_month | all_time
-    const range = (req.query.range || 'last_month').toLowerCase();
-    let rangeStart = null;
-    let rangeEnd = null;
+    // Range filter: today | last_week | last_month
+    const range = (req.query.range || 'today').toLowerCase();
+    let rangeStart = new Date(todayStart);
+    let rangeEnd = new Date(todayEnd);
     if (range === 'last_week') {
-      rangeEnd = new Date(todayEnd);
-      rangeStart = new Date(todayStart);
-      rangeStart.setDate(rangeStart.getDate() - 7);
+      rangeStart.setDate(rangeStart.getDate() - 6);
     } else if (range === 'last_month') {
-      rangeEnd = new Date(todayEnd);
-      rangeStart = new Date(todayStart);
-      rangeStart.setDate(rangeStart.getDate() - 30);
+      rangeStart.setDate(rangeStart.getDate() - 29);
     }
-    // all_time: rangeStart/rangeEnd stay null
 
     const weekStart = new Date(todayStart);
     weekStart.setDate(weekStart.getDate() - 7);
@@ -103,20 +99,38 @@ router.get('/stats', validateCustomJwt, async (req, res) => {
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
     const skip = (page - 1) * limit;
 
-    // Last 7 calendar days (unchanged for chart)
-    const last7DaysAgg = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(todayStart);
-      d.setDate(d.getDate() - i);
-      const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
-      const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
-      const count = await Booking.countDocuments({
-        ...baseMatch,
-        bookingDate: { $gte: start, $lte: end },
-        status: { $ne: 'cancelled' },
-      });
-      last7DaysAgg.push({ date: start.toISOString().split('T')[0], count });
-    }
+    // Aggregate daily stats for the chart (scheduled vs completed)
+    const dailyAggMatch = {
+      ...baseMatch,
+      ...dateFilterForRange(),
+      status: { $in: ['scheduled', 'completed'] },
+    };
+    const dailyAgg = await Booking.aggregate([
+      { $match: dailyAggMatch },
+      {
+        $group: {
+          _id: {
+            date: { $dateToString: { format: "%Y-%m-%d", date: "$bookingDate" } },
+            status: "$status"
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.date": 1 } }
+    ]);
+
+    const dailyStatsMap = {};
+    dailyAgg.forEach(({ _id, count }) => {
+      const { date, status } = _id;
+      if (!dailyStatsMap[date]) {
+        dailyStatsMap[date] = { date, scheduled: 0, completed: 0 };
+      }
+      if (status === 'scheduled') dailyStatsMap[date].scheduled = count;
+      if (status === 'completed') dailyStatsMap[date].completed = count;
+    });
+    
+    // Sort array by date ascending
+    const dailyStats = Object.values(dailyStatsMap).sort((a, b) => a.date.localeCompare(b.date));
 
     const recentMatch = { ...baseMatch, ...dateFilterForRange() };
 
@@ -197,16 +211,16 @@ router.get('/stats', validateCustomJwt, async (req, res) => {
     statusAgg.forEach(({ _id, count }) => {
       bookingsByStatus[_id || 'unknown'] = count;
     });
-    const completedThisMonth = statusAgg.find((g) => g._id === 'completed')?.count || 0;
-    const weekBookings = periodBookings;
-    const monthBookings = periodBookings;
+    const periodScheduled = statusAgg.find((g) => g._id === 'scheduled')?.count || 0;
+    const periodCompleted = statusAgg.find((g) => g._id === 'completed')?.count || 0;
 
     console.log('[Dashboard] Response summary:', {
       totalDispensaries,
       totalDoctors,
       todayBookings,
       periodBookings,
-      completedThisMonth,
+      periodScheduled,
+      periodCompleted,
       recentBookingsTotal,
       recentBookingsCount: recentBookingsList.length,
       byDispensaryCount: byDispensaryAgg.length,
@@ -226,13 +240,11 @@ router.get('/stats', validateCustomJwt, async (req, res) => {
       totalDispensaries,
       totalDoctors,
       todayBookings,
-      weekBookings,
-      monthBookings,
-      completedThisMonth,
-      scheduledToday: todayBookings,
+      periodScheduled,
+      periodCompleted,
       periodBookings,
       bookingsByStatus,
-      bookingsLast7Days: last7DaysAgg,
+      dailyStats,
       recentBookings: recentBookingsList.map((b) => ({
         _id: b._id,
         transactionId: b.transactionId,

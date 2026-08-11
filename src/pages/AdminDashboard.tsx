@@ -58,9 +58,9 @@ import {
 const CHART_COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
 const RANGE_LABELS: Record<DashboardRange, string> = {
-  last_week: 'Last 7 days',
-  last_month: 'Last 30 days',
-  all_time: 'All time',
+  today: 'Today',
+  last_week: '7 days',
+  last_month: '1 month',
 };
 
 const xAxisTickFormatter = (v: string) =>
@@ -75,7 +75,7 @@ const AdminDashboard = () => {
   const [statsLoading, setStatsLoading] = useState(true);
   const [bookingsTableLoading, setBookingsTableLoading] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
-  const [statsRange, setStatsRange] = useState<DashboardRange>('last_month');
+  const [statsRange, setStatsRange] = useState<DashboardRange>('today');
   const [recentBookingsPage, setRecentBookingsPage] = useState(1);
   const recentBookingsLimit = 10;
   const prevRangeRef = useRef<DashboardRange>(statsRange);
@@ -180,7 +180,7 @@ const AdminDashboard = () => {
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-medium text-medicalGray-600">Period:</span>
               <div className="flex rounded-lg border border-medicalGray-200 bg-white p-0.5">
-                {(['last_week', 'last_month', 'all_time'] as const).map((r) => (
+                {(['today', 'last_week', 'last_month'] as const).map((r) => (
                   <Button
                     key={r}
                     variant={statsRange === r ? 'default' : 'ghost'}
@@ -202,10 +202,11 @@ const AdminDashboard = () => {
               )}
             </div>
 
-            {/* Overview KPI cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Bookings KPI cards */}
+            <h2 className="text-xl font-bold text-medicalGray-800">Booking Metrics</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {statsLoading ? (
-                Array.from({ length: 4 }).map((_, i) => (
+                Array.from({ length: 2 }).map((_, i) => (
                   <Card key={i} className="medical-card animate-pulse">
                     <CardHeader className="pb-2">
                       <div className="h-4 bg-medicalGray-200 rounded w-2/3" />
@@ -227,15 +228,51 @@ const AdminDashboard = () => {
                   <Card className="medical-card group hover:scale-105 transition-all duration-300">
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-medium text-medicalGray-600">Total Dispensaries</CardTitle>
-                        <Building2 className="h-5 w-5 text-medicalBlue-500" />
+                        <CardTitle className="text-sm font-medium text-medicalGray-600">
+                          {statsRange === 'today' ? 'Scheduled Today' : `Scheduled (${RANGE_LABELS[statsRange]})`}
+                        </CardTitle>
+                        <Calendar className="h-5 w-5 text-purple-600" />
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-3xl font-bold text-medicalBlue-500">{dashboardStats.totalDispensaries}</div>
-                      <p className="text-xs text-medicalGray-500 mt-1">In your scope</p>
+                      <div className="text-3xl font-bold text-purple-600">{dashboardStats.periodScheduled}</div>
+                      <p className="text-xs text-medicalGray-500 mt-1">Pending appointments</p>
                     </CardContent>
                   </Card>
+                  <Card className="medical-card group hover:scale-105 transition-all duration-300">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-medium text-medicalGray-600">
+                          {statsRange === 'today' ? 'Completed Today' : `Completed (${RANGE_LABELS[statsRange]})`}
+                        </CardTitle>
+                        <UserCheck className="h-5 w-5 text-medicalGreen-600" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-medicalGreen-600">{dashboardStats.periodCompleted}</div>
+                      <p className="text-xs text-medicalGray-500 mt-1">Checked-in patients</p>
+                    </CardContent>
+                  </Card>
+                </>
+              ) : null}
+            </div>
+
+            {/* Infrastructure KPI cards */}
+            <h2 className="text-xl font-bold text-medicalGray-800 mt-8">System Metrics</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {statsLoading ? (
+                Array.from({ length: 2 }).map((_, i) => (
+                  <Card key={i} className="medical-card animate-pulse">
+                    <CardHeader className="pb-2">
+                      <div className="h-4 bg-medicalGray-200 rounded w-2/3" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-8 bg-medicalGray-200 rounded w-1/3" />
+                    </CardContent>
+                  </Card>
+                ))
+              ) : dashboardStats ? (
+                <>
                   <Card className="medical-card group hover:scale-105 transition-all duration-300">
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between">
@@ -245,32 +282,19 @@ const AdminDashboard = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="text-3xl font-bold text-medicalTeal-600">{dashboardStats.totalDoctors}</div>
-                      <p className="text-xs text-medicalGray-500 mt-1">Available</p>
+                      <p className="text-xs text-medicalGray-500 mt-1">Available in system</p>
                     </CardContent>
                   </Card>
                   <Card className="medical-card group hover:scale-105 transition-all duration-300">
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-medium text-medicalGray-600">Today&apos;s Appointments</CardTitle>
-                        <Calendar className="h-5 w-5 text-purple-600" />
+                        <CardTitle className="text-sm font-medium text-medicalGray-600">Active Dispensaries</CardTitle>
+                        <Building2 className="h-5 w-5 text-medicalBlue-500" />
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-3xl font-bold text-purple-600">{dashboardStats.todayBookings}</div>
-                      <p className="text-xs text-medicalGray-500 mt-1">Scheduled today</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="medical-card group hover:scale-105 transition-all duration-300">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-medium text-medicalGray-600">
-                          {statsRange === 'last_week' ? 'In period (7d)' : statsRange === 'last_month' ? 'In period (30d)' : 'Completed (all time)'}
-                        </CardTitle>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-3xl font-bold text-medicalGreen-600">{dashboardStats.completedThisMonth}</div>
-                      <p className="text-xs text-medicalGray-500 mt-1">{dashboardStats.weekBookings ?? dashboardStats.monthBookings} total in period</p>
+                      <div className="text-3xl font-bold text-medicalBlue-500">{dashboardStats.totalDispensaries}</div>
+                      <p className="text-xs text-medicalGray-500 mt-1">In your scope</p>
                     </CardContent>
                   </Card>
                 </>
@@ -291,15 +315,20 @@ const AdminDashboard = () => {
                   </CardHeader>
                   <CardContent>
                     <ChartContainer
-                      config={{ count: { label: 'Bookings', color: 'hsl(var(--chart-1))' } }}
+                      config={{ 
+                        scheduled: { label: 'Scheduled', color: 'hsl(var(--chart-1))' },
+                        completed: { label: 'Completed', color: 'hsl(var(--chart-2))' }
+                      }}
                       className="h-[240px] w-full"
                     >
-                      <BarChart data={dashboardStats.bookingsLast7Days} margin={{ left: 12, right: 12 }}>
+                      <BarChart data={dashboardStats.dailyStats} margin={{ left: 12, right: 12 }}>
                         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                         <XAxis dataKey="date" tickFormatter={xAxisTickFormatter} />
                         <YAxis />
                         <ChartTooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="count" fill="var(--color-count)" radius={[4, 4, 0, 0]} name="Bookings" />
+                        <ChartLegend content={<ChartLegendContent />} />
+                        <Bar dataKey="scheduled" fill="var(--color-scheduled)" radius={[4, 4, 0, 0]} name="Scheduled" />
+                        <Bar dataKey="completed" fill="var(--color-completed)" radius={[4, 4, 0, 0]} name="Completed" />
                       </BarChart>
                     </ChartContainer>
                   </CardContent>

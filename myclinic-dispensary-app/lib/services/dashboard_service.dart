@@ -8,9 +8,10 @@ class DashboardStats {
   final int weekBookings;
   final int monthBookings;
   final int completedThisMonth;
-  final int scheduledToday;
+  final int periodScheduled;
+  final int periodCompleted;
   final Map<String, int> bookingsByStatus;
-  final List<Map<String, dynamic>> last7Days;
+  final List<Map<String, dynamic>> dailyStats;
   final List<Map<String, dynamic>> recentBookings;
   final List<Map<String, dynamic>> bookingsByDispensary;
 
@@ -21,9 +22,10 @@ class DashboardStats {
     this.weekBookings = 0,
     this.monthBookings = 0,
     this.completedThisMonth = 0,
-    this.scheduledToday = 0,
+    this.periodScheduled = 0,
+    this.periodCompleted = 0,
     this.bookingsByStatus = const {},
-    this.last7Days = const [],
+    this.dailyStats = const [],
     this.recentBookings = const [],
     this.bookingsByDispensary = const [],
   });
@@ -36,7 +38,8 @@ class DashboardStats {
       weekBookings: json['weekBookings'] ?? 0,
       monthBookings: json['monthBookings'] ?? 0,
       completedThisMonth: json['completedThisMonth'] ?? 0,
-      scheduledToday: json['scheduledToday'] ?? 0,
+      periodScheduled: json['periodScheduled'] ?? 0,
+      periodCompleted: json['periodCompleted'] ?? 0,
       bookingsByStatus: json['bookingsByStatus'] != null
           ? Map<String, int>.from(
               (json['bookingsByStatus'] as Map).map(
@@ -44,8 +47,8 @@ class DashboardStats {
               ),
             )
           : {},
-      last7Days: json['last7Days'] != null
-          ? List<Map<String, dynamic>>.from(json['last7Days'])
+      dailyStats: json['dailyStats'] != null
+          ? List<Map<String, dynamic>>.from(json['dailyStats'])
           : [],
       recentBookings: json['recentBookings'] != null
           ? List<Map<String, dynamic>>.from(json['recentBookings'])
