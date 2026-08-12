@@ -243,14 +243,14 @@ const AdminDashboard = () => {
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-sm font-medium text-medicalGray-600">
-                          {statsRange === 'today' ? 'Completed Today' : `Completed (${RANGE_LABELS[statsRange]})`}
+                          {statsRange === 'today' ? 'Checked-In / Completed' : `Checked-In / Completed (${RANGE_LABELS[statsRange]})`}
                         </CardTitle>
                         <UserCheck className="h-5 w-5 text-medicalGreen-600" />
                       </div>
                     </CardHeader>
                     <CardContent>
                       <div className="text-3xl font-bold text-medicalGreen-600">{dashboardStats.periodCompleted}</div>
-                      <p className="text-xs text-medicalGray-500 mt-1">Checked-in patients</p>
+                      <p className="text-xs text-medicalGray-500 mt-1">Patients checked-in or completed</p>
                     </CardContent>
                   </Card>
                 </>
@@ -317,18 +317,24 @@ const AdminDashboard = () => {
                     <ChartContainer
                       config={{ 
                         scheduled: { label: 'Scheduled', color: 'hsl(var(--chart-1))' },
-                        completed: { label: 'Completed', color: 'hsl(var(--chart-2))' }
+                        resolvedCheckedIn: { label: 'Checked-In', color: 'hsl(var(--chart-2))' }
                       }}
                       className="h-[240px] w-full"
                     >
-                      <BarChart data={dashboardStats.dailyStats} margin={{ left: 12, right: 12 }}>
+                      <BarChart 
+                        data={dashboardStats.dailyStats.map(s => ({
+                          ...s,
+                          resolvedCheckedIn: (s.checked_in || 0) > 0 ? s.checked_in : (s.completed || 0)
+                        }))} 
+                        margin={{ left: 12, right: 12 }}
+                      >
                         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                         <XAxis dataKey="date" tickFormatter={xAxisTickFormatter} />
                         <YAxis />
                         <ChartTooltip content={<ChartTooltipContent />} />
                         <ChartLegend content={<ChartLegendContent />} />
                         <Bar dataKey="scheduled" fill="var(--color-scheduled)" radius={[4, 4, 0, 0]} name="Scheduled" />
-                        <Bar dataKey="completed" fill="var(--color-completed)" radius={[4, 4, 0, 0]} name="Completed" />
+                        <Bar dataKey="resolvedCheckedIn" fill="var(--color-resolvedCheckedIn)" radius={[4, 4, 0, 0]} name="Checked-In" />
                       </BarChart>
                     </ChartContainer>
                   </CardContent>

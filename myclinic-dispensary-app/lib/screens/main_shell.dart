@@ -96,6 +96,11 @@ class _MainShellState extends ConsumerState<MainShell> {
         child: NavigationBar(
           selectedIndex: _currentIndex,
           onDestinationSelected: (index) {
+            if (index == 0) {
+              ref.read(dashboardRangeProvider.notifier).state = 'today';
+              // Option to invalidate if forcing a hard reload is desired:
+              ref.invalidate(dashboardStatsProvider('today'));
+            }
             setState(() {
               _initializedTabs.add(index);
               _currentIndex = index;

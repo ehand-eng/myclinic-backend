@@ -42,8 +42,12 @@ export const DashboardService = {
     if (params?.range) search.set('range', params.range);
     if (params?.page != null) search.set('page', String(params.page));
     if (params?.limit != null) search.set('limit', String(params.limit));
+    
+    // Add cache buster to completely avoid stale GET requests
+    search.set('_t', Date.now().toString());
+    
     const query = search.toString();
-    const response = await api.get<DashboardStats>(`/dashboard/stats${query ? `?${query}` : ''}`);
+    const response = await api.get<DashboardStats>(`/dashboard/stats?${query}`);
     return response.data;
   },
 };

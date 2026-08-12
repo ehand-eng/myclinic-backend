@@ -103,7 +103,7 @@ router.get('/stats', validateCustomJwt, async (req, res) => {
     const dailyAggMatch = {
       ...baseMatch,
       ...dateFilterForRange(),
-      status: { $in: ['scheduled', 'completed'] },
+      status: { $in: ['scheduled', 'checked_in', 'completed'] },
     };
     const dailyAgg = await Booking.aggregate([
       { $match: dailyAggMatch },
@@ -123,10 +123,17 @@ router.get('/stats', validateCustomJwt, async (req, res) => {
     dailyAgg.forEach(({ _id, count }) => {
       const { date, status } = _id;
       if (!dailyStatsMap[date]) {
-        dailyStatsMap[date] = { date, scheduled: 0, completed: 0 };
+        dailyStatsMap[date] = { date, scheduled: 0, completed: 0, checked_in: 0 };
       }
-      if (status === 'scheduled') dailyStatsMap[date].scheduled = count;
-      if (status === 'completed') dailyStatsMap[date].completed = count;
+      if (status === 'scheduled') {
+        dailyStatsMap[date].scheduled += count;
+      }
+      if (status === 'completed') {
+        dailyStatsMap[date].completed += count;
+      }
+      if (status === 'checked_in') {
+        dailyStatsMap[date].checked_in += count;
+      }
     });
     
     // Sort array by date ascending
@@ -212,7 +219,12 @@ router.get('/stats', validateCustomJwt, async (req, res) => {
       bookingsByStatus[_id || 'unknown'] = count;
     });
     const periodScheduled = statusAgg.find((g) => g._id === 'scheduled')?.count || 0;
-    const periodCompleted = statusAgg.find((g) => g._id === 'completed')?.count || 0;
+    const exactCompleted = Number(statusAgg.find((g) => g._id === 'completed')?.count || 0);
+    const checkedInCount = Number(statusAgg.find((g) => g._id === 'checked_in')?.count || 0);
+    const periodCompleted = exactCompleted + checkedInCount;
+    
+    // Safety check just in case
+    console.log('[Dashboard] Status Aggregation:', JSON.stringify(statusAgg));
 
     console.log('[Dashboard] Response summary:', {
       totalDispensaries,

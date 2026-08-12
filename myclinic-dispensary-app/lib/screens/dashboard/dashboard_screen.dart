@@ -9,6 +9,15 @@ import '../../models/booking.dart';
 import '../../widgets/status_badge.dart';
 import 'package:fl_chart/fl_chart.dart';
 
+class DashboardRangeNotifier extends Notifier<String> {
+  @override
+  String build() => 'today';
+}
+
+final dashboardRangeProvider = NotifierProvider<DashboardRangeNotifier, String>(() {
+  return DashboardRangeNotifier();
+});
+
 final dashboardStatsProvider =
     FutureProvider.family<DashboardStats, String?>((ref, range) async {
   return DashboardService().getStats(range: range);
@@ -22,18 +31,17 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  String _range = 'today';
-
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
-    final statsAsync = ref.watch(dashboardStatsProvider(_range));
+    final range = ref.watch(dashboardRangeProvider);
+    final statsAsync = ref.watch(dashboardStatsProvider(range));
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: RefreshIndicator(
         onRefresh: () async {
-          ref.invalidate(dashboardStatsProvider(_range));
+          ref.invalidate(dashboardStatsProvider(range));
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -77,13 +85,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               Row(
                 children: [
                   _RangeChip('Today', 'today',
-                      _range == 'today', () => setState(() => _range = 'today')),
+                      range == 'today', () {
+                    ref.read(dashboardRangeProvider.notifier).state = 'today';
+                    ref.invalidate(dashboardStatsProvider('today'));
+                  }),
                   const SizedBox(width: 8),
                   _RangeChip('7 Days', 'last_week',
-                      _range == 'last_week', () => setState(() => _range = 'last_week')),
+                      range == 'last_week', () {
+                    ref.read(dashboardRangeProvider.notifier).state = 'last_week';
+                    ref.invalidate(dashboardStatsProvider('last_week'));
+                  }),
                   const SizedBox(width: 8),
                   _RangeChip('1 Month', 'last_month',
-                      _range == 'last_month', () => setState(() => _range = 'last_month')),
+                      range == 'last_month', () {
+                    ref.read(dashboardRangeProvider.notifier).state = 'last_month';
+                    ref.invalidate(dashboardStatsProvider('last_month'));
+                  }),
                 ],
               ),
               const SizedBox(height: 16),
@@ -106,7 +123,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           children: [
                             Expanded(
                               child: StatCard(
-                                title: _range == 'today' ? "Scheduled Today" : "Scheduled",
+                                title: range == 'today' ? "Scheduled Today" : "Scheduled",
                                 value: '${stats.periodScheduled}',
                                 icon: Icons.schedule,
                                 color: AppColors.primary,
@@ -115,7 +132,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: StatCard(
-                                title: _range == 'today' ? 'Completed Today' : 'Completed',
+                                title: range == 'today' ? 'Checked-In Today' : 'Checked-In/Completed',
                                 value: '${stats.periodCompleted}',
                                 icon: Icons.check_circle_outline,
                                 color: AppColors.success,
@@ -171,7 +188,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         child: BarChart(
                           BarChartData(
                             alignment: BarChartAlignment.spaceAround,
-                            barTouchData: BarTouchData(enabled: true),
+                            barTouchData: BarTouchData(
+                              enabled: false,
+                              touchTooltipData: BarTouchTooltipData(
+                                getTooltipColor: (_) => Colors.transparent,
+                                tooltipPadding: EdgeInsets.zero,
+                                tooltipMargin: 2,
+                                getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                                  return BarTooltipItem(
+                                    rod.toY.round().toString(),
+                                    TextStyle(
+                                      color: rod.color,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 10,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
                             titlesData: FlTitlesData(
                               show: true,
                               bottomTitles: AxisTitles(
@@ -185,12 +219,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                     // Parse date string (YYYY-MM-DD) -> short representation
                                     final parts = dateStr.split('-');
                                     if (parts.length == 3) {
-                                      // Return only MM/DD or just DD depending on range, for mobile width we'll use DD
-                                      return Text('${parts[2]}', style: const TextStyle(fontSize: 10, color: AppColors.textSecondary));
+                                      final monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                      final monthIdx = int.tryParse(parts[1]) ?? 1;
+                                      final monthStr = monthNames[(monthIdx - 1).clamp(0, 11)];
+                                      return Padding(
+                                        padding: const EdgeInsets.only(top: 6),
+                                        child: Text('${parts[2]}-$monthStr', style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+                                      );
                                     }
                                     return const SizedBox();
                                   },
-                                  reservedSize: 22,
+                                  reservedSize: 26,
                                 ),
                               ),
                               leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -200,21 +239,32 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             gridData: const FlGridData(show: false),
                             borderData: FlBorderData(show: false),
                             barGroups: stats.dailyStats.asMap().entries.map((e) {
-                              final scheduled = (e.value['scheduled'] as num).toDouble();
-                              final completed = (e.value['completed'] as num).toDouble();
+                              final scheduled = (e.value['scheduled'] as num?)?.toDouble() ?? 0;
+                              final checkedInRaw = (e.value['checked_in'] as num?)?.toDouble() ?? 0;
+                              final completedRaw = (e.value['completed'] as num?)?.toDouble() ?? 0;
+                              
+                              // Fall back to completed for checkedIn if backend is stale
+                              final actualCheckedIn = checkedInRaw > 0 ? checkedInRaw : completedRaw;
+
+                              final showTooltips = <int>[];
+                              if (scheduled > 0) showTooltips.add(0);
+                              if (actualCheckedIn > 0) showTooltips.add(1);
+
                               return BarChartGroupData(
                                 x: e.key,
+                                barsSpace: 0,
+                                showingTooltipIndicators: showTooltips,
                                 barRods: [
                                   BarChartRodData(
                                     toY: scheduled,
                                     color: AppColors.primary,
-                                    width: 8,
+                                    width: 14,
                                     borderRadius: BorderRadius.circular(2),
                                   ),
                                   BarChartRodData(
-                                    toY: completed,
+                                    toY: actualCheckedIn,
                                     color: AppColors.success,
-                                    width: 8,
+                                    width: 14,
                                     borderRadius: BorderRadius.circular(2),
                                   ),
                                 ],
@@ -233,7 +283,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           const SizedBox(width: 16),
                           Container(width: 12, height: 12, color: AppColors.success),
                           const SizedBox(width: 4),
-                          const Text('Completed', style: TextStyle(fontSize: 12)),
+                          const Text('Checked-In', style: TextStyle(fontSize: 12)),
                         ],
                       ),
                       const SizedBox(height: 24),
