@@ -387,7 +387,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      'Dr. ${booking.doctorName ?? 'N/A'} | #${booking.appointmentNumber ?? '-'}',
+                                      'Dr. ${booking.doctorName ?? 'N/A'} | ${booking.bookingDate != null ? booking.bookingDate!.toIso8601String().split('T')[0].replaceAll('-', '.') : '-'}',
                                       style: const TextStyle(
                                         fontSize: 12,
                                         color: AppColors.textSecondary,

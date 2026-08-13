@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const Doctor = require('../models/Doctor');
 const Dispensary = require('../models/Dispensary');
 const ReplacementDoctor = require('../models/ReplacementDoctor');
+const DoctorDispensary = require('../models/DoctorDispensary');
 const logger = require('../utils/logger');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
@@ -83,15 +84,33 @@ router.get('/:id', async (req, res) => {
       doctorId: id
     });
 
-    const doctor = await Doctor.findById(id).populate('dispensaries', 'name');
+    const doctorObj = await Doctor.findById(id).populate('dispensaries', 'name').lean();
 
-    if (!doctor) {
+    if (!doctorObj) {
       logger.warn('Doctor not found', {
         doctorId: id
       });
       return res.status(404).json({ message: 'Doctor not found' });
     }
-    res.status(200).json(doctor);
+
+    // Pull config mappings for this doctor across all their dispensaries
+    const docDispConfigs = await DoctorDispensary.find({
+       doctorId: doctorObj._id,
+       isActive: true 
+    }).lean();
+
+    // Map the MAXIMUM `bookingVisibleDays` if they are visible in multiple dispensaries
+    if (docDispConfigs.length > 0) {
+      let maxVisibleDays = 0;
+      docDispConfigs.forEach(config => {
+         if (config.bookingVisibleDays > maxVisibleDays) {
+            maxVisibleDays = config.bookingVisibleDays;
+         }
+      });
+      doctorObj.bookingVisibleDays = maxVisibleDays;
+    }
+
+    res.status(200).json(doctorObj);
   } catch (error) {
     logger.error('Error fetching doctor by ID', {
       doctorId: id,
@@ -125,7 +144,7 @@ router.get('/dispensary/:dispensaryId', async (req, res) => {
 
     const query = { dispensaries: dispensaryId };
     if (activeOnly) query.disabled = { $ne: true };
-    const doctors = await Doctor.find(query);
+    const doctors = await Doctor.find(query).lean();
     if (!doctors) {
       logger.warn('Doctors not found for dispensary', {
         dispensaryId
@@ -133,7 +152,21 @@ router.get('/dispensary/:dispensaryId', async (req, res) => {
       return res.status(404).json({ message: 'Doctors not found' });
     }
 
-    res.status(200).json(doctors);
+    // Map `bookingVisibleDays` from DoctorDispensary collection natively onto result
+    const docDispConfigs = await DoctorDispensary.find({ dispensaryId, isActive: true }).lean();
+    const configMap = {};
+    docDispConfigs.forEach(config => {
+       configMap[config.doctorId.toString()] = config.bookingVisibleDays;
+    });
+
+    const mappedDoctors = doctors.map(doc => {
+       if (configMap[doc._id.toString()] !== undefined) {
+         doc.bookingVisibleDays = configMap[doc._id.toString()];
+       }
+       return doc;
+    });
+
+    res.status(200).json(mappedDoctors);
   } catch (error) {
     logger.error('Error fetching doctors by dispensary ID', {
       dispensaryId,
@@ -167,16 +200,39 @@ router.post('/by-dispensaries', async (req, res) => {
 
     const query = { dispensaries: { $in: dispensaryIds } };
     if (activeOnly) query.disabled = { $ne: true };
-    const doctors = await Doctor.find(query);
+    const doctors = await Doctor.find(query).lean();
+
+    // Pull config maps bridging all required doctor/dispensary combinations
+    const docDispConfigs = await DoctorDispensary.find({
+       dispensaryId: { $in: dispensaryIds }, 
+       doctorId: { $in: doctors.map(d => d._id) },
+       isActive: true 
+    }).lean();
+
+    // Map the MAXIMUM `bookingVisibleDays` if they are visible in multiple dispensaries requested
+    const configMap = {};
+    docDispConfigs.forEach(config => {
+       const dId = config.doctorId.toString();
+       if (!configMap[dId] || configMap[dId] < config.bookingVisibleDays) {
+           configMap[dId] = config.bookingVisibleDays;
+       }
+    });
+
+    const mappedDoctors = doctors.map(doc => {
+       if (configMap[doc._id.toString()] !== undefined) {
+         doc.bookingVisibleDays = configMap[doc._id.toString()];
+       }
+       return doc;
+    });
 
     // const duration = Date.now() - startTime;
     logger.info('Successfully fetched doctors by dispensary IDs', {
       requestId: req.requestId,
       dispensaryIds,
-      doctorCount: doctors.length
+      doctorCount: mappedDoctors.length
     });
 
-    res.json(doctors);
+    res.json(mappedDoctors);
   } catch (error) {
     logger.error('Error fetching doctors by dispensary IDs', {
       requestId: req.requestId,
@@ -209,6 +265,16 @@ router.post('/', async (req, res) => {
         if (dispensary) {
           dispensary.doctors.push(doctor._id);
           await dispensary.save();
+          
+          await DoctorDispensary.findOneAndUpdate(
+            { doctorId: doctor._id, dispensaryId: dispensaryId },
+            { 
+              isActive: true,
+              bookingVisibleDays: doctorData.bookingVisibleDays !== undefined ? doctorData.bookingVisibleDays : 30
+            },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+          );
+
           logger.debug('Added doctor to dispensary', {
             requestId: req.requestId,
             doctorId: doctor._id,
@@ -273,6 +339,12 @@ router.put('/:id', async (req, res) => {
           if (dispensary) {
             dispensary.doctors = dispensary.doctors.filter(docId => docId.toString() !== doctor._id.toString());
             await dispensary.save();
+            
+            await DoctorDispensary.findOneAndUpdate(
+              { doctorId: doctor._id, dispensaryId: oldDispId },
+              { isActive: false }
+            );
+
             logger.debug('Removed doctor from dispensary', {
               doctorId: id,
               dispensaryId: oldDispId,
@@ -289,12 +361,31 @@ router.put('/:id', async (req, res) => {
           if (dispensary && !dispensary.doctors.map(id => id.toString()).includes(doctor._id.toString())) {
             dispensary.doctors.push(doctor._id);
             await dispensary.save();
+            
+            await DoctorDispensary.findOneAndUpdate(
+              { doctorId: doctor._id, dispensaryId: newDispId },
+              { 
+                isActive: true,
+                bookingVisibleDays: updateData.bookingVisibleDays !== undefined ? updateData.bookingVisibleDays : 30
+              },
+              { upsert: true, new: true, setDefaultsOnInsert: true }
+            );
+
             logger.debug('Added doctor to dispensary', {
               doctorId: id,
               dispensaryId: newDispId,
               dispensaryName: dispensary.name
             });
           }
+        } else {
+           // Doctor was already in dispensary, but we need to update bookingVisibleDays if it was submitted
+           if (updateData.bookingVisibleDays !== undefined) {
+             await DoctorDispensary.findOneAndUpdate(
+               { doctorId: doctor._id, dispensaryId: newDispId },
+               { bookingVisibleDays: updateData.bookingVisibleDays, isActive: true },
+               { upsert: true, new: true, setDefaultsOnInsert: true }
+             );
+           }
         }
       }
     }

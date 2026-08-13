@@ -39,6 +39,11 @@ const doctorDispensarySchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  bookingVisibleDays: {
+    type: Number,
+    default: 30,
+    description: 'Number of future days this doctor is visible for online booking at this dispensary'
   }
 }, {
   timestamps: true
