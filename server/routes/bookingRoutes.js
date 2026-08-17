@@ -1564,13 +1564,12 @@ router.post('/session/postpone', validateCustomJwt, roleMiddleware.requireAdvanc
           {
             doctorId,
             dispensaryId,
-            date: { $gte: startOfDay, $lte: endOfDay },
-            isDateRange: { $ne: true },
+            date: startOfDay, // Avoid Mongo upsert issues with range queries
+            isDateRange: false, // Explicitly boolean instead of $ne
             timeSlotConfigId: config._id
           },
           {
             $set: {
-              date: startOfDay,
               startTime: newStartTime,
               endTime: newEndTime,
               isModifiedSession: true,
@@ -1585,7 +1584,8 @@ router.post('/session/postpone', validateCustomJwt, roleMiddleware.requireAdvanc
         for(const booking of bookings) {
             const [stH, stM] = newStartTime.split(':').map(Number);
             const apptTime = new Date(startOfDay);
-            apptTime.setHours(stH, stM + ((booking.appointmentNumber - 1) * config.minutesPerPatient), 0, 0);
+            const apptNumber = booking.appointmentNumber || 1;
+            apptTime.setHours(stH, stM + ((apptNumber - 1) * config.minutesPerPatient), 0, 0);
             const newEstimated = `${apptTime.getHours().toString().padStart(2, '0')}:${apptTime.getMinutes().toString().padStart(2, '0')}`;
 
             await Booking.updateOne({ _id: booking._id }, {
@@ -1631,8 +1631,14 @@ router.post('/session/postpone', validateCustomJwt, roleMiddleware.requireAdvanc
         if (isSameDayShift) {
              const [stH, stM] = newStartTime.split(':').map(Number);
              const apptTime = new Date(startOfDay);
-             apptTime.setHours(stH, stM + ((booking.appointmentNumber - 1) * config.minutesPerPatient), 0, 0);
-             const newEstimatedFormat = apptTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }).replace(' AM', 'am').replace(' PM', 'pm');
+             const apptNumber = booking.appointmentNumber || 1;
+             apptTime.setHours(stH, stM + ((apptNumber - 1) * config.minutesPerPatient), 0, 0);
+             let newEstimatedFormat = '';
+             try {
+                newEstimatedFormat = apptTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }).replace(' AM', 'am').replace(' PM', 'pm');
+             } catch (e) {
+                newEstimatedFormat = `${apptTime.getHours().toString().padStart(2, '0')}:${apptTime.getMinutes().toString().padStart(2, '0')}`;
+             }
              const docName = booking.doctorId?.name || 'the doctor';
              message = `Dear ${booking.patientName}, your appointment with Dr. ${docName} today has been DELAYED to start at ${newStartTime}. Your new estimated time is ${newEstimatedFormat}. - ${booking.dispensaryId?.name || ''}`;
         } else {
