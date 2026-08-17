@@ -1588,10 +1588,16 @@ router.post('/session/postpone', validateCustomJwt, roleMiddleware.requireAdvanc
             apptTime.setHours(stH, stM + ((apptNumber - 1) * config.minutesPerPatient), 0, 0);
             const newEstimated = `${apptTime.getHours().toString().padStart(2, '0')}:${apptTime.getMinutes().toString().padStart(2, '0')}`;
 
+            const endApptTime = new Date(apptTime);
+            endApptTime.setMinutes(endApptTime.getMinutes() + config.minutesPerPatient);
+            const endHours = endApptTime.getHours().toString().padStart(2, '0');
+            const endMinutes = endApptTime.getMinutes().toString().padStart(2, '0');
+            const individualTimeSlot = `${newEstimated}-${endHours}:${endMinutes}`;
+
             await Booking.updateOne({ _id: booking._id }, {
                $set: {
                  estimatedTime: newEstimated,
-                 timeSlot: `${newStartTime}-${newEndTime}`,
+                 timeSlot: individualTimeSlot,
                  postponedTo: {
                    date: newDate,
                    timeSlot: newTimeSlot
