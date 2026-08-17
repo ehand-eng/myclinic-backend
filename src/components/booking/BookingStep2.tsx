@@ -65,8 +65,8 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
     if (!value || typeof value !== 'string' || !value.trim()) {
       return 'Full name is required';
     }
-    if (value.length > 25) {
-      return 'Full name must be 25 characters or less';
+    if (value.length > 50) {
+      return 'Full name must be 50 characters or less';
     }
     return null;
   };
@@ -75,15 +75,10 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
     if (!value || typeof value !== 'string' || !value.trim()) {
       return 'Phone number is required';
     }
-    // Allow + at the beginning, then digits, spaces, and hyphens
-    const phoneRegex = /^\+?[\d\s\-\(\)]+$/;
-    if (!phoneRegex.test(value)) {
-      return 'Please enter a valid phone number';
-    }
-    // Remove all non-digit characters except + at the beginning
-    const digitsOnly = value.replace(/[^\d]/g, '');
-    if (digitsOnly.length < 7 || digitsOnly.length > 15) {
-      return 'Phone number must be between 7 and 15 digits';
+    const cleanValue = value.replace(/\s+/g, '');
+    const phoneRegex = /^(?:\+94|0)7\d{8}$/;
+    if (!phoneRegex.test(cleanValue)) {
+      return 'Invalid format. Use +947xxxxxxxx or 07xxxxxxxx';
     }
     return null;
   };
@@ -101,7 +96,7 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
 
   const handleNameChange = (value: string) => {
     const safeValue = (value || '').toString();
-    if (safeValue.length <= 25) {
+    if (safeValue.length <= 50) {
       setName(safeValue);
       setValidationErrors(prev => ({ ...prev, name: validateName(safeValue) }));
     }
@@ -322,12 +317,12 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
             placeholder="Enter your full name"
             required
             className={`mt-1 ${validationErrors.name ? 'border-red-500' : ''}`}
-            maxLength={25}
+            maxLength={50}
           />
           {validationErrors.name && (
             <p className="text-red-500 text-sm mt-1">{validationErrors.name}</p>
           )}
-          <p className="text-gray-500 text-xs mt-1">{(name?.length || 0)}/25 characters</p>
+          <p className="text-gray-500 text-xs mt-1">{(name?.length || 0)}/50 characters</p>
         </div>
 
         <div>
@@ -336,17 +331,13 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
             id="phone"
             value={phone}
             onChange={(e) => handlePhoneChange(e.target.value)}
-            placeholder="Enter your phone number"
             required
             className={`mt-1 ${validationErrors.phone ? 'border-red-500' : ''}`}
           />
           {validationErrors.phone && (
             <p className="text-red-500 text-sm mt-1">{validationErrors.phone}</p>
           )}
-          <p className="text-gray-500 text-xs mt-1">
-            Enter a valid phone number because we are using this number to send you the SMS with OTP/booking details/etc...
-            (Ex: +94 777 123 456 or 0777123456)
-          </p>
+          <p className="text-gray-500 text-xs mt-1">ex : +947xxxxxxxx, 07xxxxxxxx</p>
         </div>
 
         <div>

@@ -582,6 +582,7 @@ const DispensaryCheckIn = () => {
                       placeholder="Patient full name"
                       value={patientName}
                       onChange={(e) => setPatientName(e.target.value)}
+                      maxLength={50}
                     />
                   </div>
                 </div>

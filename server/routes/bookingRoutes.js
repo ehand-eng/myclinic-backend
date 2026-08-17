@@ -1503,13 +1503,13 @@ router.post('/session/cancel', validateCustomJwt, roleMiddleware.requireAdvanced
   }
 });
 
-// Postpone entire session and broadcast SMS
+// Postpone (shift) entire session and broadcast SMS
 router.post('/session/postpone', validateCustomJwt, roleMiddleware.requireAdvancedBookingAccess, async (req, res) => {
   try {
     const { doctorId, dispensaryId, bookingDate, timeSlotConfigId, newDate, newTimeSlot } = req.body;
 
-    if (!doctorId || !dispensaryId || !bookingDate || !newDate) {
-      return res.status(400).json({ message: 'doctorId, dispensaryId, bookingDate, and newDate are required' });
+    if (!doctorId || !dispensaryId || !bookingDate || !newDate || !newTimeSlot) {
+      return res.status(400).json({ message: 'doctorId, dispensaryId, bookingDate, newDate, and newTimeSlot are required' });
     }
 
     const startOfDay = new Date(bookingDate);
@@ -1517,35 +1517,104 @@ router.post('/session/postpone', validateCustomJwt, roleMiddleware.requireAdvanc
     const endOfDay = new Date(bookingDate);
     endOfDay.setHours(23, 59, 59, 999);
 
+    const isSameDayShift = startOfDay.getTime() === new Date(newDate).setHours(0, 0, 0, 0);
+
     const query = {
       doctorId,
       dispensaryId,
       bookingDate: { $gte: startOfDay, $lte: endOfDay },
-      status: { $in: ['scheduled'] }
+      status: { $in: isSameDayShift ? ['scheduled', 'checked_in'] : ['scheduled'] }
     };
 
     if (timeSlotConfigId) {
       query.timeSlotConfigId = timeSlotConfigId;
+    } else {
+      // Find the config based on the day of week if absent
+      const dayOfWeek = startOfDay.getDay();
+      const config = await TimeSlotConfig.findOne({ doctorId, dispensaryId, dayOfWeek });
+      if (config) {
+        query.timeSlotConfigId = config._id;
+      }
     }
 
     const bookings = await Booking.find(query).populate('doctorId').populate('dispensaryId');
+    const dayOfWeek = startOfDay.getDay();
+    const config = query.timeSlotConfigId ? await TimeSlotConfig.findById(query.timeSlotConfigId) : await TimeSlotConfig.findOne({ doctorId, dispensaryId, dayOfWeek });
 
-    if (bookings.length === 0) {
-      return res.status(200).json({ success: true, patientsNotified: 0, smsFailed: 0, message: 'No active bookings found for this session.' });
+    if (!config) {
+        return res.status(404).json({ message: 'No time slot config found to postpone.' });
     }
 
-    // Update all to postponed
-    await Booking.updateMany(
-      { _id: { $in: bookings.map(b => b._id) } },
-      { $set: { 
-          status: 'postponed',
-          postponedTo: {
-             date: newDate,
-             timeSlot: newTimeSlot || ''
-          }
-        } 
-      }
-    );
+    let newStartTime, newEndTime;
+    let timesLine = newTimeSlot.replace(/\s/g, '').split('-');
+    newStartTime = timesLine[0];
+    newEndTime = timesLine.length > 1 ? timesLine[1] : null;
+
+    if (!newEndTime) {
+         const totalMins = config.maxPatients * config.minutesPerPatient;
+         const [stH, stM] = newStartTime.split(':').map(Number);
+         const endAppt = new Date(startOfDay);
+         endAppt.setHours(stH, stM + totalMins, 0, 0);
+         newEndTime = `${endAppt.getHours().toString().padStart(2, '0')}:${endAppt.getMinutes().toString().padStart(2, '0')}`;
+    }
+
+    if (isSameDayShift) {
+        // Upsert AbsentTimeSlot 
+        await AbsentTimeSlot.findOneAndUpdate(
+          {
+            doctorId,
+            dispensaryId,
+            date: { $gte: startOfDay, $lte: endOfDay },
+            isDateRange: { $ne: true },
+            timeSlotConfigId: config._id
+          },
+          {
+            $set: {
+              date: startOfDay,
+              startTime: newStartTime,
+              endTime: newEndTime,
+              isModifiedSession: true,
+              maxPatients: config.maxPatients,
+              minutesPerPatient: config.minutesPerPatient
+            }
+          },
+          { upsert: true, new: true }
+        );
+
+        // Update bookings without changing status
+        for(const booking of bookings) {
+            const [stH, stM] = newStartTime.split(':').map(Number);
+            const apptTime = new Date(startOfDay);
+            apptTime.setHours(stH, stM + ((booking.appointmentNumber - 1) * config.minutesPerPatient), 0, 0);
+            const newEstimated = `${apptTime.getHours().toString().padStart(2, '0')}:${apptTime.getMinutes().toString().padStart(2, '0')}`;
+
+            await Booking.updateOne({ _id: booking._id }, {
+               $set: {
+                 estimatedTime: newEstimated,
+                 timeSlot: `${newStartTime}-${newEndTime}`,
+                 postponedTo: {
+                   date: newDate,
+                   timeSlot: newTimeSlot
+                 }
+               }
+            });
+        }
+    } else {
+        if (bookings.length === 0) {
+            return res.status(200).json({ success: true, patientsNotified: 0, smsFailed: 0, message: 'No active bookings found for this session.' });
+        }
+        // Update all to postponed
+        await Booking.updateMany(
+            { _id: { $in: bookings.map(b => b._id) } },
+            { $set: { 
+                status: 'postponed',
+                postponedTo: {
+                    date: newDate,
+                    timeSlot: newTimeSlot || ''
+                }
+            } 
+        });
+    }
 
     // Send SMS
     let notifiedCount = 0;
@@ -1557,7 +1626,18 @@ router.post('/session/postpone', validateCustomJwt, roleMiddleware.requireAdvanc
         const oldDateStr = new Date(booking.bookingDate).toDateString();
         const newDateStr = new Date(newDate).toDateString();
         const newTimeStr = newTimeSlot ? ` ${newTimeSlot}` : '';
-        const message = `Dear ${booking.patientName}, your appointment with Dr. ${booking.doctorId?.name} at ${booking.dispensaryId?.name} on ${oldDateStr} has been POSTPONED to ${newDateStr}${newTimeStr}. Please contact ${dispensaryPhone} for questions. - ${booking.dispensaryId?.name}`;
+        
+        let message = '';
+        if (isSameDayShift) {
+             const [stH, stM] = newStartTime.split(':').map(Number);
+             const apptTime = new Date(startOfDay);
+             apptTime.setHours(stH, stM + ((booking.appointmentNumber - 1) * config.minutesPerPatient), 0, 0);
+             const newEstimatedFormat = apptTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }).replace(' AM', 'am').replace(' PM', 'pm');
+             const docName = booking.doctorId?.name || 'the doctor';
+             message = `Dear ${booking.patientName}, your appointment with Dr. ${docName} today has been DELAYED to start at ${newStartTime}. Your new estimated time is ${newEstimatedFormat}. - ${booking.dispensaryId?.name || ''}`;
+        } else {
+             message = `Dear ${booking.patientName}, your appointment with Dr. ${booking.doctorId?.name} at ${booking.dispensaryId?.name} on ${oldDateStr} has been POSTPONED to ${newDateStr}${newTimeStr}. Please contact ${dispensaryPhone} for questions. - ${booking.dispensaryId?.name}`;
+        }
 
         try {
           const smsResult = await smsService.sendSMS([booking.patientPhone], message);
@@ -1595,7 +1675,7 @@ router.post('/session/postpone', validateCustomJwt, roleMiddleware.requireAdvanc
       success: true,
       patientsNotified: notifiedCount,
       smsFailed: failedCount,
-      message: `Session postponed. ${notifiedCount} patients notified, ${failedCount} SMS failed.`
+      message: `Session time shifted successfully. ${notifiedCount} patients notified.`
     });
 
   } catch (error) {

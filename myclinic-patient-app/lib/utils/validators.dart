@@ -14,13 +14,11 @@ class Validators {
 
   static String? validatePhone(String? value) {
     if (value == null || value.isEmpty) return 'Phone number is required';
-    // Match web: allow + at start, digits, spaces, hyphens, parentheses
-    final phoneRegex = RegExp(r'^\+?[\d\s\-\(\)]+$');
-    if (!phoneRegex.hasMatch(value)) return 'Please enter a valid phone number';
-    // Check digit count (7-15)
-    final digitsOnly = value.replaceAll(RegExp(r'[^\d]'), '');
-    if (digitsOnly.length < 7 || digitsOnly.length > 15) {
-      return 'Phone number must be between 7 and 15 digits';
+    // Match exact Sri Lankan patterns (+947xxxxxxxx or 07xxxxxxxx)
+    final cleanValue = value.replaceAll(RegExp(r'\s+'), '');
+    final phoneRegex = RegExp(r'^(?:\+94|0)7\d{8}$');
+    if (!phoneRegex.hasMatch(cleanValue)) {
+      return 'Invalid format. Use +947xxxxxxxx or 07xxxxxxxx';
     }
     return null;
   }

@@ -279,6 +279,7 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _patientNameController,
+                      maxLength: 50,
                       decoration: const InputDecoration(
                         labelText: 'Patient Name *',
                         prefixIcon: Icon(Icons.person_outline),
@@ -292,14 +293,22 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
                       decoration: const InputDecoration(
                         labelText: 'Patient Phone *',
                         prefixIcon: Icon(Icons.phone_outlined),
-                        hintText: '0761234567 or +94761234567',
                       ),
                       validator: (v) {
                         if (v == null || v.trim().isEmpty) return 'Required';
-                        final clean = v.replaceAll(RegExp(r'[\s\-+]'), '');
-                        if (!RegExp(r'^\d{9,12}$').hasMatch(clean)) return 'Invalid phone number';
+                        final clean = v.replaceAll(RegExp(r'\s+'), '');
+                        if (!RegExp(r'^(?:\+94|0)7\d{8}$').hasMatch(clean)) {
+                          return 'Invalid format. Use +947xxxxxxxx or 07xxxxxxxx';
+                        }
                         return null;
                       },
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.only(left: 4, top: 4, bottom: 8),
+                      child: Text(
+                        'ex : +947xxxxxxxx, 07xxxxxxxx',
+                        style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                      ),
                     ),
 
                     const SizedBox(height: 32),

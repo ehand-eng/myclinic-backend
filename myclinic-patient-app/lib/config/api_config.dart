@@ -15,12 +15,12 @@ class ApiConfig {
     String url;
     try {
       if (Platform.isAndroid) {
-        url = 'http://10.0.2.2:5001';
+        url = 'https://myclinic-backend-uyu3.onrender.com';
       } else {
         url = 'https://myclinic-backend-uyu3.onrender.com';
       }
     } catch (_) {
-      url = 'http://localhost:5001';
+      url = 'https://myclinic-backend-uyu3.onrender.com';
     }
     debugPrint('[ApiConfig] Platform: ${Platform.operatingSystem}, Base URL: $url');
     return url;

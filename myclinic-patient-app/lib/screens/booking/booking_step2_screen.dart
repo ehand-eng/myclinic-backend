@@ -224,13 +224,13 @@ class _BookingStep2ScreenState extends ConsumerState<BookingStep2Screen> {
                 label: context.tr('fullName'),
                 controller: _nameCtrl,
                 prefixIcon: Icons.person_rounded,
-                maxLength: 25,
+                maxLength: 50,
                 validator: Validators.validateName,
               ),
               Padding(
                 padding: const EdgeInsets.only(left: 4, top: 2, bottom: 8),
                 child: Text(
-                  '${_nameCtrl.text.length}/25 ${context.tr('characters')}',
+                  '${_nameCtrl.text.length}/50 ${context.tr('characters')}',
                   style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
                 ),
               ),
@@ -251,11 +251,11 @@ class _BookingStep2ScreenState extends ConsumerState<BookingStep2Screen> {
                   }
                 },
               ),
-              Padding(
-                padding: const EdgeInsets.only(left: 4, top: 4, bottom: 8),
+              const Padding(
+                padding: EdgeInsets.only(left: 4, top: 4, bottom: 8),
                 child: Text(
-                  context.tr('phoneHint'),
-                  style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                  'ex : +947xxxxxxxx, 07xxxxxxxx',
+                  style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
                 ),
               ),
               AppTextInput(
