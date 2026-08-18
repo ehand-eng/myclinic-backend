@@ -294,7 +294,7 @@ router.get('/absent/disabled-dates/:doctorId/:dispensaryId', async (req, res) =>
 // Check conflicts for a date range absence
 router.get('/absent/date-range/check-conflicts', async (req, res) => {
   try {
-    const { doctorId, dispensaryId, startDate, endDate } = req.query;
+    const { doctorId, dispensaryId, startDate, endDate, excludeId } = req.query;
 
     if (!doctorId || !dispensaryId || !startDate || !endDate) {
       return res.status(400).json({ message: 'doctorId, dispensaryId, startDate, and endDate are required' });
@@ -306,13 +306,19 @@ router.get('/absent/date-range/check-conflicts', async (req, res) => {
     rangeEnd.setHours(23, 59, 59, 999);
 
     // Check for overlapping date-range absences
-    const overlapping = await AbsentTimeSlot.find({
+    const query = {
       doctorId,
       dispensaryId,
       isDateRange: true,
       startDate: { $lte: rangeEnd },
       endDate: { $gte: rangeStart }
-    });
+    };
+
+    if (excludeId) {
+      query._id = { $ne: excludeId };
+    }
+
+    const overlapping = await AbsentTimeSlot.find(query);
 
     if (overlapping.length > 0) {
       return res.status(200).json({

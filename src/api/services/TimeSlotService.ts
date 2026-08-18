@@ -553,11 +553,12 @@ export const TimeSlotService = {
     doctorId: string,
     dispensaryId: string,
     startDate: string,
-    endDate: string
+    endDate: string,
+    excludeId?: string
   ): Promise<DateRangeConflictResponse> => {
     try {
       const response = await api.get('/timeslots/absent/date-range/check-conflicts', {
-        params: { doctorId, dispensaryId, startDate, endDate }
+        params: { doctorId, dispensaryId, startDate, endDate, excludeId }
       });
       return response.data;
     } catch (error) {

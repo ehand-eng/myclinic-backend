@@ -382,7 +382,8 @@ const DispensaryCheckIn = () => {
         selectedDoctorId,
         selectedDispensaryId,
         multipleStartDate,
-        multipleEndDate
+        multipleEndDate,
+        editingMultipleSlotId || undefined
       );
       if (res.hasOverlap) {
         toast({

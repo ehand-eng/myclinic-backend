@@ -292,6 +292,7 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
         'dispensaryId': dispensaryId,
         'startDate': startStr,
         'endDate': endStr,
+        if (_editingAbsentSlotId != null) 'excludeId': _editingAbsentSlotId,
       });
       if (conflictRes['hasOverlap'] == true) {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(conflictRes['message'] ?? 'Overlapping absences exist')));
