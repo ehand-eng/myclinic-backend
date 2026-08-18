@@ -53,6 +53,7 @@ class ApiConfig {
   static const String createAbsentSlot = '/timeslots/absent';
   static String deleteAbsentSlot(String id) => '/timeslots/absent/$id';
   static const String absentDateRange = '/timeslots/absent/date-range';
+  static String updateAbsentDateRange(String id) => '/timeslots/absent/date-range/$id';
   static const String checkAbsentConflicts =
       '/timeslots/absent/date-range/check-conflicts';
 

@@ -119,6 +119,10 @@ class TimeSlotService {
     await _api.post(ApiConfig.absentDateRange, data: data);
   }
 
+  Future<void> updateAbsentDateRange(String id, Map<String, dynamic> data) async {
+    await _api.put(ApiConfig.updateAbsentDateRange(id), data: data);
+  }
+
   Future<Map<String, dynamic>> checkConflicts(
       Map<String, dynamic> params) async {
     final response =

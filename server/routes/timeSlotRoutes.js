@@ -473,6 +473,138 @@ router.post('/absent/date-range', async (req, res) => {
   }
 });
 
+// Update a date range absence
+router.put('/absent/date-range/:id', async (req, res) => {
+  try {
+    const { doctorId, dispensaryId, startDate, endDate, reason, force } = req.body;
+    const { id } = req.params;
+
+    if (!doctorId || !dispensaryId || !startDate || !endDate) {
+      return res.status(400).json({ message: 'doctorId, dispensaryId, startDate, and endDate are required' });
+    }
+
+    const absentSlot = await AbsentTimeSlot.findById(id);
+    if (!absentSlot) {
+      return res.status(404).json({ message: 'Absent time slot not found' });
+    }
+
+    const rangeStart = new Date(startDate);
+    rangeStart.setHours(0, 0, 0, 0);
+    const rangeEnd = new Date(endDate);
+    rangeEnd.setHours(23, 59, 59, 999);
+
+    // Check for overlapping date-range absences, excluding the current one
+    const overlapping = await AbsentTimeSlot.find({
+      _id: { $ne: id },
+      doctorId,
+      dispensaryId,
+      isDateRange: true,
+      startDate: { $lte: rangeEnd },
+      endDate: { $gte: rangeStart }
+    });
+
+    if (overlapping.length > 0) {
+      return res.status(409).json({
+        message: 'There are overlapping absence records in this date range',
+        overlappingAbsences: overlapping
+      });
+    }
+
+    let bookingsToCancel = [];
+
+    // Check for conflicting bookings
+    const conflictingBookings = await Booking.find({
+      doctorId,
+      dispensaryId,
+      bookingDate: { $gte: rangeStart, $lte: rangeEnd },
+      status: { $nin: ['cancelled'] }
+    });
+
+    if (conflictingBookings.length > 0) {
+      if (!force) {
+        return res.status(409).json({
+          message: `There are ${conflictingBookings.length} existing booking(s) in this date range`,
+          conflictingBookings: conflictingBookings.map(b => ({
+             patientName: b.patientName,
+             patientPhone: b.patientPhone,
+             bookingDate: b.bookingDate,
+             estimatedTime: b.estimatedTime,
+             appointmentNumber: b.appointmentNumber,
+             status: b.status,
+             transactionId: b.transactionId
+          })),
+          requiresForce: true
+        });
+      } else {
+        bookingsToCancel = conflictingBookings;
+      }
+    }
+
+    absentSlot.startDate = rangeStart;
+    absentSlot.endDate = rangeEnd;
+    absentSlot.reason = reason || undefined;
+    await absentSlot.save();
+
+    let patientsNotified = 0;
+    
+    // If we have bookings to cancel and force is true
+    if (bookingsToCancel.length > 0) {
+      // Find dispensary and doctor details if not populated
+      const dispensary = await Dispensary.findById(dispensaryId);
+      const doctor = await Doctor.findById(doctorId);
+      const dispensaryPhone = dispensary?.contactNumber || '';
+
+      await Booking.updateMany(
+        { _id: { $in: bookingsToCancel.map(b => b._id) } },
+        { $set: { status: 'cancelled' } }
+      );
+
+      for (const booking of bookingsToCancel) {
+        if (booking.patientPhone) {
+          const dateStr = new Date(booking.bookingDate).toDateString();
+          const message = `Dear ${booking.patientName}, your appointment with Dr. ${doctor?.name} at ${dispensary?.name} on ${dateStr} has been CANCELLED. Please contact ${dispensaryPhone} for more information. - ${dispensary?.name}`;
+
+          try {
+            const smsResult = await smsService.sendSMS([booking.patientPhone], message);
+            if (smsResult && smsResult.success) {
+              patientsNotified++;
+              await Booking.updateOne({ _id: booking._id }, {
+                $set: {
+                  'smsDelivery.status': 'sent',
+                  'smsDelivery.sentAt': new Date(),
+                  'smsDelivery.lastUpdated': new Date(),
+                  'smsDelivery.details': `Cancel Range TransID: ${smsResult.transactionId}`
+                }
+              });
+            } else {
+              await Booking.updateOne({ _id: booking._id }, {
+                $set: {
+                  'smsDelivery.status': 'failed',
+                  'smsDelivery.failedAt': new Date(),
+                  'smsDelivery.lastUpdated': new Date(),
+                  'smsDelivery.details': `Failed: ${smsResult.error || 'Unknown error'}`
+                }
+              });
+            }
+          } catch (err) {
+             console.error('SMS send error:', err);
+          }
+        }
+      }
+    }
+
+    res.status(200).json({
+       absentSlot,
+       message: bookingsToCancel.length > 0 
+           ? `Date range absence updated. ${bookingsToCancel.length} bookings cancelled and ${patientsNotified} patients notified.`
+           : 'Date range absence updated successfully.'
+    });
+  } catch (error) {
+    console.error('Error updating date range absence:', error);
+    res.status(500).json({ message: 'Error updating date range absence', error: error.message });
+  }
+});
+
 // Add an absent time slot (single date)
 router.post('/absent', async (req, res) => {
   try {

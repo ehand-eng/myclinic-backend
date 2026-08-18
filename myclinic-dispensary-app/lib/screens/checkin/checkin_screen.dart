@@ -35,6 +35,9 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
   List<Booking> _bookings = [];
   bool _isLoading = false;
   bool _isBroadcasting = false;
+  bool _isMultipleAddMode = false;
+  String? _editingAbsentSlotId;
+  List<AbsentTimeSlot> _absentDateRanges = [];
   Timer? _timer;
   final ValueNotifier<DateTime> _nowNotifier = ValueNotifier(DateTime.now());
 
@@ -168,6 +171,66 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
     }
   }
 
+  Future<void> _loadAbsentDateRanges() async {
+    if (_selectedDoctor == null) return;
+    final auth = ref.read(authProvider);
+    final dispensaryId = auth.selectedDispensary?.id;
+    if (dispensaryId == null) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final slots = await TimeSlotService().getAbsentSlots(
+        _selectedDoctor!.id, 
+        dispensaryId, 
+        startDate: DateTime.now().subtract(const Duration(days: 30)),
+        endDate: DateTime.now().add(const Duration(days: 365))
+      );
+      if (mounted) {
+        setState(() {
+          _absentDateRanges = slots.where((s) => s.isDateRange == true).toList();
+        });
+      }
+    } catch (_) {} finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _deleteAbsentDateRange(String id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Remove Date Range'),
+        content: const Text('Are you sure you want to remove this absent date range?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error, foregroundColor: Colors.white),
+            child: const Text('Yes')
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    
+    setState(() => _isBroadcasting = true);
+    try {
+      await TimeSlotService().deleteAbsentSlot(id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Absent date range removed'), backgroundColor: AppColors.success),
+        );
+      }
+      _loadAbsentDateRanges();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isBroadcasting = false);
+    }
+  }
+
   Future<void> _reload() async {
     if (_modeIndex == 0) {
       await _searchBookings();
@@ -252,18 +315,44 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
             ],
           ),
         ) ?? false;
+        if (proceed != true) {
+          setState(() => _isBroadcasting = false);
+          return;
+        }
       }
-      if (!proceed) return;
-      await TimeSlotService().createAbsentDateRange({
-        'doctorId': _selectedDoctor!.id,
-        'dispensaryId': dispensaryId,
-        'startDate': startStr,
-        'endDate': endStr,
-        'force': true,
-      });
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sessions absent successfully')));
+      
+      if (_editingAbsentSlotId != null) {
+        await TimeSlotService().updateAbsentDateRange(_editingAbsentSlotId!, {
+          'doctorId': _selectedDoctor!.id,
+          'dispensaryId': dispensaryId,
+          'startDate': startStr,
+          'endDate': endStr,
+          'force': true,
+        });
+      } else {
+        await TimeSlotService().createAbsentDateRange({
+          'doctorId': _selectedDoctor!.id,
+          'dispensaryId': dispensaryId,
+          'startDate': startStr,
+          'endDate': endStr,
+          'force': proceed,
+        });
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text(_editingAbsentSlotId != null ? 'Date range updated' : 'Marked as absent successfully'), backgroundColor: AppColors.success),
+        );
+        setState(() {
+          _isMultipleAddMode = false;
+          _editingAbsentSlotId = null;
+        });
+        _loadAbsentDateRanges();
+      }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     } finally {
       if (mounted) setState(() => _isBroadcasting = false);
     }
@@ -589,66 +678,148 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
                     ],
                   )
                 else if (_modeIndex == 2)
-                  Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () async {
-                                final picked = await showDatePicker(
-                                  context: context,
-                                  initialDate: _startDate,
-                                  firstDate: DateTime.now().subtract(const Duration(days: 30)),
-                                  lastDate: DateTime.now().add(const Duration(days: 30)),
-                                );
-                                if (picked != null) setState(() => _startDate = picked);
-                              },
-                              icon: const Icon(Icons.date_range, size: 16),
-                              label: Text(DateFormat('MMM dd').format(_startDate)),
-                            ),
+                  if (!_isMultipleAddMode)
+                    Column(
+                      children: [
+                        DropdownButtonFormField<Doctor>(
+                          value: _selectedDoctor,
+                          decoration: const InputDecoration(
+                            hintText: 'Select Doctor',
+                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () async {
-                                final picked = await showDatePicker(
-                                  context: context,
-                                  initialDate: _endDate,
-                                  firstDate: _startDate,
-                                  lastDate: DateTime.now().add(const Duration(days: 60)),
+                          items: _doctors.map((d) => DropdownMenuItem(value: d, child: Text(d.name))).toList(),
+                          onChanged: (d) {
+                            setState(() => _selectedDoctor = d);
+                            _loadAbsentDateRanges();
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                        if (_selectedDoctor != null) ...[
+                          if (_absentDateRanges.isEmpty)
+                            const Padding(padding: EdgeInsets.all(16.0), child: Text('No absent date ranges found.', style: TextStyle(color: Colors.grey)))
+                          else
+                            ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: _absentDateRanges.length,
+                              separatorBuilder: (_, __) => const Divider(height: 1),
+                              itemBuilder: (ctx, i) {
+                                final r = _absentDateRanges[i];
+                                final df = DateFormat('MMM dd, yyyy');
+                                return ListTile(
+                                  dense: true,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                  title: Text('${r.startDate != null ? df.format(r.startDate!.toLocal()) : ''} to ${r.endDate != null ? df.format(r.endDate!.toLocal()) : ''}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.edit, size: 20, color: Colors.blue),
+                                        onPressed: () {
+                                          setState(() {
+                                            _startDate = r.startDate ?? DateTime.now();
+                                            _endDate = r.endDate ?? DateTime.now().add(const Duration(days: 3));
+                                            _editingAbsentSlotId = r.id;
+                                            _isMultipleAddMode = true;
+                                          });
+                                        }
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+                                        onPressed: () => _deleteAbsentDateRange(r.id),
+                                      ),
+                                    ],
+                                  ),
                                 );
-                                if (picked != null) setState(() => _endDate = picked);
-                              },
-                              icon: const Icon(Icons.date_range, size: 16),
-                              label: Text(DateFormat('MMM dd').format(_endDate)),
+                              }
+                            ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              icon: const Icon(Icons.add),
+                              label: const Text('Add New Absent Range'),
+                              onPressed: () => setState(() {
+                                _isMultipleAddMode = true;
+                                _editingAbsentSlotId = null;
+                                _startDate = DateTime.now();
+                                _endDate = DateTime.now().add(const Duration(days: 3));
+                              }),
                             ),
                           ),
                         ]
-                      ),
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<Doctor>(
-                        value: _selectedDoctor,
-                        decoration: const InputDecoration(
-                          hintText: 'Select Doctor',
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ]
+                    )
+                  else
+                    Column(
+                      children: [
+                        Row(
+                          children: [
+                             IconButton(
+                               icon: const Icon(Icons.arrow_back), 
+                               onPressed: () => setState(() => _isMultipleAddMode = false)
+                             ),
+                             Expanded(child: Text(_editingAbsentSlotId != null ? 'Edit Absent Range' : 'New Absent Range', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
+                          ]
                         ),
-                        items: _doctors.map((d) => DropdownMenuItem(value: d, child: Text(d.name))).toList(),
-                        onChanged: (d) => setState(() => _selectedDoctor = d),
-                      ),
-                      if (_selectedDoctor != null) ...[
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () async {
+                                  final picked = await showDatePicker(
+                                    context: context,
+                                    initialDate: _startDate,
+                                    firstDate: DateTime.now().subtract(const Duration(days: 30)),
+                                    lastDate: DateTime.now().add(const Duration(days: 30)),
+                                  );
+                                  if (picked != null) setState(() => _startDate = picked);
+                                },
+                                icon: const Icon(Icons.date_range, size: 16),
+                                label: Text(DateFormat('MMM dd').format(_startDate)),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () async {
+                                  final picked = await showDatePicker(
+                                    context: context,
+                                    initialDate: _endDate,
+                                    firstDate: _startDate,
+                                    lastDate: DateTime.now().add(const Duration(days: 60)),
+                                  );
+                                  if (picked != null) setState(() => _endDate = picked);
+                                },
+                                icon: const Icon(Icons.date_range, size: 16),
+                                label: Text(DateFormat('MMM dd').format(_endDate)),
+                              ),
+                            ),
+                          ]
+                        ),
                         const SizedBox(height: 8),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _isBroadcasting ? null : _markMultipleAbsent,
-                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error, foregroundColor: Colors.white),
-                            child: _isBroadcasting ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Mark Absent'),
+                        DropdownButtonFormField<Doctor>(
+                          value: _selectedDoctor,
+                          decoration: const InputDecoration(
+                            hintText: 'Select Doctor',
+                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           ),
+                          items: _doctors.map((d) => DropdownMenuItem(value: d, child: Text(d.name))).toList(),
+                          onChanged: (d) => setState(() => _selectedDoctor = d),
                         ),
+                        if (_selectedDoctor != null) ...[
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: _isBroadcasting ? null : _markMultipleAbsent,
+                              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error, foregroundColor: Colors.white),
+                              child: _isBroadcasting ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : Text(_editingAbsentSlotId != null ? 'Update Absent Range' : 'Mark Absent'),
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
+                    ),
               ],
             ),
           ),

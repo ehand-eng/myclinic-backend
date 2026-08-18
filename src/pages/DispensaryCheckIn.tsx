@@ -62,6 +62,9 @@ const DispensaryCheckIn = () => {
     new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   );
   
+  const [isMultipleAddMode, setIsMultipleAddMode] = useState(false);
+  const [editingMultipleSlotId, setEditingMultipleSlotId] = useState<string | null>(null);
+  const [absentDateRanges, setAbsentDateRanges] = useState<any[]>([]);
   const [multipleConflictCount, setMultipleConflictCount] = useState(0);
   
   // Results
@@ -409,18 +412,32 @@ const DispensaryCheckIn = () => {
   const executeMultipleAbsent = async (force: boolean = false) => {
     setIsBroadcasting(true);
     try {
-      const res = await TimeSlotService.createDateRangeAbsence({
-        doctorId: selectedDoctorId,
-        dispensaryId: selectedDispensaryId,
-        startDate: multipleStartDate,
-        endDate: multipleEndDate,
-        force
-      });
+      let res;
+      if (editingMultipleSlotId) {
+        res = await TimeSlotService.updateDateRangeAbsence(editingMultipleSlotId, {
+          doctorId: selectedDoctorId,
+          dispensaryId: selectedDispensaryId,
+          startDate: multipleStartDate,
+          endDate: multipleEndDate,
+          force
+        });
+      } else {
+        res = await TimeSlotService.createDateRangeAbsence({
+          doctorId: selectedDoctorId,
+          dispensaryId: selectedDispensaryId,
+          startDate: multipleStartDate,
+          endDate: multipleEndDate,
+          force
+        });
+      }
       toast({
         title: 'Success',
         description: res.message || 'Sessions blocked successfully.'
       });
       setIsCancelMultipleOpen(false);
+      setIsMultipleAddMode(false);
+      setEditingMultipleSlotId(null);
+      loadAbsentDateRanges();
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -429,6 +446,32 @@ const DispensaryCheckIn = () => {
       });
     } finally {
       setIsBroadcasting(false);
+    }
+  };
+
+  const loadAbsentDateRanges = async () => {
+    if (!selectedDoctorId || !selectedDispensaryId) return;
+    try {
+      const now = new Date();
+      const startDate = new Date(now);
+      startDate.setDate(now.getDate() - 30);
+      const endDate = new Date(now);
+      endDate.setDate(now.getDate() + 365);
+      const slots = await TimeSlotService.getAbsentTimeSlots(selectedDoctorId, selectedDispensaryId, startDate, endDate);
+      setAbsentDateRanges(slots.filter(s => s.isDateRange));
+    } catch (error) {
+      console.error('Failed to load absent date ranges', error);
+    }
+  };
+
+  const handleDeleteMultipleAbsent = async (id: string) => {
+    if (!window.confirm('Are you sure you want to remove this absent date range?')) return;
+    try {
+      await TimeSlotService.deleteAbsentTimeSlot(id);
+      toast({ title: 'Success', description: 'Absent date range removed.' });
+      loadAbsentDateRanges();
+    } catch (error) {
+       toast({ title: 'Error', description: 'Failed to remove date range.', variant: 'destructive' });
     }
   };
 
@@ -839,14 +882,25 @@ const DispensaryCheckIn = () => {
           {/* Multiple Sessions Mode */}
           {searchMode === 'multiple' && (
             <Card className="mb-6">
-              <CardHeader>
-                <CardTitle>Multiple Sessions Cancellation</CardTitle>
-                <CardDescription>
-                  Mark a doctor as absent over a specified date range and cancel existing bookings.
-                </CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>{isMultipleAddMode ? (editingMultipleSlotId ? 'Edit Absent Range' : 'New Absent Range') : 'Multiple Sessions Cancellation'}</CardTitle>
+                  <CardDescription>
+                    {isMultipleAddMode 
+                      ? 'Mark a doctor as absent over a specified date range and cancel existing bookings.'
+                      : 'Manage existing date ranges where the doctor is marked as absent.'}
+                  </CardDescription>
+                </div>
+                {isMultipleAddMode && (
+                  <Button variant="outline" onClick={() => {
+                    setIsMultipleAddMode(false);
+                    setEditingMultipleSlotId(null);
+                  }}>Back to List</Button>
+                )}
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Always show doctor and dispensary selection at the top */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <div>
                     <Label htmlFor="multipleDispensary">Dispensary *</Label>
                     <Select 
@@ -869,7 +923,13 @@ const DispensaryCheckIn = () => {
                     <Label htmlFor="multipleDoctor">Doctor *</Label>
                     <Select 
                       value={selectedDoctorId} 
-                      onValueChange={setSelectedDoctorId}
+                      onValueChange={(val) => {
+                        setSelectedDoctorId(val);
+                        // Using a timeout because selectedDoctorId state might not update immediately for the load call
+                        setTimeout(() => {
+                           loadAbsentDateRanges();
+                        }, 100);
+                      }}
                       disabled={!selectedDispensaryId || isLoading}
                     >
                       <SelectTrigger>
@@ -888,45 +948,111 @@ const DispensaryCheckIn = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  
-                  <div>
-                    <Label htmlFor="multipleStartDate">From Date *</Label>
-                    <Input 
-                      type="date"
-                      value={multipleStartDate}
-                      onChange={(e) => setMultipleStartDate(e.target.value)}
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="multipleEndDate">To Date *</Label>
-                    <Input 
-                      type="date"
-                      value={multipleEndDate}
-                      onChange={(e) => setMultipleEndDate(e.target.value)}
-                    />
-                  </div>
                 </div>
 
-                <div className="flex justify-end pt-4">
-                  <Button 
-                    variant="destructive"
-                    onClick={handleMarkMultipleAbsentInit} 
-                    disabled={isBroadcasting || !selectedDispensaryId || !selectedDoctorId || !multipleStartDate || !multipleEndDate}
-                  >
-                    {isBroadcasting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <AlertCircle className="h-4 w-4 mr-2" />
-                        Mark Absent (Date Range)
-                      </>
+                {!isMultipleAddMode ? (
+                  // List Mode
+                  <>
+                    {selectedDoctorId && (
+                      <div className="space-y-4">
+                        {absentDateRanges.length === 0 ? (
+                          <div className="text-center py-6 text-gray-500 border rounded-md bg-gray-50">
+                            No absent date ranges found for this doctor.
+                          </div>
+                        ) : (
+                          <div className="border rounded-md">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Start Date</TableHead>
+                                  <TableHead>End Date</TableHead>
+                                  <TableHead className="text-right">Action</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {absentDateRanges.map(range => (
+                                  <TableRow key={range.id}>
+                                    <TableCell>{range.startDate ? format(new Date(range.startDate), 'MMM dd, yyyy') : 'N/A'}</TableCell>
+                                    <TableCell>{range.endDate ? format(new Date(range.endDate), 'MMM dd, yyyy') : 'N/A'}</TableCell>
+                                    <TableCell className="text-right">
+                                      <div className="flex justify-end space-x-2">
+                                        <Button variant="outline" size="sm" onClick={() => {
+                                          setMultipleStartDate(range.startDate ? new Date(range.startDate).toISOString().split('T')[0] : '');
+                                          setMultipleEndDate(range.endDate ? new Date(range.endDate).toISOString().split('T')[0] : '');
+                                          setEditingMultipleSlotId(range.id);
+                                          setIsMultipleAddMode(true);
+                                        }}>
+                                          Edit
+                                        </Button>
+                                        <Button variant="destructive" size="sm" onClick={() => handleDeleteMultipleAbsent(range.id)}>
+                                          Remove
+                                        </Button>
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        )}
+                        <Button 
+                          className="w-full"
+                          onClick={() => {
+                            setMultipleStartDate(new Date().toISOString().split('T')[0]);
+                            setMultipleEndDate(new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+                            setEditingMultipleSlotId(null);
+                            setIsMultipleAddMode(true);
+                          }}
+                        >
+                          <Calendar className="mr-2 h-4 w-4" /> Add New Absent Range
+                        </Button>
+                      </div>
                     )}
-                  </Button>
-                </div>
+                  </>
+                ) : (
+                  // Add/Edit Mode
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
+                      <div>
+                        <Label htmlFor="multipleStartDate">From Date *</Label>
+                        <Input 
+                          type="date"
+                          value={multipleStartDate}
+                          onChange={(e) => setMultipleStartDate(e.target.value)}
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="multipleEndDate">To Date *</Label>
+                        <Input 
+                          type="date"
+                          value={multipleEndDate}
+                          onChange={(e) => setMultipleEndDate(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-4">
+                      <Button 
+                        variant="destructive"
+                        onClick={handleMarkMultipleAbsentInit} 
+                        disabled={isBroadcasting || !selectedDispensaryId || !selectedDoctorId || !multipleStartDate || !multipleEndDate}
+                      >
+                        {isBroadcasting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <AlertCircle className="h-4 w-4 mr-2" />
+                            {editingMultipleSlotId ? 'Update Absent Range' : 'Mark Absent (Date Range)'}
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           )}

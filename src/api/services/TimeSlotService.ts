@@ -579,12 +579,32 @@ export const TimeSlotService = {
       const response = await api.post('/timeslots/absent/date-range', data);
       return response.data;
     } catch (error: any) {
-      // Return the conflict response for the caller to handle
       if (error.response?.status === 409) {
         throw error;
       }
       console.error('Error creating date range absence:', error);
       throw new Error('Failed to create date range absence');
+    }
+  },
+
+  // Update a date range absence
+  updateDateRangeAbsence: async (id: string, data: {
+    doctorId: string;
+    dispensaryId: string;
+    startDate: string;
+    endDate: string;
+    reason?: string;
+    force?: boolean;
+  }): Promise<any> => {
+    try {
+      const response = await api.put(`/timeslots/absent/date-range/${id}`, data);
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 409) {
+        throw error;
+      }
+      console.error('Error updating date range absence:', error);
+      throw new Error('Failed to update date range absence');
     }
   },
 
