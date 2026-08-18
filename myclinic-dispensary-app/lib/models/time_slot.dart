@@ -132,6 +132,29 @@ class AbsentTimeSlot {
   }
 }
 
+class Slot {
+  final int appointmentNumber;
+  final String timeSlot;
+  final String estimatedTime;
+  final int minutesPerPatient;
+
+  Slot({
+    required this.appointmentNumber,
+    required this.timeSlot,
+    required this.estimatedTime,
+    required this.minutesPerPatient,
+  });
+
+  factory Slot.fromJson(Map<String, dynamic> json) {
+    return Slot(
+      appointmentNumber: json['appointmentNumber'] ?? 0,
+      timeSlot: json['timeSlot'] ?? '',
+      estimatedTime: json['estimatedTime'] ?? '',
+      minutesPerPatient: json['minutesPerPatient'] ?? 15,
+    );
+  }
+}
+
 class Session {
   final String? configId;
   final String startTime;
@@ -140,6 +163,7 @@ class Session {
   final int bookedCount;
   final int availableSlots;
   final int minutesPerPatient;
+  final List<Slot> slots;
 
   Session({
     this.configId,
@@ -149,6 +173,7 @@ class Session {
     this.bookedCount = 0,
     this.availableSlots = 0,
     this.minutesPerPatient = 15,
+    this.slots = const [],
   });
 
   factory Session.fromJson(Map<String, dynamic> json) {
@@ -160,6 +185,7 @@ class Session {
       bookedCount: json['bookedCount'] ?? json['currentBookings'] ?? 0,
       availableSlots: json['availableSlots'] ?? 0,
       minutesPerPatient: json['minutesPerPatient'] ?? 15,
+      slots: (json['slots'] as List?)?.map((e) => Slot.fromJson(e)).toList() ?? [],
     );
   }
 

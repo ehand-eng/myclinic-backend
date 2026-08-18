@@ -1068,34 +1068,35 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
                       </div>
                     )}
 
-                    {/* Continue Button */}
-                    <div className="mt-6 flex justify-end">
-                      <Button
-                        onClick={() => setCurrentStep(1)}
-                        disabled={!selectedDoctor || !selectedDispensary || !selectedDate || !availability?.available || !availability.slots?.length}
-                        className="bg-medical-600 hover:bg-medical-700"
-                      >
-                        Continue
-                      </Button>
-                    </div>
+                    {/* Patient Details & Payment Form - Rendered inline when a slot is available */}
+                    {availability?.available && availability.slots?.length > 0 && getActiveSlot() && (
+                      <div className="mt-8 border-t border-gray-200 pt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <h3 className="text-xl font-bold mb-4 text-medical-800">Patient Details & Payment</h3>
+                        <BookingStep2
+                          key={`step2-${selectedDoctor}-${selectedDispensary}-${selectedDate?.getTime()}-${selectedSession}`}
+                          nextAppointment={getActiveSlot() || null}
+                          selectedDate={selectedDate}
+                          name={name}
+                          phone={phone}
+                          email={email}
+                          setName={setName}
+                          setPhone={setPhone}
+                          setEmail={setEmail}
+                          isLoading={isLoading}
+                          onBack={() => {}} 
+                          onConfirm={handleBooking}
+                          doctorId={selectedDoctor}
+                          dispensaryId={selectedDispensary}
+                          hideSummary={true}
+                          hideBackButton={true}
+                        />
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <BookingStep2
-                    key={`${selectedDoctor}-${selectedDispensary}-${selectedDate?.getTime()}-${currentStep}`}
-                    nextAppointment={getActiveSlot() || null}
-                    selectedDate={selectedDate}
-                    name={name}
-                    phone={phone}
-                    email={email}
-                    setName={setName}
-                    setPhone={setPhone}
-                    setEmail={setEmail}
-                    isLoading={isLoading}
-                    onBack={() => setCurrentStep(0)}
-                    onConfirm={handleBooking}
-                    doctorId={selectedDoctor}
-                    dispensaryId={selectedDispensary}
-                  />
+                  <div className="hidden">
+                    {/* Fallback to hide original Step 2 mount since it's mounted inline now */}
+                  </div>
                 )}
               </div>
             </TabsContent>

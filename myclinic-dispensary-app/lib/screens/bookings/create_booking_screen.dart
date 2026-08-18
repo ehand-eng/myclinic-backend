@@ -272,6 +272,70 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
                         validator: (v) => v == null ? 'Required' : null,
                       ),
                     
+                    if (_selectedTimeSlot != null) ...[
+                      const SizedBox(height: 16),
+                      Builder(
+                        builder: (context) {
+                          final sessionConfig = _sessions.firstWhere((s) => s.display == _selectedTimeSlot);
+                          final nextSlot = sessionConfig.slots.isNotEmpty ? sessionConfig.slots.first : null;
+
+                          if (nextSlot != null) {
+                            return Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withOpacity(0.1),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.confirmation_number_outlined, color: AppColors.primary),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Appointment #${nextSlot.appointmentNumber}',
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.primary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            const Icon(Icons.access_time, size: 14, color: AppColors.textSecondary),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              'Estimated Time: ${nextSlot.estimatedTime}',
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                color: AppColors.textSecondary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                          return const SizedBox();
+                        },
+                      ),
+                    ],
+
                     const SizedBox(height: 24),
 
                     // Patient Details

@@ -25,6 +25,8 @@ interface BookingStep2Props {
   onPayOnline?: (fees: any) => void;
   doctorId: string;
   dispensaryId: string;
+  hideSummary?: boolean;
+  hideBackButton?: boolean;
 }
 
 const BookingStep2: React.FC<BookingStep2Props> = ({
@@ -42,7 +44,9 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
   onConfirm,
   onPayOnline,
   doctorId,
-  dispensaryId
+  dispensaryId,
+  hideSummary = false,
+  hideBackButton = false
 }) => {
   const [fees, setFees] = useState<any>(null);
   const [feesLoading, setFeesLoading] = useState(false);
@@ -153,7 +157,7 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
 
   return (
     <>
-      {nextAppointment && selectedDate && (
+      {!hideSummary && nextAppointment && selectedDate && (
         <Card className="mb-6 border border-[#1977cc]/20 bg-gradient-to-r from-[#f1f7fd] to-blue-50 shadow-md hover:shadow-lg transition-all duration-300">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-6">
@@ -369,9 +373,11 @@ const BookingStep2: React.FC<BookingStep2Props> = ({
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-3">
-            <Button variant="outline" onClick={onBack} className="order-3 sm:order-1">
-              Back
-            </Button>
+            {!hideBackButton && (
+              <Button variant="outline" onClick={onBack} className="order-3 sm:order-1">
+                Back
+              </Button>
+            )}
 
             {/* Pay Online Button */}
             {onPayOnline && (

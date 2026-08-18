@@ -13,6 +13,7 @@ import '../../services/timeslot_service.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state.dart';
+import '../../providers/navigation_provider.dart';
 
 class CheckInScreen extends ConsumerStatefulWidget {
   const CheckInScreen({super.key});
@@ -364,6 +365,12 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<int>(mainTabIndexProvider, (previous, next) {
+      if (next == 2 && previous != 2) { // 2 is the CheckIn tab index
+        _reload();
+      }
+    });
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(

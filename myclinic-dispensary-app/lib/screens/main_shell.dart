@@ -8,6 +8,7 @@ import 'bookings/bookings_list_screen.dart';
 import 'checkin/checkin_screen.dart';
 import 'doctors/doctors_list_screen.dart';
 import 'profile/profile_screen.dart';
+import '../providers/navigation_provider.dart';
 
 class MainShell extends ConsumerStatefulWidget {
   const MainShell({super.key});
@@ -17,7 +18,6 @@ class MainShell extends ConsumerStatefulWidget {
 }
 
 class _MainShellState extends ConsumerState<MainShell> {
-  int _currentIndex = 0;
   final Set<int> _initializedTabs = {0}; // Only build visited tabs
 
   static const _titles = [
@@ -31,6 +31,7 @@ class _MainShellState extends ConsumerState<MainShell> {
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
+    final _currentIndex = ref.watch(mainTabIndexProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -101,11 +102,11 @@ class _MainShellState extends ConsumerState<MainShell> {
               // Option to invalidate if forcing a hard reload is desired:
               ref.invalidate(dashboardStatsProvider('today'));
             }
-            setState(() {
-              _initializedTabs.add(index);
-              _currentIndex = index;
-            });
-          },
+              ref.read(mainTabIndexProvider.notifier).state = index;
+              setState(() {
+                _initializedTabs.add(index);
+              });
+            },
           backgroundColor: AppColors.card,
           indicatorColor: AppColors.primarySurface,
           destinations: const [

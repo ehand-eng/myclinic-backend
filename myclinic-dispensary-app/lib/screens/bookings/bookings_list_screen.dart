@@ -11,6 +11,7 @@ import '../../services/timeslot_service.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state.dart';
+import '../../providers/navigation_provider.dart';
 
 class BookingsListScreen extends ConsumerStatefulWidget {
   const BookingsListScreen({super.key});
@@ -179,6 +180,12 @@ class _BookingsListScreenState extends ConsumerState<BookingsListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<int>(mainTabIndexProvider, (previous, next) {
+      if (next == 1 && previous != 1) { // 1 is the Bookings tab index
+        _loadBookings();
+      }
+    });
+
     final fmt = DateFormat('MMM dd, yyyy');
 
     return Scaffold(

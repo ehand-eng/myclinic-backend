@@ -1424,6 +1424,31 @@ router.post('/session/cancel', validateCustomJwt, roleMiddleware.requireAdvanced
     const endOfDay = new Date(bookingDate);
     endOfDay.setHours(23, 59, 59, 999);
 
+    const dayOfWeek = startOfDay.getDay();
+    const config = timeSlotConfigId ? await TimeSlotConfig.findById(timeSlotConfigId) : await TimeSlotConfig.findOne({ doctorId, dispensaryId, dayOfWeek });
+    
+    if (config) {
+      // Upsert AbsentTimeSlot to permanently block this session
+      await AbsentTimeSlot.findOneAndUpdate(
+        {
+          doctorId,
+          dispensaryId,
+          date: startOfDay,
+          isDateRange: false,
+          timeSlotConfigId: config._id
+        },
+        {
+          $set: {
+            startTime: config.startTime,
+            endTime: config.endTime,
+            isModifiedSession: false,
+            reason: 'Session Cancelled'
+          }
+        },
+        { upsert: true, new: true }
+      );
+    }
+
     const query = {
       doctorId,
       dispensaryId,
@@ -1433,12 +1458,14 @@ router.post('/session/cancel', validateCustomJwt, roleMiddleware.requireAdvanced
 
     if (timeSlotConfigId) {
       query.timeSlotConfigId = timeSlotConfigId;
+    } else if (config) {
+      query.timeSlotConfigId = config._id;
     }
 
     const bookings = await Booking.find(query).populate('doctorId').populate('dispensaryId');
 
     if (bookings.length === 0) {
-      return res.status(200).json({ success: true, patientsNotified: 0, smsFailed: 0, message: 'No active bookings found for this session.' });
+      return res.status(200).json({ success: true, patientsNotified: 0, smsFailed: 0, message: 'Session cancelled successfully. No active bookings found to notify.' });
     }
 
     // Update all to cancelled
@@ -1606,8 +1633,28 @@ router.post('/session/postpone', validateCustomJwt, roleMiddleware.requireAdvanc
             });
         }
     } else {
+        // Upsert AbsentTimeSlot for the OLD day to definitively block it
+        await AbsentTimeSlot.findOneAndUpdate(
+          {
+            doctorId,
+            dispensaryId,
+            date: startOfDay,
+            isDateRange: false,
+            timeSlotConfigId: config._id
+          },
+          {
+            $set: {
+              startTime: config.startTime,
+              endTime: config.endTime,
+              isModifiedSession: false,
+              reason: 'Session Postponed to another date'
+            }
+          },
+          { upsert: true, new: true }
+        );
+
         if (bookings.length === 0) {
-            return res.status(200).json({ success: true, patientsNotified: 0, smsFailed: 0, message: 'No active bookings found for this session.' });
+            return res.status(200).json({ success: true, patientsNotified: 0, smsFailed: 0, message: 'Session postponed successfully. No active bookings found to notify.' });
         }
         // Update all to postponed
         await Booking.updateMany(
