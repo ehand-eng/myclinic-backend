@@ -46,7 +46,7 @@ const DispensaryCheckIn = () => {
   const [sessions, setSessions] = useState<Array<{ timeSlot: string; startTime: string; endTime: string; timeSlotConfigId: string | null }>>([]);
   
   // Form state - Search mode
-  const [searchMode, setSearchMode] = useState<'search' | 'bulk'>('search');
+  const [searchMode, setSearchMode] = useState<'search' | 'bulk' | 'multiple'>('search');
   const [bookingReference, setBookingReference] = useState('');
   const [appointmentNumber, setAppointmentNumber] = useState('');
   const [patientName, setPatientName] = useState('');
@@ -55,6 +55,14 @@ const DispensaryCheckIn = () => {
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('');
   const [selectedSessionId, setSelectedSessionId] = useState<string>('');
+  
+  // Form state - Multiple mode
+  const [multipleStartDate, setMultipleStartDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [multipleEndDate, setMultipleEndDate] = useState<string>(
+    new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  );
+  
+  const [multipleConflictCount, setMultipleConflictCount] = useState(0);
   
   // Results
   const [bookings, setBookings] = useState<BookingWithDetails[]>([]);
@@ -66,6 +74,7 @@ const DispensaryCheckIn = () => {
   // Broadcast state
   const [isCancelSessionOpen, setIsCancelSessionOpen] = useState(false);
   const [isPostponeSessionOpen, setIsPostponeSessionOpen] = useState(false);
+  const [isCancelMultipleOpen, setIsCancelMultipleOpen] = useState(false);
   const [postponeDate, setPostponeDate] = useState('');
   const [postponeTime, setPostponeTime] = useState('');
   const [postponeTimeError, setPostponeTimeError] = useState('');
@@ -362,6 +371,67 @@ const DispensaryCheckIn = () => {
     }
   };
 
+  const handleMarkMultipleAbsentInit = async () => {
+    if (!selectedDoctorId || !selectedDispensaryId) return;
+    setIsBroadcasting(true);
+    try {
+      const res = await TimeSlotService.checkDateRangeConflicts(
+        selectedDoctorId,
+        selectedDispensaryId,
+        multipleStartDate,
+        multipleEndDate
+      );
+      if (res.hasOverlap) {
+        toast({
+          title: 'Existing Overlap',
+          description: res.message || 'There is an existing absence block in this range.',
+          variant: 'destructive'
+        });
+        return;
+      }
+      if (res.bookingCount && res.bookingCount > 0) {
+        setMultipleConflictCount(res.bookingCount);
+        setIsCancelMultipleOpen(true);
+      } else {
+        await executeMultipleAbsent(false);
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Error occurred checking conflicts',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsBroadcasting(false);
+    }
+  };
+
+  const executeMultipleAbsent = async (force: boolean = false) => {
+    setIsBroadcasting(true);
+    try {
+      const res = await TimeSlotService.createDateRangeAbsence({
+        doctorId: selectedDoctorId,
+        dispensaryId: selectedDispensaryId,
+        startDate: multipleStartDate,
+        endDate: multipleEndDate,
+        force
+      });
+      toast({
+        title: 'Success',
+        description: res.message || 'Sessions blocked successfully.'
+      });
+      setIsCancelMultipleOpen(false);
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to absent date range.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsBroadcasting(false);
+    }
+  };
+
   // Handle check-in
   const handleCheckIn = async (bookingId: string) => {
     try {
@@ -498,6 +568,13 @@ const DispensaryCheckIn = () => {
             >
               <Calendar className="h-4 w-4 mr-2" />
               Walk-In / Bulk Check-In
+            </Button>
+            <Button
+              variant={searchMode === 'multiple' ? 'default' : 'outline'}
+              onClick={() => setSearchMode('multiple')}
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              Multiple Sessions
             </Button>
           </div>
 
@@ -759,6 +836,101 @@ const DispensaryCheckIn = () => {
             </Card>
           )}
 
+          {/* Multiple Sessions Mode */}
+          {searchMode === 'multiple' && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Multiple Sessions Cancellation</CardTitle>
+                <CardDescription>
+                  Mark a doctor as absent over a specified date range and cancel existing bookings.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <Label htmlFor="multipleDispensary">Dispensary *</Label>
+                    <Select 
+                      value={selectedDispensaryId} 
+                      onValueChange={setSelectedDispensaryId}
+                      disabled={userDispensaryIds.length === 1}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Dispensary" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {dispensaries.map(d => (
+                          <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="multipleDoctor">Doctor *</Label>
+                    <Select 
+                      value={selectedDoctorId} 
+                      onValueChange={setSelectedDoctorId}
+                      disabled={!selectedDispensaryId || isLoading}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={isLoading ? "Loading..." : "Select Doctor"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {doctors.length === 0 ? (
+                          <div className="px-2 py-1.5 text-sm text-gray-500">No doctors available</div>
+                        ) : (
+                          doctors.map(doctor => (
+                            <SelectItem key={doctor.id} value={doctor.id}>
+                              {doctor.name} - {doctor.specialization}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="multipleStartDate">From Date *</Label>
+                    <Input 
+                      type="date"
+                      value={multipleStartDate}
+                      onChange={(e) => setMultipleStartDate(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="multipleEndDate">To Date *</Label>
+                    <Input 
+                      type="date"
+                      value={multipleEndDate}
+                      onChange={(e) => setMultipleEndDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-4">
+                  <Button 
+                    variant="destructive"
+                    onClick={handleMarkMultipleAbsentInit} 
+                    disabled={isBroadcasting || !selectedDispensaryId || !selectedDoctorId || !multipleStartDate || !multipleEndDate}
+                  >
+                    {isBroadcasting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="h-4 w-4 mr-2" />
+                        Mark Absent (Date Range)
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Bookings Table */}
           {bookings.length > 0 && (
             <Card>
@@ -930,23 +1102,40 @@ const DispensaryCheckIn = () => {
               {postponeTimeError && <p className="text-sm text-red-500 mt-1">{postponeTimeError}</p>}
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPostponeSessionOpen(false)}>Go Back</Button>
-            <Button 
-               className="bg-amber-500 hover:bg-amber-600 text-white" 
-               onClick={handlePostponeSession} 
-               disabled={isBroadcasting || !postponeDate}>
-              {isBroadcasting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Yes, Postpone Session & Notify Patients
+        <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPostponeSessionOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="default" className="bg-amber-500 hover:bg-amber-600" onClick={handlePostponeSession} disabled={isBroadcasting}>
+              {isBroadcasting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirm Postponement'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
+      
+      {/* Cancel Multiple Dialog */}
+      <Dialog open={isCancelMultipleOpen} onOpenChange={setIsCancelMultipleOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Warning: Bookings Exist</DialogTitle>
+            <DialogDescription>
+              There are {multipleConflictCount} existing bookings for this doctor during the selected date range. Do you still want to mark the sessions as absent and cancel these bookings? Patients will be notified via SMS automatically.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCancelMultipleOpen(false)}>
+              No, Go Back
+            </Button>
+            <Button variant="destructive" onClick={() => executeMultipleAbsent(true)} disabled={isBroadcasting}>
+              {isBroadcasting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Yes, Cancel Bookings'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
       <AdminFooter />
     </div>
   );
 };
 
 export default DispensaryCheckIn;
-

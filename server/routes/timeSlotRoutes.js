@@ -8,6 +8,7 @@ const DoctorDispensary = require('../models/DoctorDispensary');
 const Booking = require('../models/Booking');
 const mongoose = require('mongoose');
 const { validateJwt, requireRole, ROLES } = require('../middleware/authMiddleware');
+const smsService = require('../services/smsService');
 
 // Get time slots for a doctor at a specific dispensary
 router.get('/config/doctor/:doctorId/dispensary/:dispensaryId', async (req, res) => {
@@ -370,21 +371,33 @@ router.post('/absent/date-range', async (req, res) => {
       });
     }
 
-    // Check for conflicting bookings if not forcing
-    if (!force) {
-      const conflictingBookings = await Booking.find({
-        doctorId,
-        dispensaryId,
-        bookingDate: { $gte: rangeStart, $lte: rangeEnd },
-        status: { $nin: ['cancelled'] }
-      }).select('patientName patientPhone bookingDate estimatedTime appointmentNumber status transactionId').lean();
+    let bookingsToCancel = [];
 
-      if (conflictingBookings.length > 0) {
+    // Check for conflicting bookings
+    const conflictingBookings = await Booking.find({
+      doctorId,
+      dispensaryId,
+      bookingDate: { $gte: rangeStart, $lte: rangeEnd },
+      status: { $nin: ['cancelled'] }
+    });
+
+    if (conflictingBookings.length > 0) {
+      if (!force) {
         return res.status(409).json({
           message: `There are ${conflictingBookings.length} existing booking(s) in this date range`,
-          conflictingBookings,
+          conflictingBookings: conflictingBookings.map(b => ({
+             patientName: b.patientName,
+             patientPhone: b.patientPhone,
+             bookingDate: b.bookingDate,
+             estimatedTime: b.estimatedTime,
+             appointmentNumber: b.appointmentNumber,
+             status: b.status,
+             transactionId: b.transactionId
+          })),
           requiresForce: true
         });
+      } else {
+        bookingsToCancel = conflictingBookings;
       }
     }
 
@@ -399,7 +412,61 @@ router.post('/absent/date-range', async (req, res) => {
     });
 
     await absentSlot.save();
-    res.status(201).json(absentSlot);
+
+    let patientsNotified = 0;
+    
+    // If we have bookings to cancel and force is true
+    if (bookingsToCancel.length > 0) {
+      // Find dispensary and doctor details if not populated
+      const dispensary = await Dispensary.findById(dispensaryId);
+      const doctor = await Doctor.findById(doctorId);
+      const dispensaryPhone = dispensary?.contactNumber || '';
+
+      await Booking.updateMany(
+        { _id: { $in: bookingsToCancel.map(b => b._id) } },
+        { $set: { status: 'cancelled' } }
+      );
+
+      for (const booking of bookingsToCancel) {
+        if (booking.patientPhone) {
+          const dateStr = new Date(booking.bookingDate).toDateString();
+          const message = `Dear ${booking.patientName}, your appointment with Dr. ${doctor?.name} at ${dispensary?.name} on ${dateStr} has been CANCELLED. Please contact ${dispensaryPhone} for more information. - ${dispensary?.name}`;
+
+          try {
+            const smsResult = await smsService.sendSMS([booking.patientPhone], message);
+            if (smsResult && smsResult.success) {
+              patientsNotified++;
+              await Booking.updateOne({ _id: booking._id }, {
+                $set: {
+                  'smsDelivery.status': 'sent',
+                  'smsDelivery.sentAt': new Date(),
+                  'smsDelivery.lastUpdated': new Date(),
+                  'smsDelivery.details': `Cancel Range TransID: ${smsResult.transactionId}`
+                }
+              });
+            } else {
+              await Booking.updateOne({ _id: booking._id }, {
+                $set: {
+                  'smsDelivery.status': 'failed',
+                  'smsDelivery.failedAt': new Date(),
+                  'smsDelivery.lastUpdated': new Date(),
+                  'smsDelivery.details': `Failed: ${smsResult.error || 'Unknown error'}`
+                }
+              });
+            }
+          } catch (err) {
+             console.error('SMS send error:', err);
+          }
+        }
+      }
+    }
+
+    res.status(201).json({
+       absentSlot,
+       message: bookingsToCancel.length > 0 
+           ? `Date range marked as absent. ${bookingsToCancel.length} bookings cancelled and ${patientsNotified} patients notified.`
+           : 'Date range marked as absent successfully.'
+    });
   } catch (error) {
     console.error('Error creating date range absence:', error);
     res.status(500).json({ message: 'Error creating date range absence', error: error.message });

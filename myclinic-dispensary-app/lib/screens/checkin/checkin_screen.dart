@@ -23,9 +23,11 @@ class CheckInScreen extends ConsumerStatefulWidget {
 }
 
 class _CheckInScreenState extends ConsumerState<CheckInScreen> {
-  bool _isSearchMode = true;
+  int _modeIndex = 0; // 0=Search, 1=Session, 2=Multiple
   String _searchQuery = '';
   DateTime _selectedDate = DateTime.now();
+  DateTime _startDate = DateTime.now();
+  DateTime _endDate = DateTime.now().add(const Duration(days: 3));
   List<Doctor> _doctors = [];
   Doctor? _selectedDoctor;
   List<Session> _sessions = [];
@@ -167,9 +169,9 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
   }
 
   Future<void> _reload() async {
-    if (_isSearchMode) {
+    if (_modeIndex == 0) {
       await _searchBookings();
-    } else {
+    } else if (_modeIndex == 1) {
       await _loadSessionBookings();
     }
   }
@@ -209,6 +211,61 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Error: $e')));
       }
+    }
+  }
+
+  Future<void> _markMultipleAbsent() async {
+    if (_selectedDoctor == null) return;
+    final auth = ref.read(authProvider);
+    final dispensaryId = auth.selectedDispensary?.id;
+    if (dispensaryId == null) return;
+    
+    setState(() => _isBroadcasting = true);
+    try {
+      final startStr = DateFormat('yyyy-MM-dd').format(_startDate);
+      final endStr = DateFormat('yyyy-MM-dd').format(_endDate);
+      final conflictRes = await TimeSlotService().checkConflicts({
+        'doctorId': _selectedDoctor!.id,
+        'dispensaryId': dispensaryId,
+        'startDate': startStr,
+        'endDate': endStr,
+      });
+      if (conflictRes['hasOverlap'] == true) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(conflictRes['message'] ?? 'Overlapping absences exist')));
+        return;
+      }
+      final bookingCount = conflictRes['bookingCount'] ?? 0;
+      bool proceed = true;
+      if (bookingCount > 0) {
+        proceed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Cancel Existing Bookings?'),
+            content: Text('There are $bookingCount booking(s) across these dates for this doctor. Do you want to cancel these sessions? This action will notify affected patients via SMS.'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No')),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.error, foregroundColor: Colors.white),
+                child: const Text('Yes')
+              ),
+            ],
+          ),
+        ) ?? false;
+      }
+      if (!proceed) return;
+      await TimeSlotService().createAbsentDateRange({
+        'doctorId': _selectedDoctor!.id,
+        'dispensaryId': dispensaryId,
+        'startDate': startStr,
+        'endDate': endStr,
+        'force': true,
+      });
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sessions absent successfully')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+    } finally {
+      if (mounted) setState(() => _isBroadcasting = false);
     }
   }
 
@@ -381,28 +438,32 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
             color: AppColors.card,
             child: Column(
               children: [
-                SegmentedButton<bool>(
+                SegmentedButton<int>(
                   segments: const [
                     ButtonSegment(
-                        value: true,
+                        value: 0,
                         label: Text('Search'),
                         icon: Icon(Icons.search)),
                     ButtonSegment(
-                        value: false,
+                        value: 1,
                         label: Text('Session'),
                         icon: Icon(Icons.list)),
+                    ButtonSegment(
+                        value: 2,
+                        label: Text('Multiple'),
+                        icon: Icon(Icons.date_range)),
                   ],
-                  selected: {_isSearchMode},
+                  selected: {_modeIndex},
                   onSelectionChanged: (v) {
                     setState(() {
-                      _isSearchMode = v.first;
+                      _modeIndex = v.first;
                       _bookings = [];
                     });
                   },
                 ),
                 const SizedBox(height: 12),
 
-                if (_isSearchMode)
+                if (_modeIndex == 0)
                   Row(
                     children: [
                       Expanded(
@@ -431,7 +492,7 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
                       ),
                     ],
                   )
-                else
+                else if (_modeIndex == 1)
                   Column(
                     children: [
                       OutlinedButton.icon(
@@ -503,7 +564,7 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
                           child: const Text('Load Bookings'),
                         ),
                       ),
-                      if (!_isSearchMode && _selectedDoctor != null) ...[
+                      if (_modeIndex == 1 && _selectedDoctor != null) ...[
                         const SizedBox(height: 8),
                         Row(
                           children: [
@@ -523,6 +584,67 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
                               )
                             ),
                           ],
+                        ),
+                      ],
+                    ],
+                  )
+                else if (_modeIndex == 2)
+                  Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () async {
+                                final picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: _startDate,
+                                  firstDate: DateTime.now().subtract(const Duration(days: 30)),
+                                  lastDate: DateTime.now().add(const Duration(days: 30)),
+                                );
+                                if (picked != null) setState(() => _startDate = picked);
+                              },
+                              icon: const Icon(Icons.date_range, size: 16),
+                              label: Text(DateFormat('MMM dd').format(_startDate)),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () async {
+                                final picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: _endDate,
+                                  firstDate: _startDate,
+                                  lastDate: DateTime.now().add(const Duration(days: 60)),
+                                );
+                                if (picked != null) setState(() => _endDate = picked);
+                              },
+                              icon: const Icon(Icons.date_range, size: 16),
+                              label: Text(DateFormat('MMM dd').format(_endDate)),
+                            ),
+                          ),
+                        ]
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<Doctor>(
+                        value: _selectedDoctor,
+                        decoration: const InputDecoration(
+                          hintText: 'Select Doctor',
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        ),
+                        items: _doctors.map((d) => DropdownMenuItem(value: d, child: Text(d.name))).toList(),
+                        onChanged: (d) => setState(() => _selectedDoctor = d),
+                      ),
+                      if (_selectedDoctor != null) ...[
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _isBroadcasting ? null : _markMultipleAbsent,
+                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error, foregroundColor: Colors.white),
+                            child: _isBroadcasting ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Mark Absent'),
+                          ),
                         ),
                       ],
                     ],
