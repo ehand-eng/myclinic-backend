@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:dio/dio.dart';
 import '../../config/theme.dart';
 import '../../services/auth_service.dart';
 import '../../providers/auth_provider.dart';
@@ -70,6 +71,12 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
       } else {
         context.go('/dashboard');
       }
+    } on DioException catch (e) {
+      String errMsg = 'Failed to change password. Check your current password.';
+      if (e.response != null && e.response?.data != null && e.response?.data['message'] != null) {
+        errMsg = e.response?.data['message'];
+      }
+      setState(() => _error = errMsg);
     } catch (e) {
       setState(() => _error = 'Failed to change password. Check your current password.');
     } finally {
@@ -112,6 +119,9 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                         setState(() => _obscureCurrent = !_obscureCurrent),
                   ),
                 ),
+                onChanged: (_) {
+                  if (_error != null) setState(() => _error = null);
+                },
                 validator: (v) =>
                     v == null || v.isEmpty ? 'Required' : null,
               ),
@@ -131,7 +141,10 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                         setState(() => _obscureNew = !_obscureNew),
                   ),
                 ),
-                onChanged: (_) => setState(() {}),
+                onChanged: (_) {
+                  setState(() {});
+                  if (_error != null) setState(() => _error = null);
+                },
                 validator: (v) {
                   if (v == null || v.isEmpty) return 'Required';
                   if (v.length < 8) return 'Minimum 8 characters';
@@ -163,6 +176,9 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                   labelText: 'Confirm New Password',
                   prefixIcon: Icon(Icons.lock_outline),
                 ),
+                onChanged: (_) {
+                  if (_error != null) setState(() => _error = null);
+                },
                 validator: (v) {
                   if (v != _newController.text) {
                     return 'Passwords do not match';

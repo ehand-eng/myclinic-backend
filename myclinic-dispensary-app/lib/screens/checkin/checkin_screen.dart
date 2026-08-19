@@ -710,7 +710,7 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
                                 return ListTile(
                                   dense: true,
                                   contentPadding: const EdgeInsets.symmetric(horizontal: 4.0),
-                                  title: Text('${r.startDate != null ? df.format(r.startDate!.toLocal()) : ''} to ${r.endDate != null ? df.format(r.endDate!.toLocal()) : ''}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                  title: Text('${r.startDate != null ? df.format(r.startDate!) : ''} to ${r.endDate != null ? df.format(r.endDate!) : ''}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                                   trailing: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
@@ -718,8 +718,8 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
                                         icon: const Icon(Icons.edit, size: 20, color: Colors.blue),
                                         onPressed: () {
                                           setState(() {
-                                            _startDate = r.startDate ?? DateTime.now();
-                                            _endDate = r.endDate ?? DateTime.now().add(const Duration(days: 3));
+                                            _startDate = r.startDate != null ? DateTime(r.startDate!.year, r.startDate!.month, r.startDate!.day) : DateTime.now();
+                                            _endDate = r.endDate != null ? DateTime(r.endDate!.year, r.endDate!.month, r.endDate!.day) : DateTime.now().add(const Duration(days: 3));
                                             _editingAbsentSlotId = r.id;
                                             _isMultipleAddMode = true;
                                           });
@@ -772,9 +772,16 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
                                     context: context,
                                     initialDate: _startDate,
                                     firstDate: DateTime.now().subtract(const Duration(days: 30)),
-                                    lastDate: DateTime.now().add(const Duration(days: 30)),
+                                    lastDate: DateTime.now().add(const Duration(days: 365)),
                                   );
-                                  if (picked != null) setState(() => _startDate = picked);
+                                  if (picked != null) {
+                                    setState(() {
+                                      _startDate = picked;
+                                      if (_endDate.isBefore(_startDate)) {
+                                        _endDate = _startDate;
+                                      }
+                                    });
+                                  }
                                 },
                                 icon: const Icon(Icons.date_range, size: 16),
                                 label: Text(DateFormat('MMM dd').format(_startDate)),
@@ -784,11 +791,13 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
                             Expanded(
                               child: OutlinedButton.icon(
                                 onPressed: () async {
+                                  // Ensure initialDate is not before firstDate
+                                  final safeInitialDate = _endDate.isBefore(_startDate) ? _startDate : _endDate;
                                   final picked = await showDatePicker(
                                     context: context,
-                                    initialDate: _endDate,
+                                    initialDate: safeInitialDate,
                                     firstDate: _startDate,
-                                    lastDate: DateTime.now().add(const Duration(days: 60)),
+                                    lastDate: DateTime.now().add(const Duration(days: 365)),
                                   );
                                   if (picked != null) setState(() => _endDate = picked);
                                 },

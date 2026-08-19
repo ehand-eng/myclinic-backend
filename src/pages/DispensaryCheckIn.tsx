@@ -973,13 +973,13 @@ const DispensaryCheckIn = () => {
                               <TableBody>
                                 {absentDateRanges.map(range => (
                                   <TableRow key={range.id}>
-                                    <TableCell>{range.startDate ? format(new Date(range.startDate), 'MMM dd, yyyy') : 'N/A'}</TableCell>
-                                    <TableCell>{range.endDate ? format(new Date(range.endDate), 'MMM dd, yyyy') : 'N/A'}</TableCell>
+                                    <TableCell>{range.startDate ? format(new Date(range.startDate.substring(0, 10) + 'T00:00:00'), 'MMM dd, yyyy') : 'N/A'}</TableCell>
+                                    <TableCell>{range.endDate ? format(new Date(range.endDate.substring(0, 10) + 'T00:00:00'), 'MMM dd, yyyy') : 'N/A'}</TableCell>
                                     <TableCell className="text-right">
                                       <div className="flex justify-end space-x-2">
                                         <Button variant="outline" size="sm" onClick={() => {
-                                          setMultipleStartDate(range.startDate ? new Date(range.startDate).toISOString().split('T')[0] : '');
-                                          setMultipleEndDate(range.endDate ? new Date(range.endDate).toISOString().split('T')[0] : '');
+                                          setMultipleStartDate(range.startDate ? range.startDate.substring(0, 10) : '');
+                                          setMultipleEndDate(range.endDate ? range.endDate.substring(0, 10) : '');
                                           setEditingMultipleSlotId(range.id);
                                           setIsMultipleAddMode(true);
                                         }}>
@@ -1019,7 +1019,12 @@ const DispensaryCheckIn = () => {
                         <Input 
                           type="date"
                           value={multipleStartDate}
-                          onChange={(e) => setMultipleStartDate(e.target.value)}
+                          onChange={(e) => {
+                            setMultipleStartDate(e.target.value);
+                            if (new Date(e.target.value) > new Date(multipleEndDate)) {
+                              setMultipleEndDate(e.target.value);
+                            }
+                          }}
                         />
                       </div>
                       
@@ -1027,6 +1032,7 @@ const DispensaryCheckIn = () => {
                         <Label htmlFor="multipleEndDate">To Date *</Label>
                         <Input 
                           type="date"
+                          min={multipleStartDate}
                           value={multipleEndDate}
                           onChange={(e) => setMultipleEndDate(e.target.value)}
                         />

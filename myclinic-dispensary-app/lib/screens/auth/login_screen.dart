@@ -76,7 +76,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: 24),
                 const Text(
-                  'MyClinic Admin',
+                  'MyClinic',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
