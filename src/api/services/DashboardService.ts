@@ -16,7 +16,7 @@ export interface DashboardStats {
   periodCompleted: number;
   periodBookings: number;
   bookingsByStatus: Record<string, number>;
-  dailyStats: { date: string; scheduled: number; completed: number }[];
+  dailyStats: { date: string; scheduled: number; completed: number; checked_in?: number }[];
   recentBookings: {
     _id: string;
     transactionId: string;

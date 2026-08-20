@@ -423,16 +423,9 @@ async function showAvailableAppointments(from, session) {
     const l = lang(session);
     const { doctorId, dispensaryId } = session.data;
 
-    // Determine max days to scan natively from DoctorDispensary collection
-    const docDispConfig = await DoctorDispensary.findOne({ doctorId, dispensaryId, isActive: true }).lean();
-    
-    // DoctorDispensary value wins when explicitly set; fallback to dispensary, then 30
-    const doctorDays = docDispConfig?.bookingVisibleDays;
-    
-    // Fallback if no junction config found
+    // Fetch max days from dispensary exclusively
     const dispensary = await Dispensary.findById(dispensaryId).select('bookingVisibleDays').lean();
-    const dispensaryDays = dispensary?.bookingVisibleDays;
-    let maxDays = doctorDays ?? dispensaryDays ?? 30;
+    const maxDays = dispensary?.bookingVisibleDays ?? 30;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);

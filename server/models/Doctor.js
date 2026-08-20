@@ -25,11 +25,6 @@ const doctorSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Dispensary'
   }],
-  bookingVisibleDays: {
-    type: Number,
-    default: 30,
-    min: 1
-  },
   disabled: {
     type: Boolean,
     default: false

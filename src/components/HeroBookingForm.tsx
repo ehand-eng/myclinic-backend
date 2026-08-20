@@ -105,12 +105,8 @@ const HeroBookingForm = () => {
     fetchDisabledDates();
   }, [selectedDoctor, selectedDispensary]);
 
-  // Doctor value wins when explicitly set; fallback to dispensary, then 30
-  const maxBookingDays = (() => {
-    const doctorDays = selectedDoctorData?.bookingVisibleDays;
-    const dispensaryDays = selectedDispensaryData?.bookingVisibleDays;
-    return doctorDays ?? dispensaryDays ?? 30;
-  })();
+  // Depend strictly on the dispensary for bookingVisibleDays as requested
+  const maxBookingDays = selectedDispensaryData?.bookingVisibleDays ?? 30;
 
   const handleSubmit = () => {
     const params = new URLSearchParams();

@@ -47,7 +47,6 @@ interface DoctorFormValues {
   email: string;
   profilePicture?: string;
   dispensaries: string[];
-  bookingVisibleDays: number;
 }
 
 // Phone number validation: accepts 0762199100, 762199100, or +94762199100
@@ -103,8 +102,7 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
       contactNumber: '',
       email: '',
       profilePicture: '',
-      dispensaries: [],
-      bookingVisibleDays: 30
+      dispensaries: []
     }
   });
 
@@ -122,13 +120,8 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
         setDispensaries(dispensariesData);
 
         // For DA creating a new doctor, auto-select their dispensaries
-        // and set bookingVisibleDays from the dispensary default
         if (!isEdit && isDA) {
           setSelectedDispensaries([...userDispensaryIds]);
-          const userDisp = dispensariesData.find(d => userDispensaryIds.includes(d.id));
-          if (userDisp?.bookingVisibleDays) {
-            form.setValue('bookingVisibleDays', userDisp.bookingVisibleDays);
-          }
         }
 
         // If editing, load doctor data
@@ -150,8 +143,7 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
               contactNumber: doctorData.contactNumber,
               email: doctorData.email,
               profilePicture: doctorData.profilePicture || '',
-              dispensaries: dispensaryIds,
-              bookingVisibleDays: doctorData.bookingVisibleDays ?? 30
+              dispensaries: dispensaryIds
             });
           }
         }
@@ -186,8 +178,7 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
         qualifications: qualificationsArray,
         contactNumber: data.contactNumber,
         email: data.email,
-        dispensaries: selectedDispensaries,
-        bookingVisibleDays: selectedDispensaries.length > 0 ? data.bookingVisibleDays : undefined
+        dispensaries: selectedDispensaries
       };
 
       if (data.profilePicture) {
@@ -446,36 +437,6 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
                 </div>
               )}
             </div>
-
-            {selectedDispensaries.length > 0 && (
-              <FormField
-                control={form.control}
-                name="bookingVisibleDays"
-                rules={{
-                  required: 'Online Booking Visible Days is required',
-                  min: { value: 1, message: 'Must be at least 1 day' },
-                  max: { value: 365, message: 'Must be at most 365 days' }
-                }}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Online Booking Visible Days</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={365}
-                        placeholder="30"
-                        {...field}
-                        value={field.value ?? 30}
-                        onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value, 10) : 30)}
-                      />
-                    </FormControl>
-                    <p className="text-xs text-gray-500">Number of future days patients can book online for this doctor</p>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
           </CardContent>
           <CardFooter className="flex justify-between">
             <Button

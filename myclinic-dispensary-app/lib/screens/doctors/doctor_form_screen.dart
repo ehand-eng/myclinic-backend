@@ -22,7 +22,6 @@ class _DoctorFormScreenState extends ConsumerState<DoctorFormScreen> {
   final _qualController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
-  final _visibleDaysController = TextEditingController();
   List<String> _selectedDispensaryIds = [];
   bool _isLoading = false;
   bool _isEdit = false;
@@ -39,9 +38,6 @@ class _DoctorFormScreenState extends ConsumerState<DoctorFormScreen> {
       _isEdit = true;
       _loadDoctor();
     } else {
-      // Default to dispensary's bookingVisibleDays
-      _visibleDaysController.text =
-          '${auth.selectedDispensary?.bookingVisibleDays ?? 30}';
     }
   }
 
@@ -54,7 +50,6 @@ class _DoctorFormScreenState extends ConsumerState<DoctorFormScreen> {
       _qualController.text = doctor.qualifications.join(', ');
       _phoneController.text = doctor.contactNumber ?? '';
       _emailController.text = doctor.email ?? '';
-      _visibleDaysController.text = '${doctor.bookingVisibleDays}';
       // Keep existing dispensaries but ensure current dispensary is included
       _selectedDispensaryIds = List.from(doctor.dispensaryIds);
       final auth = ref.read(authProvider);
@@ -88,8 +83,6 @@ class _DoctorFormScreenState extends ConsumerState<DoctorFormScreen> {
         'contactNumber': _phoneController.text.trim(),
         'email': _emailController.text.trim(),
         'dispensaries': _selectedDispensaryIds,
-        'bookingVisibleDays':
-            int.tryParse(_visibleDaysController.text) ?? 30,
       };
 
       if (_isEdit) {
@@ -133,7 +126,6 @@ class _DoctorFormScreenState extends ConsumerState<DoctorFormScreen> {
     _qualController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
-    _visibleDaysController.dispose();
     super.dispose();
   }
 
@@ -233,28 +225,6 @@ class _DoctorFormScreenState extends ConsumerState<DoctorFormScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
-
-                    // Booking Visible Days
-                    TextFormField(
-                      controller: _visibleDaysController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Booking Visible Days',
-                        prefixIcon: const Icon(Icons.calendar_month_outlined),
-                        helperText:
-                            'Dispensary default: ${auth.selectedDispensary?.bookingVisibleDays ?? 30} days',
-                        helperMaxLines: 2,
-                      ),
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty) return null;
-                        final n = int.tryParse(v);
-                        if (n == null || n < 1 || n > 365) {
-                          return 'Enter a value between 1 and 365';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 24),
 
                     // Dispensary — auto-bound to selected dispensary for DA
                     const Text(

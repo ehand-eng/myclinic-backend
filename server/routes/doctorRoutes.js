@@ -93,23 +93,6 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Doctor not found' });
     }
 
-    // Pull config mappings for this doctor across all their dispensaries
-    const docDispConfigs = await DoctorDispensary.find({
-       doctorId: doctorObj._id,
-       isActive: true 
-    }).lean();
-
-    // Map the MAXIMUM `bookingVisibleDays` if they are visible in multiple dispensaries
-    if (docDispConfigs.length > 0) {
-      let maxVisibleDays = 0;
-      docDispConfigs.forEach(config => {
-         if (config.bookingVisibleDays > maxVisibleDays) {
-            maxVisibleDays = config.bookingVisibleDays;
-         }
-      });
-      doctorObj.bookingVisibleDays = maxVisibleDays;
-    }
-
     res.status(200).json(doctorObj);
   } catch (error) {
     logger.error('Error fetching doctor by ID', {
@@ -152,21 +135,7 @@ router.get('/dispensary/:dispensaryId', async (req, res) => {
       return res.status(404).json({ message: 'Doctors not found' });
     }
 
-    // Map `bookingVisibleDays` from DoctorDispensary collection natively onto result
-    const docDispConfigs = await DoctorDispensary.find({ dispensaryId, isActive: true }).lean();
-    const configMap = {};
-    docDispConfigs.forEach(config => {
-       configMap[config.doctorId.toString()] = config.bookingVisibleDays;
-    });
-
-    const mappedDoctors = doctors.map(doc => {
-       if (configMap[doc._id.toString()] !== undefined) {
-         doc.bookingVisibleDays = configMap[doc._id.toString()];
-       }
-       return doc;
-    });
-
-    res.status(200).json(mappedDoctors);
+    res.status(200).json(doctors);
   } catch (error) {
     logger.error('Error fetching doctors by dispensary ID', {
       dispensaryId,
@@ -202,37 +171,14 @@ router.post('/by-dispensaries', async (req, res) => {
     if (activeOnly) query.disabled = { $ne: true };
     const doctors = await Doctor.find(query).lean();
 
-    // Pull config maps bridging all required doctor/dispensary combinations
-    const docDispConfigs = await DoctorDispensary.find({
-       dispensaryId: { $in: dispensaryIds }, 
-       doctorId: { $in: doctors.map(d => d._id) },
-       isActive: true 
-    }).lean();
-
-    // Map the MAXIMUM `bookingVisibleDays` if they are visible in multiple dispensaries requested
-    const configMap = {};
-    docDispConfigs.forEach(config => {
-       const dId = config.doctorId.toString();
-       if (!configMap[dId] || configMap[dId] < config.bookingVisibleDays) {
-           configMap[dId] = config.bookingVisibleDays;
-       }
-    });
-
-    const mappedDoctors = doctors.map(doc => {
-       if (configMap[doc._id.toString()] !== undefined) {
-         doc.bookingVisibleDays = configMap[doc._id.toString()];
-       }
-       return doc;
-    });
-
     // const duration = Date.now() - startTime;
     logger.info('Successfully fetched doctors by dispensary IDs', {
       requestId: req.requestId,
       dispensaryIds,
-      doctorCount: mappedDoctors.length
+      doctorCount: doctors.length
     });
 
-    res.json(mappedDoctors);
+    res.json(doctors);
   } catch (error) {
     logger.error('Error fetching doctors by dispensary IDs', {
       requestId: req.requestId,
@@ -265,15 +211,13 @@ router.post('/', async (req, res) => {
         if (dispensary) {
           dispensary.doctors.push(doctor._id);
           await dispensary.save();
-          
-          await DoctorDispensary.findOneAndUpdate(
-            { doctorId: doctor._id, dispensaryId: dispensaryId },
-            { 
-              isActive: true,
-              bookingVisibleDays: doctorData.bookingVisibleDays !== undefined ? doctorData.bookingVisibleDays : 30
-            },
-            { upsert: true, new: true, setDefaultsOnInsert: true }
-          );
+            await DoctorDispensary.findOneAndUpdate(
+              { doctorId: doctor._id, dispensaryId: dispensaryId },
+              { 
+                isActive: true
+              },
+              { upsert: true, new: true, setDefaultsOnInsert: true }
+            );
 
           logger.debug('Added doctor to dispensary', {
             requestId: req.requestId,
@@ -365,8 +309,7 @@ router.put('/:id', async (req, res) => {
             await DoctorDispensary.findOneAndUpdate(
               { doctorId: doctor._id, dispensaryId: newDispId },
               { 
-                isActive: true,
-                bookingVisibleDays: updateData.bookingVisibleDays !== undefined ? updateData.bookingVisibleDays : 30
+                isActive: true
               },
               { upsert: true, new: true, setDefaultsOnInsert: true }
             );
@@ -377,15 +320,6 @@ router.put('/:id', async (req, res) => {
               dispensaryName: dispensary.name
             });
           }
-        } else {
-           // Doctor was already in dispensary, but we need to update bookingVisibleDays if it was submitted
-           if (updateData.bookingVisibleDays !== undefined) {
-             await DoctorDispensary.findOneAndUpdate(
-               { doctorId: doctor._id, dispensaryId: newDispId },
-               { bookingVisibleDays: updateData.bookingVisibleDays, isActive: true },
-               { upsert: true, new: true, setDefaultsOnInsert: true }
-             );
-           }
         }
       }
     }

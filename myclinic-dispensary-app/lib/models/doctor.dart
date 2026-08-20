@@ -7,7 +7,6 @@ class Doctor {
   final String? email;
   final String? profilePicture;
   final List<String> dispensaryIds;
-  final int bookingVisibleDays;
   final bool disabled;
 
   Doctor({
@@ -19,7 +18,6 @@ class Doctor {
     this.email,
     this.profilePicture,
     this.dispensaryIds = const [],
-    this.bookingVisibleDays = 30,
     this.disabled = false,
   });
 
@@ -40,7 +38,6 @@ class Doctor {
               return e.toString();
             }))
           : [],
-      bookingVisibleDays: json['bookingVisibleDays'] ?? 30,
       disabled: json['disabled'] ?? false,
     );
   }
@@ -54,7 +51,6 @@ class Doctor {
       'email': email,
       'profilePicture': profilePicture,
       'dispensaries': dispensaryIds,
-      'bookingVisibleDays': bookingVisibleDays,
     };
   }
 }

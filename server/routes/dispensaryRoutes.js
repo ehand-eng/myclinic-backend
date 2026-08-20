@@ -244,18 +244,6 @@ router.put('/:id', requireDispensaryEditAccess, async (req, res) => {
       }
     }
     
-    // If bookingVisibleDays changed, auto-update doctors who had the old default
-    const oldVisibleDays = dispensary.bookingVisibleDays;
-    const newVisibleDays = req.body.bookingVisibleDays;
-    if (newVisibleDays && newVisibleDays !== oldVisibleDays) {
-      await Doctor.updateMany(
-        {
-          _id: { $in: dispensary.doctors },
-          bookingVisibleDays: oldVisibleDays
-        },
-        { $set: { bookingVisibleDays: newVisibleDays } }
-      );
-    }
     // Update dispensary fields
     Object.keys(req.body).forEach(key => {
       dispensary[key] = req.body[key];
