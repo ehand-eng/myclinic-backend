@@ -32,6 +32,7 @@ class _MainShellState extends ConsumerState<MainShell> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
     final _currentIndex = ref.watch(mainTabIndexProvider);
+    _initializedTabs.add(_currentIndex);
 
     return Scaffold(
       appBar: AppBar(
@@ -288,7 +289,6 @@ class _AppDrawer extends ConsumerWidget {
                   label: 'Logout',
                   color: AppColors.error,
                   onTap: () async {
-                    Navigator.pop(context);
                     final confirm = await showDialog<bool>(
                       context: context,
                       builder: (ctx) => AlertDialog(
@@ -309,7 +309,11 @@ class _AppDrawer extends ConsumerWidget {
                         ],
                       ),
                     );
-                    if (confirm == true && context.mounted) {
+                    
+                    if (!context.mounted) return;
+                    Navigator.pop(context); // close drawer
+                    
+                    if (confirm == true) {
                       await ref.read(authProvider.notifier).logout();
                       if (context.mounted) context.go('/login');
                     }

@@ -832,9 +832,9 @@ router.get('/available/:doctorId/:dispensaryId/:date', async (req, res) => {
 
       // Calculate slots
       const [sH, sM] = startTime.split(':').map(Number);
-      const [eH, eM] = endTime.split(':').map(Number);
-      const totalMins = (eH * 60 + eM) - (sH * 60 + sM);
-      const maxPossible = Math.min(maxPatients, Math.floor(totalMins / minutesPerPatient));
+      // We use maxPatients as the authoritative limit, ignoring the exact duration calculation 
+      // since clinics may book appointments that drift past the configured end time.
+      const maxPossible = maxPatients;
 
       const slots = [];
       for (let i = 1; i <= maxPossible; i++) {

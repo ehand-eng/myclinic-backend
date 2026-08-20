@@ -85,7 +85,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Dispensary Management Portal',
+                  'Hospital Management Portal',
                   style: TextStyle(
                     fontSize: 15,
                     color: AppColors.textSecondary,
