@@ -676,6 +676,8 @@ router.get('/available/:doctorId/:dispensaryId/:date', async (req, res) => {
     const endOfDay = new Date(bookingDate);
     endOfDay.setHours(23, 59, 59, 999);
 
+    const isOffline = req.query.channel === 'offline';
+
     const dateRangeAbsent = await AbsentTimeSlot.findOne({
       doctorId, dispensaryId,
       isDateRange: true,
@@ -683,7 +685,7 @@ router.get('/available/:doctorId/:dispensaryId/:date', async (req, res) => {
       endDate: { $gte: startOfDay }
     });
 
-    if (dateRangeAbsent) {
+    if (dateRangeAbsent && !isOffline) {
       return res.status(200).json({
         available: false,
         reason: 'absent',
@@ -700,7 +702,7 @@ router.get('/available/:doctorId/:dispensaryId/:date', async (req, res) => {
       date: { $gte: startOfDay, $lte: endOfDay }
     });
 
-    if (fullDayAbsent) {
+    if (fullDayAbsent && !isOffline) {
       return res.status(200).json({
         available: false,
         reason: 'absent',
@@ -727,7 +729,7 @@ router.get('/available/:doctorId/:dispensaryId/:date', async (req, res) => {
 
     // Legacy: if there's a single absent slot without timeSlotConfigId and isModifiedSession=false
     // it was created before multi-session support, treat as full-day absence
-    if (absentFullDay.length > 0 && absentFullDay.some(a => !a.isModifiedSession)) {
+    if (absentFullDay.length > 0 && absentFullDay.some(a => !a.isModifiedSession) && !isOffline) {
       return res.status(200).json({
         available: false,
         reason: 'absent',
@@ -766,12 +768,17 @@ router.get('/available/:doctorId/:dispensaryId/:date', async (req, res) => {
       ? timeSlotConfigs.filter(c => c._id.toString() === timeSlotConfigId)
       : timeSlotConfigs;
 
+    const isGlobalAbsent = !!(dateRangeAbsent || fullDayAbsent || (absentFullDay.length > 0 && absentFullDay.some(a => !a.isModifiedSession)));
+
     for (const config of configsToProcess) {
       const configId = config._id.toString();
       const absentSlot = absentByConfigId[configId];
 
-      // Skip if this specific session is marked absent
-      if (absentSlot && !absentSlot.isModifiedSession) {
+      const isSpecificAbsent = !!(absentSlot && !absentSlot.isModifiedSession);
+      const isAbsent = isSpecificAbsent || isGlobalAbsent;
+
+      // Skip if this specific session is marked absent (and not offline)
+      if (isAbsent && !isOffline) {
         absentSessionCount++;
         continue;
       }
@@ -875,15 +882,16 @@ router.get('/available/:doctorId/:dispensaryId/:date', async (req, res) => {
         maxPatients,
         minutesPerPatient,
         isModified,
+        isAbsent,
         totalSlots: maxPossible,
         bookedSlots: sessionBookings.length,
-        availableSlots: slots.length,
-        slots
+        availableSlots: isAbsent ? 0 : slots.length,
+        slots: isAbsent ? [] : slots
       });
     }
 
-    // Filter out sessions with no available slots
-    const availableSessions = sessions.filter(s => s.availableSlots > 0);
+    // Filter out sessions with no available slots (unless offline and absent)
+    const availableSessions = sessions.filter(s => s.availableSlots > 0 || (isOffline && s.isAbsent));
 
     // Determine the reason when no sessions are available
     let unavailableReason = undefined;

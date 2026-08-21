@@ -163,6 +163,7 @@ class Session {
   final int bookedCount;
   final int availableSlots;
   final int minutesPerPatient;
+  final bool isAbsent;
   final List<Slot> slots;
 
   Session({
@@ -173,6 +174,7 @@ class Session {
     this.bookedCount = 0,
     this.availableSlots = 0,
     this.minutesPerPatient = 15,
+    this.isAbsent = false,
     this.slots = const [],
   });
 
@@ -185,11 +187,12 @@ class Session {
       bookedCount: json['bookedCount'] ?? json['currentBookings'] ?? 0,
       availableSlots: json['availableSlots'] ?? 0,
       minutesPerPatient: json['minutesPerPatient'] ?? 15,
+      isAbsent: json['isAbsent'] ?? false,
       slots: (json['slots'] as List?)?.map((e) => Slot.fromJson(e)).toList() ?? [],
     );
   }
 
-  String get display => '$startTime - $endTime';
+  String get display => isAbsent ? '$startTime - $endTime (Cancelled)' : '$startTime - $endTime';
 }
 
 class ReplacementDoctor {

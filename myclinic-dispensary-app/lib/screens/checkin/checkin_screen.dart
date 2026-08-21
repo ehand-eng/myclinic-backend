@@ -644,7 +644,25 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
                               setState(() => _selectedSession = s),
                         ),
                       ],
+                      ],
                       const SizedBox(height: 8),
+                      // Cancelled message warning
+                      if (_selectedSession != null && _selectedSession!.isAbsent)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 8.0),
+                          child: Text(
+                            'This session has been cancelled by the hospital.',
+                            style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        )
+                      else if (_selectedSession == null && _sessions.isNotEmpty && _sessions.every((s) => s.isAbsent))
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 8.0),
+                          child: Text(
+                            'All sessions on this date have been cancelled.',
+                            style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        ),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
