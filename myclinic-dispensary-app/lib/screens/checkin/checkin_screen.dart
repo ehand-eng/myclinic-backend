@@ -644,7 +644,6 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
                               setState(() => _selectedSession = s),
                         ),
                       ],
-                      ],
                       const SizedBox(height: 8),
                       // Cancelled message warning
                       if (_selectedSession != null && _selectedSession!.isAbsent)

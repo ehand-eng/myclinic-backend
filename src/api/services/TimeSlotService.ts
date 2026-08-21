@@ -614,7 +614,7 @@ export const TimeSlotService = {
     doctorId: string,
     dispensaryId: string,
     date: Date
-  ): Promise<Array<{ startTime: string; endTime: string; timeSlot: string; timeSlotConfigId: string | null; isModified: boolean }>> => {
+  ): Promise<Array<{ startTime: string; endTime: string; timeSlot: string; timeSlotConfigId: string | null; isModified: boolean; isAbsent?: boolean }>> => {
     try {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -622,7 +622,7 @@ export const TimeSlotService = {
       const formattedDate = `${year}-${month}-${day}`;
       
       const response = await api.get(
-        `/timeslots/sessions/${doctorId}/${dispensaryId}/${formattedDate}`
+        `/timeslots/sessions/${doctorId}/${dispensaryId}/${formattedDate}?channel=offline`
       );
       
       return response.data.sessions || [];

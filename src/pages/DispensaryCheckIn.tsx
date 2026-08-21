@@ -30,6 +30,7 @@ interface BookingWithDetails extends Booking {
     name: string;
     address: string;
   };
+  transactionId?: string;
 }
 
 const DispensaryCheckIn = () => {
@@ -43,7 +44,7 @@ const DispensaryCheckIn = () => {
   // Data
   const [doctors, setDoctors] = useState<Array<{ id: string; name: string; specialization: string }>>([]);
   const [dispensaries, setDispensaries] = useState<Array<{ id: string; name: string }>>([]);
-  const [sessions, setSessions] = useState<Array<{ timeSlot: string; startTime: string; endTime: string; timeSlotConfigId: string | null }>>([]);
+  const [sessions, setSessions] = useState<Array<{ timeSlot: string; startTime: string; endTime: string; timeSlotConfigId: string | null; isAbsent?: boolean }>>([]);
   
   // Form state - Search mode
   const [searchMode, setSearchMode] = useState<'search' | 'bulk' | 'multiple'>('search');
@@ -820,7 +821,7 @@ const DispensaryCheckIn = () => {
                                 key={session.timeSlotConfigId!} 
                                 value={session.timeSlotConfigId!}
                               >
-                                {session.startTime}
+                                {session.isAbsent ? `${session.startTime} (Cancelled)` : session.startTime}
                               </SelectItem>
                             ))
                         )}
@@ -828,6 +829,17 @@ const DispensaryCheckIn = () => {
                     </Select>
                   </div>
                 </div>
+
+                {/* Cancelled message warning */}
+                {selectedSessionId && selectedSessionId !== 'all' && sessions.find(s => s.timeSlotConfigId === selectedSessionId)?.isAbsent ? (
+                  <div className="text-red-500 font-bold mb-2 text-sm mt-1">
+                    This session has been cancelled by the hospital.
+                  </div>
+                ) : (!selectedSessionId || selectedSessionId === 'all') && sessions.length > 0 && sessions.every(s => s.isAbsent) ? (
+                  <div className="text-red-500 font-bold mb-2 text-sm mt-1">
+                    All sessions on this date have been cancelled.
+                  </div>
+                ) : null}
 
                 <Button 
                   onClick={handleLoadBookings} 

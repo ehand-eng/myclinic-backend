@@ -142,14 +142,11 @@ router.get('/sessions/:doctorId/:dispensaryId/:date', async (req, res) => {
       endDate: { $gte: bookingDate }
     });
 
-    // If doctor is completely absent (single date or date range), return empty
-    if (dateRangeAbsent) {
-      return res.status(200).json({
-        sessions: [],
-        message: 'Doctor is absent on this date'
-      });
-    }
-    if (absentSlot && !absentSlot.isModifiedSession) {
+    const isOffline = req.query.channel === 'offline';
+    const isAbsent = !!(dateRangeAbsent || (absentSlot && !absentSlot.isModifiedSession));
+
+    // If doctor is completely absent (single date or date range) and not offline, return empty
+    if (isAbsent && !isOffline) {
       return res.status(200).json({
         sessions: [],
         message: 'Doctor is absent on this date'
@@ -178,7 +175,8 @@ router.get('/sessions/:doctorId/:dispensaryId/:date', async (req, res) => {
           endTime: config.endTime,
           timeSlot: `${config.startTime}-${config.endTime}`,
           timeSlotConfigId: config._id.toString(),
-          isModified: false
+          isModified: false,
+          isAbsent: isAbsent
         });
       }
     }
