@@ -42,6 +42,22 @@ class AuthService {
     });
   }
 
+  Future<Map<String, dynamic>> requestPasswordReset(String email) async {
+    final response = await _api.post('/custom-auth/forgot-password/request-otp', data: {
+      'email': email,
+    });
+    return response.data;
+  }
+
+  Future<void> resetPassword(String email, String otp, String newPassword, String confirmPassword) async {
+    await _api.post('/custom-auth/forgot-password/reset', data: {
+      'email': email,
+      'otp': otp,
+      'newPassword': newPassword,
+      'confirmPassword': confirmPassword,
+    });
+  }
+
   Future<void> updateProfile(String name) async {
     await _api.put(ApiConfig.updateMe, data: {'name': name});
   }

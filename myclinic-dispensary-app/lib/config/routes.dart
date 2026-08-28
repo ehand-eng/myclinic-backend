@@ -5,6 +5,7 @@ import '../providers/auth_provider.dart';
 import 'theme.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/change_password_screen.dart';
+import '../screens/auth/forgot_password_screen.dart';
 import '../screens/auth/dispensary_select_screen.dart';
 import '../screens/main_shell.dart';
 import '../screens/dispensaries/dispensaries_list_screen.dart';
@@ -70,7 +71,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         return isLoggedIn ? '/dashboard' : '/login';
       }
 
-      final publicRoutes = ['/login'];
+      final publicRoutes = ['/login', '/forgot-password'];
       final isPublicRoute = publicRoutes.contains(path);
 
       if (!isLoggedIn && !isPublicRoute) return '/login';
@@ -99,6 +100,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         builder: (_, __) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        builder: (_, __) => const ForgotPasswordScreen(),
       ),
       GoRoute(
         path: '/change-password',

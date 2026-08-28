@@ -3,6 +3,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Role = require('../models/Role');
+const otpService = require('../services/OTPService');
+const smsService = require('../services/smsService');
 
 const router = express.Router();
 
@@ -638,6 +640,99 @@ router.post('/change-password', async (req, res) => {
     }
 
     console.error('Change password error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Request OTP for forgot password
+router.post('/forgot-password/request-otp', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      // Don't reveal that the user does not exist for security
+      return res.status(200).json({ message: 'If an account exists, an OTP will be sent to the registered mobile number' });
+    }
+
+    if (!user.mobile) {
+      return res.status(400).json({ message: 'No mobile number associated with this account. Please contact your administrator.' });
+    }
+
+    const resendCheck = otpService.canResendOTP(user.email);
+    if (!resendCheck.allowed) {
+      return res.status(429).json({ message: resendCheck.message, remainingAttempts: resendCheck.remainingAttempts });
+    }
+
+    const otp = otpService.generateOTP();
+    otpService.storeOTP(user.email, otp);
+    otpService.recordSendAttempt(user.email);
+
+    let normalizedMobile = user.mobile.replace(/\D/g, '');
+    if (normalizedMobile.startsWith('94')) normalizedMobile = normalizedMobile.substring(2);
+    if (normalizedMobile.startsWith('0')) normalizedMobile = normalizedMobile.substring(1);
+
+    const message = `Your password reset OTP is: ${otp}. It will expire in 5 minutes. Do not share this code.`;
+    const sendResult = await smsService.sendSMS([normalizedMobile], message);
+
+    if (!sendResult.success) {
+      otpService.clearOTP(user.email);
+      return res.status(500).json({ message: 'Failed to send OTP via SMS', error: sendResult.error });
+    }
+    
+    // Mask mobile number for response
+    const maskedMobile = user.mobile.length >= 9 
+      ? user.mobile.substring(0, user.mobile.length - 4).replace(/./g, '*') + user.mobile.substring(user.mobile.length - 4)
+      : '****';
+
+    res.json({ message: 'OTP sent successfully', maskedMobile, expiresIn: 300 });
+  } catch (error) {
+    console.error('Request OTP error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Reset password via OTP
+router.post('/forgot-password/reset', async (req, res) => {
+  try {
+    const { email, otp, newPassword, confirmPassword } = req.body;
+    if (!email || !otp || !newPassword || !confirmPassword) {
+      return res.status(400).json({ message: 'Email, OTP, and passwords are required' });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: 'Passwords do not match' });
+    }
+
+    if (!isStrongPassword(newPassword)) {
+      return res.status(400).json({ message: PASSWORD_RULE_MESSAGE });
+    }
+
+    const verification = otpService.verifyOTP(email, otp);
+    if (!verification.valid) {
+      return res.status(400).json({ message: verification.message, remainingAttempts: verification.remainingAttempts });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    user.passwordHash = passwordHash;
+    user.mustChangePassword = false;
+    await user.save();
+
+    // Clear OTP upon successful reset
+    otpService.clearOTP(email);
+    otpService.clearAttempts(email);
+
+    res.json({ message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('Reset password error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

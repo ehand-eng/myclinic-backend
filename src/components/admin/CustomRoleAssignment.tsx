@@ -27,6 +27,7 @@ interface User {
   _id: string;
   name: string;
   email: string;
+  mobile: string;
   role: string;
   roleDisplayName: string;
   dispensaries: Array<{
@@ -57,6 +58,7 @@ const CustomRoleAssignment = () => {
   const [createUserForm, setCreateUserForm] = useState({
     name: '',
     email: '',
+    mobile: '',
     password: '',
     role: '',
     dispensaryId: ''
@@ -66,6 +68,8 @@ const CustomRoleAssignment = () => {
   const [showEditUser, setShowEditUser] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editUserForm, setEditUserForm] = useState({
+    name: '',
+    mobile: '',
     role: '',
     dispensaryId: ''
   });
@@ -192,7 +196,7 @@ const CustomRoleAssignment = () => {
 
       toast.success('User created successfully');
       setShowCreateUser(false);
-      setCreateUserForm({ name: '', email: '', password: '', role: '', dispensaryId: '' });
+      setCreateUserForm({ name: '', email: '', mobile: '', password: '', role: '', dispensaryId: '' });
       await fetchData();
     } catch (error: any) {
       toast.error(error.message || 'Failed to create user');
@@ -204,6 +208,8 @@ const CustomRoleAssignment = () => {
   const handleEditUser = (user: User) => {
     setEditingUser(user);
     setEditUserForm({
+      name: user.name,
+      mobile: user.mobile || '',
       role: user.role,
       dispensaryId: user.dispensaries.length > 0 ? user.dispensaries[0].id : ''
     });
@@ -332,6 +338,7 @@ const CustomRoleAssignment = () => {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Mobile</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Dispensary</TableHead>
                 <TableHead>Status</TableHead>
@@ -343,6 +350,7 @@ const CustomRoleAssignment = () => {
                 <TableRow key={user._id}>
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell>{user.email}</TableCell>
+                  <TableCell>{user.mobile || '-'}</TableCell>
                   <TableCell>
                     <Badge className={getRoleBadgeColor(user.role)}>
                       {user.roleDisplayName}
@@ -407,6 +415,16 @@ const CustomRoleAssignment = () => {
                   value={createUserForm.email}
                   onChange={(e) => setCreateUserForm(prev => ({ ...prev, email: e.target.value }))}
                   placeholder="Enter email address"
+                />
+              </div>
+              <div>
+                <Label htmlFor="mobile">Mobile Number</Label>
+                <Input
+                  id="mobile"
+                  type="tel"
+                  value={createUserForm.mobile}
+                  onChange={(e) => setCreateUserForm(prev => ({ ...prev, mobile: e.target.value }))}
+                  placeholder="e.g. 94771234567"
                 />
               </div>
               <div>
@@ -497,7 +515,7 @@ const CustomRoleAssignment = () => {
               </Button>
               <Button
                 onClick={handleCreateUser}
-                disabled={isUpdating || !createUserForm.name || !createUserForm.email || !createUserForm.password || !createUserForm.role}
+                disabled={isUpdating || !createUserForm.name || !createUserForm.email || !createUserForm.mobile || !createUserForm.password || !createUserForm.role}
               >
                 {isUpdating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Create User
@@ -513,6 +531,25 @@ const CustomRoleAssignment = () => {
               <DialogTitle>Edit User: {editingUser?.name}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
+              <div>
+                <Label htmlFor="editName">Name</Label>
+                <Input
+                  id="editName"
+                  value={editUserForm.name}
+                  onChange={(e) => setEditUserForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Enter user name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="editMobile">Mobile Number</Label>
+                <Input
+                  id="editMobile"
+                  type="tel"
+                  value={editUserForm.mobile}
+                  onChange={(e) => setEditUserForm(prev => ({ ...prev, mobile: e.target.value }))}
+                  placeholder="e.g. 94771234567"
+                />
+              </div>
               <div>
                 <Label htmlFor="editRole">Role</Label>
                 <Select value={editUserForm.role} onValueChange={(value) => setEditUserForm(prev => ({ ...prev, role: value }))}>
@@ -552,7 +589,7 @@ const CustomRoleAssignment = () => {
               </Button>
               <Button
                 onClick={handleUpdateUser}
-                disabled={isUpdating || !editUserForm.role}
+                disabled={isUpdating || !editUserForm.role || !editUserForm.mobile}
               >
                 {isUpdating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Update User

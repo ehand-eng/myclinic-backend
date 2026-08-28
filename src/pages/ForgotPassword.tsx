@@ -15,11 +15,12 @@ const ForgotPassword = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const [mobile, setMobile] = useState('');
+  const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [otpSent, setOtpSent] = useState(false);
+  const [maskedMobile, setMaskedMobile] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const validateStrongPassword = (password: string) => {
@@ -32,19 +33,10 @@ const ForgotPassword = () => {
   };
 
   const sendOtp = async () => {
-    if (!mobile) {
+    if (!email) {
       toast({
         title: 'Error',
-        description: 'Please enter your mobile number',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    if (mobile.length !== 9) {
-      toast({
-        title: 'Error',
-        description: 'Please enter 9 digits after +94',
+        description: 'Please enter your email address',
         variant: 'destructive'
       });
       return;
@@ -52,11 +44,14 @@ const ForgotPassword = () => {
 
     try {
       setIsLoading(true);
-      await axios.post(`${API_URL}/custom-auth/forgot-password/send-otp`, { mobile: `+94${mobile}` });
+      const res = await axios.post(`${API_URL}/custom-auth/forgot-password/request-otp`, { email });
       setOtpSent(true);
+      if (res.data.maskedMobile) {
+        setMaskedMobile(res.data.maskedMobile);
+      }
       toast({
         title: 'Success',
-        description: 'OTP sent to your mobile number'
+        description: `OTP sent to your registered mobile number ${res.data.maskedMobile ? '(' + res.data.maskedMobile + ')' : ''}`
       });
     } catch (error: any) {
       toast({
@@ -103,9 +98,10 @@ const ForgotPassword = () => {
     try {
       setIsLoading(true);
       await axios.post(`${API_URL}/custom-auth/forgot-password/reset`, {
-        mobile: `+94${mobile}`,
+        email,
         otp: otp.trim(),
-        newPassword
+        newPassword,
+        confirmPassword
       });
 
       toast({
@@ -140,40 +136,42 @@ const ForgotPassword = () => {
 
               <form onSubmit={resetPassword} className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="mobile" className="text-gray-700 font-medium">
-                    Mobile Number
+                  <Label htmlFor="email" className="text-gray-700 font-medium">
+                    Email Address
                   </Label>
                   <div className="flex">
-                    <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 bg-gray-100 text-gray-700 text-sm font-medium">
-                      +94
-                    </span>
                     <Input
-                      id="mobile"
-                      type="tel"
-                      placeholder="7XXXXXXXX"
-                      value={mobile}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, '').replace(/^0/, '');
-                        if (val.length <= 9) setMobile(val);
-                      }}
-                      maxLength={9}
+                      id="email"
+                      type="email"
+                      placeholder="Enter your registered email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       disabled={otpSent}
-                      className="rounded-l-none"
                     />
                   </div>
                 </div>
 
                 {!otpSent ? (
-                  <Button
-                    type="button"
-                    onClick={sendOtp}
-                    disabled={isLoading || mobile.length !== 9}
-                    className="w-full bg-[#0a1f44] hover:bg-[#0a1f44]/90 text-white py-3"
-                  >
-                    {isLoading ? 'Sending OTP...' : 'Send OTP'}
-                  </Button>
+                  <>
+                    <p className="text-sm text-gray-500 mb-4">
+                      To proceed to get a new password, get the new OTP and change your password.
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={sendOtp}
+                      disabled={isLoading || !email}
+                      className="w-full bg-[#0a1f44] hover:bg-[#0a1f44]/90 text-white py-3"
+                    >
+                      {isLoading ? 'Sending OTP...' : 'Send OTP'}
+                    </Button>
+                  </>
                 ) : (
                   <>
+                    {maskedMobile && (
+                       <p className="text-sm text-green-600 mb-2 font-medium">
+                         An OTP was sent to your registered mobile ending in {maskedMobile.slice(-4)}
+                       </p>
+                    )}
                     <div className="space-y-2">
                       <Label htmlFor="otp" className="text-gray-700 font-medium">
                         Enter OTP
@@ -231,7 +229,7 @@ const ForgotPassword = () => {
                       }}
                       className="w-full text-[#0a1f44] hover:text-[#0a1f44]/80"
                     >
-                      Use different mobile number / Resend OTP
+                      Use a different email / Resend OTP
                     </Button>
                   </>
                 )}

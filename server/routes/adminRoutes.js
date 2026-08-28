@@ -69,6 +69,7 @@ router.get('/users', requireSuperAdmin, async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      mobile: user.mobile,
       role: user.role ? user.role.name : null,
       roleDisplayName: user.role ? user.role.displayName : null,
       dispensaries: user.dispensaryIds.map(d => ({
@@ -93,11 +94,11 @@ router.get('/users', requireSuperAdmin, async (req, res) => {
 router.post('/users', requireSuperAdmin, async (req, res) => {
   console.log("++++++++++++++ req.body ++++++++++++++", req.body);
   try {
-    const { name, email, password, role, dispensaryId, nationality } = req.body;
+    const { name, email, mobile, password, role, dispensaryId, nationality } = req.body;
 
     // Validation
-    if (!name || !email || !password || !role) {
-      return res.status(400).json({ message: 'Name, email, password, and role are required' });
+    if (!name || !email || !mobile || !password || !role) {
+      return res.status(400).json({ message: 'Name, email, mobile, password, and role are required' });
     }
 
     if (password.length < 6) {
@@ -105,9 +106,18 @@ router.post('/users', requireSuperAdmin, async (req, res) => {
     }
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'User with this email already exists' });
+    if (email) {
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ message: 'User with this email already exists' });
+      }
+    }
+    
+    if (mobile) {
+      const existingMobile = await User.findOne({ mobile });
+      if (existingMobile) {
+        return res.status(400).json({ message: 'User with this mobile already exists' });
+      }
     }
 
     // Validate role
@@ -128,6 +138,7 @@ router.post('/users', requireSuperAdmin, async (req, res) => {
     const user = new User({
       name,
       email,
+      mobile,
       passwordHash,
       role: roleDoc._id,
       dispensaryIds: dispensaryId ? [dispensaryId] : [],
@@ -159,11 +170,15 @@ router.post('/users', requireSuperAdmin, async (req, res) => {
 router.put('/users/:userId', requireSuperAdmin, async (req, res) => {
   try {
     const { userId } = req.params;
-    const { role, dispensaryId } = req.body;
+    const { name, mobile, role, dispensaryId } = req.body;
 
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (mobile === undefined || mobile.trim() === '') {
+      return res.status(400).json({ message: 'Mobile number is required' });
     }
 
     // Update role if provided
@@ -173,6 +188,18 @@ router.put('/users/:userId', requireSuperAdmin, async (req, res) => {
         return res.status(400).json({ message: 'Invalid role specified' });
       }
       user.role = roleDoc._id;
+    }
+
+    if (name) user.name = name;
+    
+    if (mobile !== undefined) {
+      if (mobile && mobile !== user.mobile) {
+        const existingMobile = await User.findOne({ mobile, _id: { $ne: userId } });
+        if (existingMobile) {
+           return res.status(400).json({ message: 'User with this mobile already exists' });
+        }
+      }
+      user.mobile = mobile;
     }
 
     // Update dispensary assignment if provided

@@ -17,10 +17,7 @@ const userSchema = new mongoose.Schema({
   },
   mobile: {
     type: String,
-    required: function() {
-      // Required if no email
-      return !this.email;
-    },
+    required: true,
     sparse: true,
     unique: true
   },
