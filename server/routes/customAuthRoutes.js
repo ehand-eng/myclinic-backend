@@ -695,6 +695,27 @@ router.post('/forgot-password/request-otp', async (req, res) => {
   }
 });
 
+// Verify OTP for forgot password without consuming it
+router.post('/forgot-password/verify-otp', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({ message: 'Email and OTP are required' });
+    }
+
+    // Pass consume: false so it can be verified again during password reset
+    const verification = otpService.verifyOTP(email, otp, { consume: false });
+    if (!verification.valid) {
+      return res.status(400).json({ message: verification.message, remainingAttempts: verification.remainingAttempts });
+    }
+
+    res.json({ message: 'OTP is valid' });
+  } catch (error) {
+    console.error('Verify OTP error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Reset password via OTP
 router.post('/forgot-password/reset', async (req, res) => {
   try {

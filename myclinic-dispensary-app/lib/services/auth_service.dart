@@ -49,6 +49,13 @@ class AuthService {
     return response.data;
   }
 
+  Future<void> verifyPasswordResetOtp(String email, String otp) async {
+    await _api.post('/custom-auth/forgot-password/verify-otp', data: {
+      'email': email,
+      'otp': otp,
+    });
+  }
+
   Future<void> resetPassword(String email, String otp, String newPassword, String confirmPassword) async {
     await _api.post('/custom-auth/forgot-password/reset', data: {
       'email': email,

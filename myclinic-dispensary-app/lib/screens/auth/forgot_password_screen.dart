@@ -22,6 +22,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   bool _isLoading = false;
   bool _otpSent = false;
+  bool _otpVerified = false;
   String? _maskedMobile;
   bool _obscureNew = true;
   bool _obscureConfirm = true;
@@ -52,6 +53,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       final response = await _authService.requestPasswordReset(email);
       setState(() {
         _otpSent = true;
+        _otpVerified = false;
         _maskedMobile = response['maskedMobile'] as String?;
       });
       if (!mounted) return;
@@ -66,6 +68,32 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to generate OTP or user not found';
+      });
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _verifyOtp() async {
+    final otp = _otpController.text.trim();
+    if (otp.isEmpty || otp.length != 6) {
+      setState(() => _errorMessage = 'Please enter a valid 6-digit OTP');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await _authService.verifyPasswordResetOtp(_emailController.text.trim(), otp);
+      setState(() {
+        _otpVerified = true;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Invalid OTP. Please try again.';
       });
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -171,7 +199,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 Text(
                   !_otpSent
                       ? 'Enter your email address to receive an OTP on your registered mobile number.'
-                      : 'An OTP has been sent to your registered mobile number.',
+                      : !_otpVerified
+                          ? 'An OTP has been sent to your registered mobile number.'
+                          : 'Set a new password for your account.',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 14,
@@ -237,8 +267,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           ),
                         ],
 
-                        // Step 2: Validate OTP and Set Password
-                        if (_otpSent) ...[
+                        // Step 2: Validate OTP
+                        if (_otpSent && !_otpVerified) ...[
                           TextFormField(
                             controller: _emailController,
                             enabled: false,
@@ -254,7 +284,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             maxLength: 6,
                             decoration: const InputDecoration(
                               labelText: 'Enter OTP',
-                              prefixIcon: Icon(Icons.password),
+                              prefixIcon: Icon(Icons.pin_outlined),
                               counterText: '',
                             ),
                             validator: (value) {
@@ -262,7 +292,47 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               return null;
                             },
                           ),
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            height: 50,
+                            child: ElevatedButton(
+                              onPressed: _isLoading ? null : _verifyOtp,
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.textWhite,
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Verify OTP',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                            ),
+                          ),
                           const SizedBox(height: 16),
+                          TextButton(
+                            onPressed: _isLoading
+                                ? null
+                                : () => setState(() {
+                                      _otpSent = false;
+                                      _otpVerified = false;
+                                      _otpController.clear();
+                                      _newPasswordController.clear();
+                                      _confirmPasswordController.clear();
+                                      _errorMessage = null;
+                                    }),
+                            child: const Text('Use a different email'),
+                          )
+                        ],
+
+                        // Step 3: Set New Password
+                        if (_otpVerified) ...[
                           TextFormField(
                             controller: _newPasswordController,
                             obscureText: _obscureNew,
@@ -319,19 +389,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                     ),
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          TextButton(
-                            onPressed: _isLoading
-                                ? null
-                                : () => setState(() {
-                                      _otpSent = false;
-                                      _otpController.clear();
-                                      _newPasswordController.clear();
-                                      _confirmPasswordController.clear();
-                                      _errorMessage = null;
-                                    }),
-                            child: const Text('Use a different email'),
-                          )
                         ],
                       ],
                     ),
