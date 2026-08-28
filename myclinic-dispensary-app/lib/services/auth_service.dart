@@ -43,21 +43,21 @@ class AuthService {
   }
 
   Future<Map<String, dynamic>> requestPasswordReset(String email) async {
-    final response = await _api.post('/custom-auth/forgot-password/request-otp', data: {
+    final response = await _api.post('/custom-auth/admin-forgot-password/request-otp', data: {
       'email': email,
     });
     return response.data;
   }
 
   Future<void> verifyPasswordResetOtp(String email, String otp) async {
-    await _api.post('/custom-auth/forgot-password/verify-otp', data: {
+    await _api.post('/custom-auth/admin-forgot-password/verify-otp', data: {
       'email': email,
       'otp': otp,
     });
   }
 
   Future<void> resetPassword(String email, String otp, String newPassword, String confirmPassword) async {
-    await _api.post('/custom-auth/forgot-password/reset', data: {
+    await _api.post('/custom-auth/admin-forgot-password/reset', data: {
       'email': email,
       'otp': otp,
       'newPassword': newPassword,

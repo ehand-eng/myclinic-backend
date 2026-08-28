@@ -645,7 +645,7 @@ router.post('/change-password', async (req, res) => {
 });
 
 // Request OTP for forgot password
-router.post('/forgot-password/request-otp', async (req, res) => {
+router.post('/admin-forgot-password/request-otp', async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) {
@@ -696,7 +696,7 @@ router.post('/forgot-password/request-otp', async (req, res) => {
 });
 
 // Verify OTP for forgot password without consuming it
-router.post('/forgot-password/verify-otp', async (req, res) => {
+router.post('/admin-forgot-password/verify-otp', async (req, res) => {
   try {
     const { email, otp } = req.body;
     if (!email || !otp) {
@@ -717,7 +717,7 @@ router.post('/forgot-password/verify-otp', async (req, res) => {
 });
 
 // Reset password via OTP
-router.post('/forgot-password/reset', async (req, res) => {
+router.post('/admin-forgot-password/reset', async (req, res) => {
   try {
     const { email, otp, newPassword, confirmPassword } = req.body;
     if (!email || !otp || !newPassword || !confirmPassword) {

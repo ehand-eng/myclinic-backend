@@ -44,7 +44,7 @@ const ForgotPassword = () => {
 
     try {
       setIsLoading(true);
-      const res = await axios.post(`${API_URL}/custom-auth/forgot-password/request-otp`, { email });
+      const res = await axios.post(`${API_URL}/custom-auth/admin-forgot-password/request-otp`, { email });
       setOtpSent(true);
       if (res.data.maskedMobile) {
         setMaskedMobile(res.data.maskedMobile);
@@ -97,7 +97,7 @@ const ForgotPassword = () => {
 
     try {
       setIsLoading(true);
-      await axios.post(`${API_URL}/custom-auth/forgot-password/reset`, {
+      await axios.post(`${API_URL}/custom-auth/admin-forgot-password/reset`, {
         email,
         otp: otp.trim(),
         newPassword,

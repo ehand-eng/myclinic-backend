@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:dio/dio.dart';
 import '../../config/theme.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/loading_widget.dart';
@@ -65,6 +66,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           backgroundColor: AppColors.primary,
         ),
       );
+    } on DioException catch (e) {
+      setState(() {
+        _errorMessage = e.response?.data?['message'] ?? 'Failed to generate OTP or user not found';
+      });
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to generate OTP or user not found';
@@ -90,6 +95,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       await _authService.verifyPasswordResetOtp(_emailController.text.trim(), otp);
       setState(() {
         _otpVerified = true;
+      });
+    } on DioException catch (e) {
+      setState(() {
+        _errorMessage = e.response?.data?['message'] ?? 'Invalid OTP. Please try again.';
       });
     } catch (e) {
       setState(() {
@@ -131,6 +140,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
       );
       context.go('/login');
+    } on DioException catch (e) {
+      setState(() {
+        _errorMessage = e.response?.data?['message'] ?? 'Failed to reset password. Check OTP or password rules.';
+      });
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to reset password. Check OTP or password rules.';
