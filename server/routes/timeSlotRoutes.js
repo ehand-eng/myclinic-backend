@@ -850,8 +850,9 @@ router.get('/available/:doctorId/:dispensaryId/:date', async (req, res) => {
 
         // Skip slot if it's today and the appointment time has already passed
         const isPastTime = isToday && (now > apptTime);
+        const bypassPastCheck = (req.query.channel === 'offline'); // Dispensary admins need to access missed slots logically
 
-        if (!isBooked && !isPastTime) {
+        if (!isBooked && (!isPastTime || bypassPastCheck)) {
           const hours = apptTime.getHours().toString().padStart(2, '0');
           const mins = apptTime.getMinutes().toString().padStart(2, '0');
 
