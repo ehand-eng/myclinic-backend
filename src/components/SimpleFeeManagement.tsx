@@ -232,18 +232,19 @@ const SimpleFeeManagement: React.FC = () => {
     }
   };
 
+  const isFormValid = () => {
+    if (!selectedDoctorId || !feeForm.dispensaryId) return false;
+    if (superAdminMode && !feeForm.onlineFee) return false;
+    if (!superAdminMode && (!feeForm.doctorFee || !feeForm.dispensaryFee)) return false;
+    return true;
+  };
+
   const handleAddFee = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedDoctorId || !feeForm.dispensaryId) {
-      toast.error('Please select doctor and dispensary');
+    if (!isFormValid()) {
+      toast.error('Please fill in all required fields');
       return;
-    }
-    if (superAdminMode && !feeForm.onlineFee) {
-      toast.error('Please enter online fee'); return;
-    }
-    if (!superAdminMode && (!feeForm.doctorFee || !feeForm.dispensaryFee)) {
-      toast.error('Please enter doctor and dispensary fees'); return;
     }
 
     try {
@@ -566,7 +567,7 @@ const SimpleFeeManagement: React.FC = () => {
               <div className="mt-4">
                 <Button
                   type="submit"
-                  disabled={loading || !feeForm.dispensaryId || !feeForm.doctorFee || !feeForm.dispensaryFee || !feeForm.onlineFee}
+                  disabled={loading || !isFormValid()}
                   className="w-full md:w-auto"
                 >
                   {loading ? (
@@ -606,11 +607,11 @@ const SimpleFeeManagement: React.FC = () => {
                     <TableRow>
                         <TableHead>Dispensary</TableHead>
                       <TableHead>Address</TableHead>
-                      {superAdminMode && <TableHead>WA Code</TableHead>}
-                      {!superAdminMode && <TableHead className="text-right">Doctor Fee</TableHead>}
-                      {!superAdminMode && <TableHead className="text-right">Dispensary Fee</TableHead>}
-                      {superAdminMode && <TableHead className="text-right">Online Fee</TableHead>}
-                      {superAdminMode && <TableHead className="text-right">Channel Partner Fee</TableHead>}
+                      <TableHead>WA Code</TableHead>
+                      <TableHead className="text-right">Doctor Fee</TableHead>
+                      <TableHead className="text-right">Dispensary Fee</TableHead>
+                      <TableHead className="text-right">Online Fee</TableHead>
+                      <TableHead className="text-right">Channel Partner Fee</TableHead>
                       <TableHead className="text-right">Total</TableHead>
                       <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
@@ -620,13 +621,13 @@ const SimpleFeeManagement: React.FC = () => {
                       <TableRow key={fee.id}>
                         <TableCell className="font-medium">{fee.dispensaryName}</TableCell>
                         <TableCell className="text-sm text-gray-600">{fee.dispensaryAddress}</TableCell>
-                        {superAdminMode && <TableCell className="font-mono text-medical-600 font-bold">{fee.bookingCode || 'N/A'}</TableCell>}
-                        {!superAdminMode && <TableCell className="text-right font-mono">Rs {fee.doctorFee}</TableCell>}
-                        {!superAdminMode && <TableCell className="text-right font-mono">Rs {fee.dispensaryFee}</TableCell>}
-                        {superAdminMode && <TableCell className="text-right font-mono">Rs {fee.onlineFee}</TableCell>}
-                        {superAdminMode && <TableCell className="text-right font-mono">Rs {fee.channelPartnerFee || 0}</TableCell>}
+                        <TableCell className="font-mono text-medical-600 font-bold">{fee.bookingCode || 'N/A'}</TableCell>
+                        <TableCell className="text-right font-mono">Rs {fee.doctorFee || 0}</TableCell>
+                        <TableCell className="text-right font-mono">Rs {fee.dispensaryFee || 0}</TableCell>
+                        <TableCell className="text-right font-mono">Rs {fee.onlineFee || 0}</TableCell>
+                        <TableCell className="text-right font-mono">Rs {fee.channelPartnerFee || 0}</TableCell>
                         <TableCell className="text-right font-mono font-semibold">
-                          Rs {superAdminMode ? fee.onlineFee + (fee.channelPartnerFee || 0) : fee.doctorFee + fee.dispensaryFee}
+                          Rs {(fee.doctorFee || 0) + (fee.dispensaryFee || 0) + (fee.onlineFee || 0) + (fee.channelPartnerFee || 0)}
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="flex justify-center gap-2">
