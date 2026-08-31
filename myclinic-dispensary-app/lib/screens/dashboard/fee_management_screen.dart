@@ -22,6 +22,7 @@ class _FeeManagementScreenState extends ConsumerState<FeeManagementScreen> {
   bool _loadingDoctors = false;
   bool _loadingFees = false;
   bool _isSaving = false;
+  bool _isModified = false;
   
   List<Doctor> _doctors = [];
   Doctor? _selectedDoctor;
@@ -35,6 +36,31 @@ class _FeeManagementScreenState extends ConsumerState<FeeManagementScreen> {
   void initState() {
     super.initState();
     _loadDoctors();
+    
+    _doctorFeeController.addListener(_checkIfModified);
+    _dispensaryFeeController.addListener(_checkIfModified);
+  }
+
+  void _checkIfModified() {
+    if (_currentFee == null) {
+      final docFee = _doctorFeeController.text.trim();
+      final dispFee = _dispensaryFeeController.text.trim();
+      final isModified = docFee.isNotEmpty || dispFee.isNotEmpty;
+      if (_isModified != isModified) setState(() => _isModified = isModified);
+      return;
+    }
+
+    final initialDocFee = _currentFee!['doctorFee']?.toString() ?? '';
+    final initialDispFee = _currentFee!['dispensaryFee']?.toString() ?? '';
+    
+    // Compare string lengths and contents loosely
+    final currentDocFee = _doctorFeeController.text.trim();
+    final currentDispFee = _dispensaryFeeController.text.trim();
+    
+    final isModified = (initialDocFee != currentDocFee) || (initialDispFee != currentDispFee);
+    if (_isModified != isModified) {
+      setState(() => _isModified = isModified);
+    }
   }
 
   @override
@@ -94,6 +120,7 @@ class _FeeManagementScreenState extends ConsumerState<FeeManagementScreen> {
           _doctorFeeController.text = '';
           _dispensaryFeeController.text = '';
         }
+        _isModified = false;
       });
     } catch (e) {
       if (mounted) {
@@ -242,7 +269,7 @@ class _FeeManagementScreenState extends ConsumerState<FeeManagementScreen> {
                             ),
                             const SizedBox(height: 24),
                             ElevatedButton(
-                              onPressed: _isSaving ? null : _saveFees,
+                              onPressed: (_isSaving || !_isModified) ? null : _saveFees,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primary,
                                 foregroundColor: AppColors.textWhite,
