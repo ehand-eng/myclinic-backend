@@ -56,7 +56,7 @@ const SimpleFeeManagement: React.FC = () => {
 
   const currentUserStr = localStorage.getItem("current_user");
   const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
-  const superAdminMode = isSuperAdmin(currentUser);
+  const superAdminMode = isSuperAdmin(currentUser?.role);
 
   // Form state
   const [feeForm, setFeeForm] = useState({
