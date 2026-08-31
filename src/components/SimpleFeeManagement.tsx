@@ -13,6 +13,7 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'react-toastify';
 import { Pencil, Trash2, Plus, AlertCircle, Loader2 } from 'lucide-react';
+import { isSuperAdmin } from '@/lib/roleUtils';
 
 import { API_BASE_URL } from '@/config';
 interface Doctor {
@@ -52,6 +53,10 @@ const SimpleFeeManagement: React.FC = () => {
   const [loadingFees, setLoadingFees] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [feeToDelete, setFeeToDelete] = useState<string | null>(null);
+
+  const currentUserStr = localStorage.getItem("current_user");
+  const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+  const superAdminMode = isSuperAdmin(currentUser);
 
   // Form state
   const [feeForm, setFeeForm] = useState({
@@ -230,9 +235,15 @@ const SimpleFeeManagement: React.FC = () => {
   const handleAddFee = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedDoctorId || !feeForm.dispensaryId || !feeForm.doctorFee || !feeForm.dispensaryFee || !feeForm.onlineFee) {
-      toast.error('Please fill in all required fields');
+    if (!selectedDoctorId || !feeForm.dispensaryId) {
+      toast.error('Please select doctor and dispensary');
       return;
+    }
+    if (superAdminMode && !feeForm.onlineFee) {
+      toast.error('Please enter online fee'); return;
+    }
+    if (!superAdminMode && (!feeForm.doctorFee || !feeForm.dispensaryFee)) {
+      toast.error('Please enter doctor and dispensary fees'); return;
     }
 
     try {
@@ -240,11 +251,11 @@ const SimpleFeeManagement: React.FC = () => {
       
       const requestData = {
         dispensaryId: feeForm.dispensaryId,
-        bookingCode: feeForm.bookingCode || undefined,
-        doctorFee: parseFloat(feeForm.doctorFee),
-        dispensaryFee: parseFloat(feeForm.dispensaryFee),
-        onlineFee: parseFloat(feeForm.onlineFee),
-        channelPartnerFee: parseFloat(feeForm.channelPartnerFee) || 0,
+        bookingCode: superAdminMode ? (feeForm.bookingCode || undefined) : undefined,
+        doctorFee: superAdminMode ? undefined : parseFloat(feeForm.doctorFee),
+        dispensaryFee: superAdminMode ? undefined : parseFloat(feeForm.dispensaryFee),
+        onlineFee: superAdminMode ? parseFloat(feeForm.onlineFee) : undefined,
+        channelPartnerFee: superAdminMode ? parseFloat(feeForm.channelPartnerFee || '0') : undefined,
       };
       
       console.log('📡 Creating fee:', requestData);
@@ -298,20 +309,25 @@ const SimpleFeeManagement: React.FC = () => {
   };
 
   const handleUpdateSubmit = async () => {
-    if (!selectedDoctorId || !updateFeeId || !updateForm.doctorFee || !updateForm.dispensaryFee || !updateForm.onlineFee) {
-      toast.error('Please fill in all required fields');
-      return;
+    if (!selectedDoctorId || !updateFeeId) {
+      toast.error('Invalid configuration selected'); return;
+    }
+    if (superAdminMode && !updateForm.onlineFee) {
+      toast.error('Please enter online fee'); return;
+    }
+    if (!superAdminMode && (!updateForm.doctorFee || !updateForm.dispensaryFee)) {
+      toast.error('Please enter doctor and dispensary fees'); return;
     }
 
     try {
       setLoading(true);
       
       const requestData = {
-        bookingCode: updateForm.bookingCode || undefined,
-        doctorFee: parseFloat(updateForm.doctorFee),
-        dispensaryFee: parseFloat(updateForm.dispensaryFee),
-        onlineFee: parseFloat(updateForm.onlineFee),
-        channelPartnerFee: parseFloat(updateForm.channelPartnerFee) || 0,
+        bookingCode: superAdminMode ? (updateForm.bookingCode || undefined) : undefined,
+        doctorFee: superAdminMode ? undefined : parseFloat(updateForm.doctorFee),
+        dispensaryFee: superAdminMode ? undefined : parseFloat(updateForm.dispensaryFee),
+        onlineFee: superAdminMode ? parseFloat(updateForm.onlineFee) : undefined,
+        channelPartnerFee: superAdminMode ? (parseFloat(updateForm.channelPartnerFee) || 0) : undefined,
       };
       
       const response = await fetch(`${API_BASE_URL}/api/fees/${selectedDoctorId}/${updateFeeId}`, {
@@ -482,61 +498,69 @@ const SimpleFeeManagement: React.FC = () => {
                 </div>
 
 
-                <div>
-                  <Label htmlFor="doctor-fee">Doctor Fee (Rs)</Label>
-                  <Input
-                    id="doctor-fee"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={feeForm.doctorFee}
-                    onChange={(e) => setFeeForm(prev => ({ ...prev, doctorFee: e.target.value }))}
-                    placeholder="Enter doctor fee"
-                    disabled={loading}
-                  />
-                </div>
+                {!superAdminMode && (
+                  <>
+                    <div>
+                      <Label htmlFor="doctor-fee">Doctor Fee (Rs)</Label>
+                      <Input
+                        id="doctor-fee"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={feeForm.doctorFee}
+                        onChange={(e) => setFeeForm(prev => ({ ...prev, doctorFee: e.target.value }))}
+                        placeholder="Enter doctor fee"
+                        disabled={loading}
+                      />
+                    </div>
 
-                <div>
-                  <Label htmlFor="dispensary-fee">Dispensary Fee (Rs)</Label>
-                  <Input
-                    id="dispensary-fee"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={feeForm.dispensaryFee}
-                    onChange={(e) => setFeeForm(prev => ({ ...prev, dispensaryFee: e.target.value }))}
-                    placeholder="Enter dispensary fee"
-                    disabled={loading}
-                  />
-                </div>
+                    <div>
+                      <Label htmlFor="dispensary-fee">Dispensary Fee (Rs)</Label>
+                      <Input
+                        id="dispensary-fee"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={feeForm.dispensaryFee}
+                        onChange={(e) => setFeeForm(prev => ({ ...prev, dispensaryFee: e.target.value }))}
+                        placeholder="Enter dispensary fee"
+                        disabled={loading}
+                      />
+                    </div>
+                  </>
+                )}
 
-                <div>
-                  <Label htmlFor="online-fee">Online Fee (Rs)</Label>
-                  <Input
-                    id="online-fee"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={feeForm.onlineFee}
-                    onChange={(e) => setFeeForm(prev => ({ ...prev, onlineFee: e.target.value }))}
-                    placeholder="Enter online fee"
-                    disabled={loading}
-                  />
-                </div>
+                {superAdminMode && (
+                  <>
+                    <div>
+                      <Label htmlFor="online-fee">Online Fee (Rs)</Label>
+                      <Input
+                        id="online-fee"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={feeForm.onlineFee}
+                        onChange={(e) => setFeeForm(prev => ({ ...prev, onlineFee: e.target.value }))}
+                        placeholder="Enter online fee"
+                        disabled={loading}
+                      />
+                    </div>
 
-                <div>
-                  <Label htmlFor="channel-partner-fee">Channel Partner Fee (Rs)</Label>
-                  <Input
-                    id="channel-partner-fee"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={feeForm.channelPartnerFee}
-                    onChange={(e) => setFeeForm(prev => ({ ...prev, channelPartnerFee: e.target.value }))}
-                    placeholder="Enter channel partner fee (optional)"
-                    disabled={loading}
-                  />
-                </div>
+                    <div>
+                      <Label htmlFor="channel-partner-fee">Channel Partner Fee (Rs)</Label>
+                      <Input
+                        id="channel-partner-fee"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={feeForm.channelPartnerFee}
+                        onChange={(e) => setFeeForm(prev => ({ ...prev, channelPartnerFee: e.target.value }))}
+                        placeholder="Enter channel partner fee (optional)"
+                        disabled={loading}
+                      />
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="mt-4">
@@ -580,13 +604,13 @@ const SimpleFeeManagement: React.FC = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Dispensary</TableHead>
+                        <TableHead>Dispensary</TableHead>
                       <TableHead>Address</TableHead>
-                      <TableHead>WA Code</TableHead>
-                      <TableHead className="text-right">Doctor Fee</TableHead>
-                      <TableHead className="text-right">Dispensary Fee</TableHead>
-                      <TableHead className="text-right">Online Fee</TableHead>
-                      <TableHead className="text-right">Channel Partner Fee</TableHead>
+                      {superAdminMode && <TableHead>WA Code</TableHead>}
+                      {!superAdminMode && <TableHead className="text-right">Doctor Fee</TableHead>}
+                      {!superAdminMode && <TableHead className="text-right">Dispensary Fee</TableHead>}
+                      {superAdminMode && <TableHead className="text-right">Online Fee</TableHead>}
+                      {superAdminMode && <TableHead className="text-right">Channel Partner Fee</TableHead>}
                       <TableHead className="text-right">Total</TableHead>
                       <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
@@ -596,13 +620,13 @@ const SimpleFeeManagement: React.FC = () => {
                       <TableRow key={fee.id}>
                         <TableCell className="font-medium">{fee.dispensaryName}</TableCell>
                         <TableCell className="text-sm text-gray-600">{fee.dispensaryAddress}</TableCell>
-                        <TableCell className="font-mono text-medical-600 font-bold">{fee.bookingCode || 'N/A'}</TableCell>
-                        <TableCell className="text-right font-mono">Rs {fee.doctorFee}</TableCell>
-                        <TableCell className="text-right font-mono">Rs {fee.dispensaryFee}</TableCell>
-                        <TableCell className="text-right font-mono">Rs {fee.onlineFee}</TableCell>
-                        <TableCell className="text-right font-mono">Rs {fee.channelPartnerFee || 0}</TableCell>
+                        {superAdminMode && <TableCell className="font-mono text-medical-600 font-bold">{fee.bookingCode || 'N/A'}</TableCell>}
+                        {!superAdminMode && <TableCell className="text-right font-mono">Rs {fee.doctorFee}</TableCell>}
+                        {!superAdminMode && <TableCell className="text-right font-mono">Rs {fee.dispensaryFee}</TableCell>}
+                        {superAdminMode && <TableCell className="text-right font-mono">Rs {fee.onlineFee}</TableCell>}
+                        {superAdminMode && <TableCell className="text-right font-mono">Rs {fee.channelPartnerFee || 0}</TableCell>}
                         <TableCell className="text-right font-mono font-semibold">
-                          Rs {fee.doctorFee + fee.dispensaryFee + fee.onlineFee}
+                          Rs {superAdminMode ? fee.onlineFee + (fee.channelPartnerFee || 0) : fee.doctorFee + fee.dispensaryFee}
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="flex justify-center gap-2">
@@ -648,67 +672,79 @@ const SimpleFeeManagement: React.FC = () => {
             <DialogTitle>Update Fee Configuration</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="update-booking-code">WhatsApp Code</Label>
-              <Input
-                id="update-booking-code"
-                type="text"
-                value={updateForm.bookingCode}
-                onChange={(e) => setUpdateForm(prev => ({ ...prev, bookingCode: e.target.value.toUpperCase() }))}
-                placeholder="e.g. B001"
-                className="uppercase"
-                disabled={loading}
-              />
-            </div>
-            <div>
-              <Label htmlFor="update-doctor-fee">Doctor Fee (Rs)</Label>
-              <Input
-                id="update-doctor-fee"
-                type="number"
-                min="0"
-                step="0.01"
-                value={updateForm.doctorFee}
-                onChange={(e) => setUpdateForm(prev => ({ ...prev, doctorFee: e.target.value }))}
-                disabled={loading}
-              />
-            </div>
-            <div>
-              <Label htmlFor="update-dispensary-fee">Dispensary Fee (Rs)</Label>
-              <Input
-                id="update-dispensary-fee"
-                type="number"
-                min="0"
-                step="0.01"
-                value={updateForm.dispensaryFee}
-                onChange={(e) => setUpdateForm(prev => ({ ...prev, dispensaryFee: e.target.value }))}
-                disabled={loading}
-              />
-            </div>
-            <div>
-              <Label htmlFor="update-online-fee">Online Fee (Rs)</Label>
-              <Input
-                id="update-online-fee"
-                type="number"
-                min="0"
-                step="0.01"
-                value={updateForm.onlineFee}
-                onChange={(e) => setUpdateForm(prev => ({ ...prev, onlineFee: e.target.value }))}
-                disabled={loading}
-              />
-            </div>
-            <div>
-              <Label htmlFor="update-channel-partner-fee">Channel Partner Fee (Rs)</Label>
-              <Input
-                id="update-channel-partner-fee"
-                type="number"
-                min="0"
-                step="0.01"
-                value={updateForm.channelPartnerFee}
-                onChange={(e) => setUpdateForm(prev => ({ ...prev, channelPartnerFee: e.target.value }))}
-                placeholder="Optional"
-                disabled={loading}
-              />
-            </div>
+            {superAdminMode && (
+              <div>
+                <Label htmlFor="update-booking-code">WhatsApp Code</Label>
+                <Input
+                  id="update-booking-code"
+                  type="text"
+                  value={updateForm.bookingCode}
+                  onChange={(e) => setUpdateForm(prev => ({ ...prev, bookingCode: e.target.value.toUpperCase() }))}
+                  placeholder="e.g. B001"
+                  className="uppercase"
+                  disabled={loading}
+                />
+              </div>
+            )}
+            
+            {!superAdminMode && (
+              <>
+                <div>
+                  <Label htmlFor="update-doctor-fee">Doctor Fee (Rs)</Label>
+                  <Input
+                    id="update-doctor-fee"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={updateForm.doctorFee}
+                    onChange={(e) => setUpdateForm(prev => ({ ...prev, doctorFee: e.target.value }))}
+                    disabled={loading}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="update-dispensary-fee">Dispensary Fee (Rs)</Label>
+                  <Input
+                    id="update-dispensary-fee"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={updateForm.dispensaryFee}
+                    onChange={(e) => setUpdateForm(prev => ({ ...prev, dispensaryFee: e.target.value }))}
+                    disabled={loading}
+                  />
+                </div>
+              </>
+            )}
+
+            {superAdminMode && (
+              <>
+                <div>
+                  <Label htmlFor="update-online-fee">Online Fee (Rs)</Label>
+                  <Input
+                    id="update-online-fee"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={updateForm.onlineFee}
+                    onChange={(e) => setUpdateForm(prev => ({ ...prev, onlineFee: e.target.value }))}
+                    disabled={loading}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="update-channel-partner-fee">Channel Partner Fee (Rs)</Label>
+                  <Input
+                    id="update-channel-partner-fee"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={updateForm.channelPartnerFee}
+                    onChange={(e) => setUpdateForm(prev => ({ ...prev, channelPartnerFee: e.target.value }))}
+                    placeholder="Optional"
+                    disabled={loading}
+                  />
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowUpdateModal(false)} disabled={loading}>

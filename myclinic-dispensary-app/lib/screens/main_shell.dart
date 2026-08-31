@@ -265,6 +265,14 @@ class _AppDrawer extends ConsumerWidget {
                     context.push('/timeslots');
                   },
                 ),
+                _DrawerItem(
+                  icon: Icons.monetization_on_outlined,
+                  label: 'Fee Management',
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/fee-management');
+                  },
+                ),
                 const Divider(height: 24),
                 if (auth.dispensaries.length > 1)
                   _DrawerItem(

@@ -88,10 +88,8 @@ class ApiConfig {
           String doctorId, String dispensaryId, String date) =>
       '/reports/session/$doctorId/$dispensaryId/$date';
 
-  // Fees (read-only for dispensary admin)
-  static String feesByDispensary(String dispensaryId) =>
-      '/doctor-dispensaries/fees/$dispensaryId';
-  static String feesByDoctorDispensary(
-          String doctorId, String dispensaryId) =>
-      '/doctor-dispensaries/fees/$doctorId/$dispensaryId';
+  // Fees
+  static String feesByDispensary(String dispensaryId) => '/doctor-dispensaries/fees/$dispensaryId'; // Unused
+  static String feesByDoctor(String doctorId) => '/fees/$doctorId';
+  static String updateFee(String doctorId, String feeId) => '/fees/$doctorId/$feeId';
 }

@@ -164,11 +164,11 @@ router.post('/:doctorId', async (req, res) => {
       return res.status(400).json({ message: 'Dispensary ID is required' });
     }
     
-    if (doctorFee === undefined || dispensaryFee === undefined || onlineFee === undefined) {
-      return res.status(400).json({ message: 'All fee fields are required' });
+    if (doctorFee === undefined && onlineFee === undefined) {
+      return res.status(400).json({ message: 'At least one fee parameter must be provided' });
     }
     
-    if (doctorFee < 0 || dispensaryFee < 0 || onlineFee < 0 || (channelPartnerFee && channelPartnerFee < 0)) {
+    if ((doctorFee !== undefined && doctorFee < 0) || (dispensaryFee !== undefined && dispensaryFee < 0) || (onlineFee !== undefined && onlineFee < 0) || (channelPartnerFee !== undefined && channelPartnerFee < 0)) {
       return res.status(400).json({ message: 'Fee amounts cannot be negative' });
     }
     
@@ -222,10 +222,10 @@ router.post('/:doctorId', async (req, res) => {
       doctorId,
       dispensaryId,
       bookingCode: finalBookingCode,
-      doctorFee: Number(doctorFee),
-      dispensaryFee: Number(dispensaryFee),
-      channelPartnerFee: Number(channelPartnerFee || 0),
-      bookingCommission: Number(onlineFee),
+      doctorFee: doctorFee !== undefined ? Number(doctorFee) : 0,
+      dispensaryFee: dispensaryFee !== undefined ? Number(dispensaryFee) : 0,
+      channelPartnerFee: channelPartnerFee !== undefined ? Number(channelPartnerFee) : 0,
+      bookingCommission: onlineFee !== undefined ? Number(onlineFee) : 0,
       isActive: true
     });
     
@@ -245,7 +245,7 @@ router.post('/:doctorId', async (req, res) => {
       doctorFee: populatedFee?.doctorFee || Number(doctorFee),
       dispensaryFee: populatedFee?.dispensaryFee || Number(dispensaryFee),
       channelPartnerFee: populatedFee?.channelPartnerFee || Number(channelPartnerFee || 0),
-      onlineFee: populatedFee?.bookingCommission || Number(onlineFee),
+      onlineFee: populatedFee?.bookingCommission || (onlineFee !== undefined ? Number(onlineFee) : 0),
       doctorName: populatedFee?.doctorId?.name || doctor.name,
       doctorSpecialization: populatedFee?.doctorId?.specialization || doctor.specialization,
       dispensaryName: populatedFee?.dispensaryId?.name || dispensary.name,
@@ -289,13 +289,20 @@ router.put('/:doctorId/:feeId', async (req, res) => {
     console.log('New fee data:', { doctorFee, dispensaryFee, onlineFee, channelPartnerFee: channelPartnerFee || 0, bookingCode });
     
     // Validate inputs
-    if (doctorFee === undefined || dispensaryFee === undefined || onlineFee === undefined) {
-      return res.status(400).json({ message: 'All fee fields are required' });
+    if (doctorFee === undefined && onlineFee === undefined && dispensaryFee === undefined && channelPartnerFee === undefined) {
+      return res.status(400).json({ message: 'Provide at least one fee field to update.' });
     }
     
-    if (doctorFee < 0 || dispensaryFee < 0 || onlineFee < 0) {
+    if ((doctorFee !== undefined && doctorFee < 0) || (dispensaryFee !== undefined && dispensaryFee < 0) || (onlineFee !== undefined && onlineFee < 0) || (channelPartnerFee !== undefined && channelPartnerFee < 0)) {
       return res.status(400).json({ message: 'Fee amounts cannot be negative' });
     }
+
+    const updates = { updatedAt: new Date() };
+    if (bookingCode !== undefined && bookingCode !== '') updates.bookingCode = bookingCode.toUpperCase();
+    if (doctorFee !== undefined) updates.doctorFee = Number(doctorFee);
+    if (dispensaryFee !== undefined) updates.dispensaryFee = Number(dispensaryFee);
+    if (channelPartnerFee !== undefined) updates.channelPartnerFee = Number(channelPartnerFee);
+    if (onlineFee !== undefined) updates.bookingCommission = Number(onlineFee);
     
     // Find and update the fee configuration
     const updatedFee = await DoctorDispensary.findOneAndUpdate(
@@ -304,14 +311,7 @@ router.put('/:doctorId/:feeId', async (req, res) => {
         doctorId: doctorId,
         isActive: true
       },
-      {
-        bookingCode: bookingCode ? bookingCode.toUpperCase() : undefined,
-        doctorFee: Number(doctorFee),
-        dispensaryFee: Number(dispensaryFee),
-        channelPartnerFee: Number(channelPartnerFee || 0),
-        bookingCommission: Number(onlineFee),
-        updatedAt: new Date()
-      },
+      updates,
       { 
         new: true,
         runValidators: true
