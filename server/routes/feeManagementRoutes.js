@@ -192,9 +192,38 @@ router.post('/:doctorId', async (req, res) => {
     });
     
     if (existingFee) {
-      return res.status(409).json({ 
-        message: 'Fee configuration already exists for this doctor-dispensary combination' 
-      });
+      if (doctorFee !== undefined) existingFee.doctorFee = Number(doctorFee);
+      if (dispensaryFee !== undefined) existingFee.dispensaryFee = Number(dispensaryFee);
+      if (channelPartnerFee !== undefined) existingFee.channelPartnerFee = Number(channelPartnerFee);
+      if (onlineFee !== undefined) existingFee.bookingCommission = Number(onlineFee);
+      if (bookingCode) existingFee.bookingCode = bookingCode.toUpperCase();
+      
+      await existingFee.save();
+      
+      const populatedFee = await DoctorDispensary.findById(existingFee._id)
+        .populate('doctorId', 'name specialization')
+        .populate('dispensaryId', 'name address')
+        .lean();
+      
+      const responseData = {
+        id: populatedFee?._id?.toString() || existingFee._id.toString(),
+        doctorId: populatedFee?.doctorId?._id?.toString() || doctorId,
+        dispensaryId: populatedFee?.dispensaryId?._id?.toString() || dispensaryId,
+        bookingCode: populatedFee?.bookingCode || existingFee.bookingCode,
+        doctorFee: populatedFee?.doctorFee || existingFee.doctorFee,
+        dispensaryFee: populatedFee?.dispensaryFee || existingFee.dispensaryFee,
+        channelPartnerFee: populatedFee?.channelPartnerFee || existingFee.channelPartnerFee,
+        onlineFee: populatedFee?.bookingCommission || existingFee.bookingCommission,
+        doctorName: populatedFee?.doctorId?.name || doctor.name,
+        doctorSpecialization: populatedFee?.doctorId?.specialization || doctor.specialization,
+        dispensaryName: populatedFee?.dispensaryId?.name || dispensary.name,
+        dispensaryAddress: populatedFee?.dispensaryId?.address || dispensary.address,
+        createdAt: populatedFee?.createdAt || existingFee.createdAt,
+        updatedAt: populatedFee?.updatedAt || new Date()
+      };
+      
+      console.log('Updated existing fee configuration (Upsert):', responseData.id);
+      return res.status(200).json(responseData);
     }
 
     // Handle bookingCode generation if missing
