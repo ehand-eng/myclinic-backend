@@ -237,6 +237,10 @@ router.post('/', async (req, res) => {
 
     res.status(201).json(doctor);
   } catch (error) {
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyValue ?? {})[0] ?? 'field';
+      return res.status(400).json({ message: `A doctor with this ${field} already exists.` });
+    }
     logger.error('Error creating doctor', {
       doctorData,
       error: error.message,
@@ -333,6 +337,10 @@ router.put('/:id', async (req, res) => {
 
     res.status(200).json(doctor);
   } catch (error) {
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyValue ?? {})[0] ?? 'field';
+      return res.status(400).json({ message: `A doctor with this ${field} already exists.` });
+    }
     const duration = Date.now() - startTime;
     logger.error('Error updating doctor', {
       doctorId: id,

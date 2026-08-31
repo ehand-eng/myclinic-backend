@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
@@ -109,6 +110,13 @@ class _DoctorFormScreenState extends ConsumerState<DoctorFormScreen> {
         );
         context.pop();
       }
+    } on DioException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(e.response?.data?['message'] ?? 'Network error occurred: ${e.message}'),
+            backgroundColor: AppColors.error,
+        ));
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -152,6 +160,8 @@ class _DoctorFormScreenState extends ConsumerState<DoctorFormScreen> {
                       decoration: const InputDecoration(
                         labelText: 'Name *',
                         prefixIcon: Icon(Icons.person_outlined),
+                        prefixText: 'Dr. ',
+                        helperText: 'Please enter the name only (without title)',
                       ),
                       validator: (v) => v == null || v.trim().isEmpty
                           ? 'Name is required'

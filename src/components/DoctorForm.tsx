@@ -13,6 +13,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import {
@@ -200,11 +201,11 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
       }
 
       navigate('/admin/doctors');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving doctor:', error);
       toast({
         title: 'Error',
-        description: isEdit ? 'Failed to update doctor' : 'Failed to create doctor',
+        description: error.response?.data?.message || (isEdit ? 'Failed to update doctor' : 'Failed to create doctor'),
         variant: 'destructive'
       });
     } finally {
@@ -283,8 +284,14 @@ const DoctorForm = ({ doctorId, isEdit = false }: DoctorFormProps) => {
                 <FormItem>
                   <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Doctor's full name" {...field} />
+                    <div className="relative flex items-center">
+                      <span className="absolute left-3 text-gray-500 font-medium pointer-events-none select-none">Dr.</span>
+                      <Input placeholder="John Doe" className="pl-10" {...field} />
+                    </div>
                   </FormControl>
+                  <FormDescription>
+                    Please add the name only (without title)
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
