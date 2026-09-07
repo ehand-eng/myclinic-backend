@@ -237,6 +237,22 @@ router.get('/absent/disabled-dates/:doctorId/:dispensaryId', async (req, res) =>
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // Get the booking visible days
+    let bookingVisibleDays = 30; // fallback default
+    try {
+      const ddConfig = await DoctorDispensary.findOne({ doctorId, dispensaryId, isActive: true }).lean();
+      if (ddConfig && ddConfig.bookingVisibleDays) {
+        bookingVisibleDays = ddConfig.bookingVisibleDays;
+      } else {
+        const dispensary = await Dispensary.findById(dispensaryId).lean();
+        if (dispensary && dispensary.bookingVisibleDays) {
+          bookingVisibleDays = dispensary.bookingVisibleDays;
+        }
+      }
+    } catch (err) {
+      console.warn('Error fetching bookingVisibleDays, using default', err);
+    }
+
     // Get single-date full absences (not modified sessions) from today onwards
     const singleAbsences = await AbsentTimeSlot.find({
       doctorId,
@@ -282,7 +298,10 @@ router.get('/absent/disabled-dates/:doctorId/:dispensaryId', async (req, res) =>
       }
     }
 
-    res.status(200).json({ disabledDates: [...new Set(disabledDates)] });
+    res.status(200).json({ 
+      disabledDates: [...new Set(disabledDates)],
+      bookingVisibleDays
+    });
   } catch (error) {
     console.error('Error getting disabled dates:', error);
     res.status(500).json({ message: 'Error fetching disabled dates', error: error.message });

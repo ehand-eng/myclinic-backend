@@ -8,6 +8,7 @@ class Doctor {
   final String? profilePicture;
   final List<String> dispensaryIds;
   final bool disabled;
+  final int? bookingVisibleDays;
 
   Doctor({
     required this.id,
@@ -19,6 +20,7 @@ class Doctor {
     this.profilePicture,
     this.dispensaryIds = const [],
     this.disabled = false,
+    this.bookingVisibleDays,
   });
 
   factory Doctor.fromJson(Map<String, dynamic> json) {
@@ -39,6 +41,7 @@ class Doctor {
             }))
           : [],
       disabled: json['disabled'] ?? false,
+      bookingVisibleDays: json['bookingVisibleDays'],
     );
   }
 

@@ -31,6 +31,7 @@ class _FeeManagementScreenState extends ConsumerState<FeeManagementScreen> {
 
   final _doctorFeeController = TextEditingController();
   final _dispensaryFeeController = TextEditingController();
+  final _bookingVisibleDaysController = TextEditingController();
 
   @override
   void initState() {
@@ -45,19 +46,22 @@ class _FeeManagementScreenState extends ConsumerState<FeeManagementScreen> {
     if (_currentFee == null) {
       final docFee = _doctorFeeController.text.trim();
       final dispFee = _dispensaryFeeController.text.trim();
-      final isModified = docFee.isNotEmpty || dispFee.isNotEmpty;
+      final visibleDays = _bookingVisibleDaysController.text.trim();
+      final isModified = docFee.isNotEmpty || dispFee.isNotEmpty || visibleDays.isNotEmpty;
       if (_isModified != isModified) setState(() => _isModified = isModified);
       return;
     }
 
     final initialDocFee = _currentFee!['doctorFee']?.toString() ?? '';
     final initialDispFee = _currentFee!['dispensaryFee']?.toString() ?? '';
+    final initialVisibleDays = _currentFee!['bookingVisibleDays']?.toString() ?? '';
     
     // Compare string lengths and contents loosely
     final currentDocFee = _doctorFeeController.text.trim();
     final currentDispFee = _dispensaryFeeController.text.trim();
+    final currentVisibleDays = _bookingVisibleDaysController.text.trim();
     
-    final isModified = (initialDocFee != currentDocFee) || (initialDispFee != currentDispFee);
+    final isModified = (initialDocFee != currentDocFee) || (initialDispFee != currentDispFee) || (initialVisibleDays != currentVisibleDays);
     if (_isModified != isModified) {
       setState(() => _isModified = isModified);
     }
@@ -67,6 +71,7 @@ class _FeeManagementScreenState extends ConsumerState<FeeManagementScreen> {
   void dispose() {
     _doctorFeeController.dispose();
     _dispensaryFeeController.dispose();
+    _bookingVisibleDaysController.dispose();
     super.dispose();
   }
 
@@ -116,9 +121,11 @@ class _FeeManagementScreenState extends ConsumerState<FeeManagementScreen> {
         if (_currentFee != null) {
           _doctorFeeController.text = _currentFee!['doctorFee'].toString();
           _dispensaryFeeController.text = _currentFee!['dispensaryFee'].toString();
+          _bookingVisibleDaysController.text = _currentFee!['bookingVisibleDays']?.toString() ?? '';
         } else {
           _doctorFeeController.text = '';
           _dispensaryFeeController.text = '';
+          _bookingVisibleDaysController.text = '';
         }
         _isModified = false;
       });
@@ -140,6 +147,7 @@ class _FeeManagementScreenState extends ConsumerState<FeeManagementScreen> {
 
     final doctorFee = double.tryParse(_doctorFeeController.text);
     final dispensaryFee = double.tryParse(_dispensaryFeeController.text);
+    final visibleDays = int.tryParse(_bookingVisibleDaysController.text);
 
     if (doctorFee == null || dispensaryFee == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -154,6 +162,7 @@ class _FeeManagementScreenState extends ConsumerState<FeeManagementScreen> {
         'dispensaryId': auth.selectedDispensary!.id,
         'doctorFee': doctorFee,
         'dispensaryFee': dispensaryFee,
+        if (visibleDays != null) 'bookingVisibleDays': visibleDays,
       };
 
       if (_currentFee != null) {
@@ -265,6 +274,16 @@ class _FeeManagementScreenState extends ConsumerState<FeeManagementScreen> {
                                 labelText: 'Dispensary Fee (Rs)',
                                 border: OutlineInputBorder(),
                                 prefixIcon: Icon(Icons.local_hospital),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            TextField(
+                              controller: _bookingVisibleDaysController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Booking Horizon (Days) - Optional',
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(Icons.calendar_month),
                               ),
                             ),
                             const SizedBox(height: 24),

@@ -154,10 +154,10 @@ router.post('/:doctorId', async (req, res) => {
   try {
     console.log("======== doctor-dispensaries/fees ============== "+req.params.doctorId);
     const { doctorId } = req.params;
-    const { dispensaryId, doctorFee, dispensaryFee, onlineFee, channelPartnerFee, bookingCode } = req.body;
+    const { dispensaryId, doctorFee, dispensaryFee, onlineFee, channelPartnerFee, bookingCode, bookingVisibleDays } = req.body;
     
     console.log(`Creating fee for doctor ${doctorId}, dispensary ${dispensaryId}`);
-    console.log('Fee data:', { doctorFee, dispensaryFee, onlineFee, channelPartnerFee: channelPartnerFee || 0, bookingCode });
+    console.log('Fee data:', { doctorFee, dispensaryFee, onlineFee, channelPartnerFee: channelPartnerFee || 0, bookingCode, bookingVisibleDays });
     
     // Validate inputs
     if (!dispensaryId) {
@@ -197,6 +197,7 @@ router.post('/:doctorId', async (req, res) => {
       if (channelPartnerFee !== undefined) existingFee.channelPartnerFee = Number(channelPartnerFee);
       if (onlineFee !== undefined) existingFee.bookingCommission = Number(onlineFee);
       if (bookingCode) existingFee.bookingCode = bookingCode.toUpperCase();
+      if (bookingVisibleDays !== undefined) existingFee.bookingVisibleDays = bookingVisibleDays !== null && bookingVisibleDays !== '' ? Number(bookingVisibleDays) : undefined;
       
       await existingFee.save();
       
@@ -214,6 +215,7 @@ router.post('/:doctorId', async (req, res) => {
         dispensaryFee: populatedFee?.dispensaryFee || existingFee.dispensaryFee,
         channelPartnerFee: populatedFee?.channelPartnerFee || existingFee.channelPartnerFee,
         onlineFee: populatedFee?.bookingCommission || existingFee.bookingCommission,
+        bookingVisibleDays: populatedFee?.bookingVisibleDays || existingFee.bookingVisibleDays,
         doctorName: populatedFee?.doctorId?.name || doctor.name,
         doctorSpecialization: populatedFee?.doctorId?.specialization || doctor.specialization,
         dispensaryName: populatedFee?.dispensaryId?.name || dispensary.name,
@@ -255,6 +257,7 @@ router.post('/:doctorId', async (req, res) => {
       dispensaryFee: dispensaryFee !== undefined ? Number(dispensaryFee) : 0,
       channelPartnerFee: channelPartnerFee !== undefined ? Number(channelPartnerFee) : 0,
       bookingCommission: onlineFee !== undefined ? Number(onlineFee) : 0,
+      bookingVisibleDays: bookingVisibleDays !== undefined && bookingVisibleDays !== null && bookingVisibleDays !== '' ? Number(bookingVisibleDays) : undefined,
       isActive: true
     });
     
@@ -275,6 +278,7 @@ router.post('/:doctorId', async (req, res) => {
       dispensaryFee: populatedFee?.dispensaryFee || Number(dispensaryFee),
       channelPartnerFee: populatedFee?.channelPartnerFee || Number(channelPartnerFee || 0),
       onlineFee: populatedFee?.bookingCommission || (onlineFee !== undefined ? Number(onlineFee) : 0),
+      bookingVisibleDays: populatedFee?.bookingVisibleDays || (bookingVisibleDays !== undefined && bookingVisibleDays !== null && bookingVisibleDays !== '' ? Number(bookingVisibleDays) : undefined),
       doctorName: populatedFee?.doctorId?.name || doctor.name,
       doctorSpecialization: populatedFee?.doctorId?.specialization || doctor.specialization,
       dispensaryName: populatedFee?.dispensaryId?.name || dispensary.name,
@@ -312,10 +316,10 @@ router.put('/:doctorId/:feeId', async (req, res) => {
   try {
     console.log("==== put ==== fees ============== "+req.params.doctorId);
     const { doctorId, feeId } = req.params;
-    const { doctorFee, dispensaryFee, onlineFee, channelPartnerFee, bookingCode } = req.body;
+    const { doctorFee, dispensaryFee, onlineFee, channelPartnerFee, bookingCode, bookingVisibleDays } = req.body;
     
     console.log(`Updating fee ${feeId} for doctor ${doctorId}`);
-    console.log('New fee data:', { doctorFee, dispensaryFee, onlineFee, channelPartnerFee: channelPartnerFee || 0, bookingCode });
+    console.log('New fee data:', { doctorFee, dispensaryFee, onlineFee, channelPartnerFee: channelPartnerFee || 0, bookingCode, bookingVisibleDays });
     
     // Validate inputs
     if (doctorFee === undefined && onlineFee === undefined && dispensaryFee === undefined && channelPartnerFee === undefined) {
@@ -332,6 +336,7 @@ router.put('/:doctorId/:feeId', async (req, res) => {
     if (dispensaryFee !== undefined) updates.dispensaryFee = Number(dispensaryFee);
     if (channelPartnerFee !== undefined) updates.channelPartnerFee = Number(channelPartnerFee);
     if (onlineFee !== undefined) updates.bookingCommission = Number(onlineFee);
+    if (bookingVisibleDays !== undefined) updates.bookingVisibleDays = bookingVisibleDays !== null && bookingVisibleDays !== '' ? Number(bookingVisibleDays) : undefined;
     
     // Find and update the fee configuration
     const updatedFee = await DoctorDispensary.findOneAndUpdate(
@@ -363,6 +368,7 @@ router.put('/:doctorId/:feeId', async (req, res) => {
       dispensaryFee: updatedFee?.dispensaryFee || 0,
       channelPartnerFee: updatedFee?.channelPartnerFee || 0,
       onlineFee: updatedFee?.bookingCommission || 0,
+      bookingVisibleDays: updatedFee?.bookingVisibleDays,
       doctorName: updatedFee?.doctorId?.name || '',
       doctorSpecialization: updatedFee?.doctorId?.specialization || '',
       dispensaryName: updatedFee?.dispensaryId?.name || '',

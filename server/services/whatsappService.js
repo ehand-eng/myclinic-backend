@@ -423,9 +423,17 @@ async function showAvailableAppointments(from, session) {
     const l = lang(session);
     const { doctorId, dispensaryId } = session.data;
 
-    // Fetch max days from dispensary exclusively
-    const dispensary = await Dispensary.findById(dispensaryId).select('bookingVisibleDays').lean();
-    const maxDays = dispensary?.bookingVisibleDays ?? 30;
+    // Fetch max days from DoctorDispensary mapping directly
+    const ddConfig = await DoctorDispensary.findOne({ doctorId, dispensaryId, isActive: true }).select('bookingVisibleDays').lean();
+    let maxDays = 30;
+    if (ddConfig && ddConfig.bookingVisibleDays) {
+        maxDays = ddConfig.bookingVisibleDays;
+    } else {
+        const dispensary = await Dispensary.findById(dispensaryId).select('bookingVisibleDays').lean();
+        if (dispensary && dispensary.bookingVisibleDays) {
+            maxDays = dispensary.bookingVisibleDays;
+        }
+    }
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);

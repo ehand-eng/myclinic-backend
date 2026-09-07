@@ -135,6 +135,14 @@ router.get('/dispensary/:dispensaryId', async (req, res) => {
       return res.status(404).json({ message: 'Doctors not found' });
     }
 
+    // Embed bookingVisibleDays into doctor objects for this specific dispensary
+    for (let doctor of doctors) {
+      const ddConfig = await DoctorDispensary.findOne({ doctorId: doctor._id, dispensaryId, isActive: true }).lean();
+      if (ddConfig && ddConfig.bookingVisibleDays) {
+        doctor.bookingVisibleDays = ddConfig.bookingVisibleDays;
+      }
+    }
+
     res.status(200).json(doctors);
   } catch (error) {
     logger.error('Error fetching doctors by dispensary ID', {

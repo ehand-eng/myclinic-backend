@@ -25,6 +25,7 @@ const HeroBookingForm = () => {
   const [isLoadingDispensaries, setIsLoadingDispensaries] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [disabledDates, setDisabledDates] = useState<Set<string>>(new Set());
+  const [sessionMaxDays, setSessionMaxDays] = useState<number | undefined>(undefined);
 
   // Load only doctors on initial page load — dispensaries are NOT loaded here
   useEffect(() => {
@@ -96,8 +97,9 @@ const HeroBookingForm = () => {
     }
     const fetchDisabledDates = async () => {
       try {
-        const dates = await TimeSlotService.getDisabledDates(selectedDoctor, selectedDispensary);
-        setDisabledDates(new Set(dates));
+        const result = await TimeSlotService.getDisabledDates(selectedDoctor, selectedDispensary);
+        setDisabledDates(new Set(result.disabledDates));
+        setSessionMaxDays(result.bookingVisibleDays);
       } catch (error) {
         console.error('Error fetching disabled dates:', error);
       }
@@ -105,8 +107,8 @@ const HeroBookingForm = () => {
     fetchDisabledDates();
   }, [selectedDoctor, selectedDispensary]);
 
-  // Depend strictly on the dispensary for bookingVisibleDays as requested
-  const maxBookingDays = selectedDispensaryData?.bookingVisibleDays ?? 30;
+  // Depend strictly on the custom mapping for bookingVisibleDays as requested, or fallback
+  const maxBookingDays = sessionMaxDays ?? (selectedDispensaryData?.bookingVisibleDays ?? 30);
 
   const handleSubmit = () => {
     const params = new URLSearchParams();

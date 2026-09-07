@@ -102,7 +102,14 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
 
   Future<void> _selectDate(BuildContext context) async {
     final auth = ref.read(authProvider);
-    final visibleDays = auth.selectedDispensary?.bookingVisibleDays ?? 30;
+    Doctor? selectedDoctor;
+    if (_selectedDoctorId != null) {
+      try {
+        selectedDoctor = _doctors.firstWhere((d) => d.id == _selectedDoctorId);
+      } catch (_) {}
+    }
+    
+    final visibleDays = selectedDoctor?.bookingVisibleDays ?? auth.selectedDispensary?.bookingVisibleDays ?? 30;
 
     final DateTime? picked = await showDatePicker(
       context: context,

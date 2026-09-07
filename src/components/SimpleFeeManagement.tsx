@@ -40,6 +40,7 @@ interface Fee {
   dispensaryName: string;
   dispensaryAddress: string;
   bookingCode?: string;
+  bookingVisibleDays?: number;
 }
 
 const SimpleFeeManagement: React.FC = () => {
@@ -62,6 +63,7 @@ const SimpleFeeManagement: React.FC = () => {
   const [feeForm, setFeeForm] = useState({
     dispensaryId: '',
     bookingCode: '',
+    bookingVisibleDays: '',
     doctorFee: '',
     dispensaryFee: '',
     onlineFee: '',
@@ -73,6 +75,7 @@ const SimpleFeeManagement: React.FC = () => {
   const [updateFeeId, setUpdateFeeId] = useState<string>('');
   const [updateForm, setUpdateForm] = useState({
     bookingCode: '',
+    bookingVisibleDays: '',
     doctorFee: '',
     dispensaryFee: '',
     onlineFee: '',
@@ -138,6 +141,7 @@ const SimpleFeeManagement: React.FC = () => {
     setFeeForm({
       dispensaryId: '',
       bookingCode: '',
+      bookingVisibleDays: '',
       doctorFee: '',
       dispensaryFee: '',
       onlineFee: '',
@@ -253,6 +257,7 @@ const SimpleFeeManagement: React.FC = () => {
       const requestData = {
         dispensaryId: feeForm.dispensaryId,
         bookingCode: superAdminMode ? (feeForm.bookingCode || undefined) : undefined,
+        bookingVisibleDays: feeForm.bookingVisibleDays || undefined,
         doctorFee: superAdminMode ? undefined : parseFloat(feeForm.doctorFee),
         dispensaryFee: superAdminMode ? undefined : parseFloat(feeForm.dispensaryFee),
         onlineFee: superAdminMode ? parseFloat(feeForm.onlineFee) : undefined,
@@ -280,6 +285,7 @@ const SimpleFeeManagement: React.FC = () => {
       setFeeForm({
         dispensaryId: '',
         bookingCode: '',
+        bookingVisibleDays: '',
         doctorFee: '',
         dispensaryFee: '',
         onlineFee: '',
@@ -301,6 +307,7 @@ const SimpleFeeManagement: React.FC = () => {
     setUpdateFeeId(fee.id);
     setUpdateForm({
       bookingCode: fee.bookingCode || '',
+      bookingVisibleDays: fee.bookingVisibleDays ? fee.bookingVisibleDays.toString() : '',
       doctorFee: fee.doctorFee.toString(),
       dispensaryFee: fee.dispensaryFee.toString(),
       onlineFee: fee.onlineFee.toString(),
@@ -325,6 +332,7 @@ const SimpleFeeManagement: React.FC = () => {
       
       const requestData = {
         bookingCode: superAdminMode ? (updateForm.bookingCode || undefined) : undefined,
+        bookingVisibleDays: updateForm.bookingVisibleDays || undefined,
         doctorFee: superAdminMode ? undefined : parseFloat(updateForm.doctorFee),
         dispensaryFee: superAdminMode ? undefined : parseFloat(updateForm.dispensaryFee),
         onlineFee: superAdminMode ? parseFloat(updateForm.onlineFee) : undefined,
@@ -498,6 +506,20 @@ const SimpleFeeManagement: React.FC = () => {
                   </Select>
                 </div>
 
+                <div>
+                  <Label htmlFor="booking-visible-days">Booking Horizon (Days)</Label>
+                  <Input
+                    id="booking-visible-days"
+                    type="number"
+                    min="1"
+                    max="365"
+                    value={feeForm.bookingVisibleDays}
+                    onChange={(e) => setFeeForm(prev => ({ ...prev, bookingVisibleDays: e.target.value }))}
+                    placeholder="e.g. 14 (Optional)"
+                    disabled={loading}
+                  />
+                </div>
+
 
                 {!superAdminMode && (
                   <>
@@ -608,6 +630,7 @@ const SimpleFeeManagement: React.FC = () => {
                         <TableHead>Dispensary</TableHead>
                       <TableHead>Address</TableHead>
                       <TableHead>WA Code</TableHead>
+                      <TableHead>Visible Days</TableHead>
                       <TableHead className="text-right">Doctor Fee</TableHead>
                       <TableHead className="text-right">Dispensary Fee</TableHead>
                       <TableHead className="text-right">Online Fee</TableHead>
@@ -622,6 +645,7 @@ const SimpleFeeManagement: React.FC = () => {
                         <TableCell className="font-medium">{fee.dispensaryName}</TableCell>
                         <TableCell className="text-sm text-gray-600">{fee.dispensaryAddress}</TableCell>
                         <TableCell className="font-mono text-medical-600 font-bold">{fee.bookingCode || 'N/A'}</TableCell>
+                        <TableCell>{fee.bookingVisibleDays ? `${fee.bookingVisibleDays} d` : 'Default'}</TableCell>
                         <TableCell className="text-right font-mono">Rs {fee.doctorFee || 0}</TableCell>
                         <TableCell className="text-right font-mono">Rs {fee.dispensaryFee || 0}</TableCell>
                         <TableCell className="text-right font-mono">Rs {fee.onlineFee || 0}</TableCell>
@@ -688,6 +712,20 @@ const SimpleFeeManagement: React.FC = () => {
               </div>
             )}
             
+            <div>
+              <Label htmlFor="update-booking-visible-days">Booking Horizon (Days)</Label>
+              <Input
+                id="update-booking-visible-days"
+                type="number"
+                min="1"
+                max="365"
+                value={updateForm.bookingVisibleDays}
+                onChange={(e) => setUpdateForm(prev => ({ ...prev, bookingVisibleDays: e.target.value }))}
+                placeholder="e.g. 14 (Optional)"
+                disabled={loading}
+              />
+            </div>
+
             {!superAdminMode && (
               <>
                 <div>

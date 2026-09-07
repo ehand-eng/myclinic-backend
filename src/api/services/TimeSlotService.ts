@@ -536,15 +536,18 @@ export const TimeSlotService = {
   },
 
   // Get disabled dates for a doctor-dispensary pair (for calendar)
-  getDisabledDates: async (doctorId: string, dispensaryId: string): Promise<string[]> => {
+  getDisabledDates: async (doctorId: string, dispensaryId: string): Promise<{disabledDates: string[], bookingVisibleDays?: number}> => {
     try {
       const response = await api.get(
         `/timeslots/absent/disabled-dates/${doctorId}/${dispensaryId}`
       );
-      return response.data.disabledDates || [];
+      return {
+        disabledDates: response.data.disabledDates || [],
+        bookingVisibleDays: response.data.bookingVisibleDays
+      };
     } catch (error) {
       console.error('Error fetching disabled dates:', error);
-      return [];
+      return { disabledDates: [] };
     }
   },
 
