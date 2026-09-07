@@ -126,7 +126,7 @@ router.get('/:doctorId', async (req, res) => {
       doctorId: config.doctorId._id.toString(),
       dispensaryId: config.dispensaryId._id.toString(),
       bookingCode: config.bookingCode || '',
-      bookingVisibleDays: config.bookingVisibleDays,
+      bookingVisibleDays: config.bookingVisibleDays !== undefined ? config.bookingVisibleDays : null,
       doctorFee: config.doctorFee || 0,
       dispensaryFee: config.dispensaryFee || 0,
       channelPartnerFee: config.channelPartnerFee || 0,
@@ -193,14 +193,23 @@ router.post('/:doctorId', async (req, res) => {
     });
     
     if (existingFee) {
-      if (doctorFee !== undefined) existingFee.doctorFee = Number(doctorFee);
-      if (dispensaryFee !== undefined) existingFee.dispensaryFee = Number(dispensaryFee);
-      if (channelPartnerFee !== undefined) existingFee.channelPartnerFee = Number(channelPartnerFee);
-      if (onlineFee !== undefined) existingFee.bookingCommission = Number(onlineFee);
-      if (bookingCode) existingFee.bookingCode = bookingCode.toUpperCase();
-      if (bookingVisibleDays !== undefined) existingFee.bookingVisibleDays = bookingVisibleDays !== null && bookingVisibleDays !== '' ? Number(bookingVisibleDays) : undefined;
+      const updates = { updatedAt: new Date() };
+      if (doctorFee !== undefined) updates.doctorFee = Number(doctorFee);
+      if (dispensaryFee !== undefined) updates.dispensaryFee = Number(dispensaryFee);
+      if (channelPartnerFee !== undefined) updates.channelPartnerFee = Number(channelPartnerFee);
+      if (onlineFee !== undefined) updates.bookingCommission = Number(onlineFee);
+      if (bookingCode) updates.bookingCode = bookingCode.toUpperCase();
       
-      await existingFee.save();
+      const updateCommand = { $set: updates };
+      if (bookingVisibleDays !== undefined) {
+        if (bookingVisibleDays === null || bookingVisibleDays === '') {
+          updateCommand.$unset = { bookingVisibleDays: 1 };
+        } else {
+          updates.bookingVisibleDays = Number(bookingVisibleDays);
+        }
+      }
+      
+      await DoctorDispensary.updateOne({ _id: existingFee._id }, updateCommand);
       
       const populatedFee = await DoctorDispensary.findById(existingFee._id)
         .populate('doctorId', 'name specialization')
@@ -216,7 +225,7 @@ router.post('/:doctorId', async (req, res) => {
         dispensaryFee: populatedFee?.dispensaryFee || existingFee.dispensaryFee,
         channelPartnerFee: populatedFee?.channelPartnerFee || existingFee.channelPartnerFee,
         onlineFee: populatedFee?.bookingCommission || existingFee.bookingCommission,
-        bookingVisibleDays: populatedFee?.bookingVisibleDays || existingFee.bookingVisibleDays,
+        bookingVisibleDays: populatedFee?.bookingVisibleDays ?? existingFee.bookingVisibleDays ?? null,
         doctorName: populatedFee?.doctorId?.name || doctor.name,
         doctorSpecialization: populatedFee?.doctorId?.specialization || doctor.specialization,
         dispensaryName: populatedFee?.dispensaryId?.name || dispensary.name,
@@ -279,7 +288,7 @@ router.post('/:doctorId', async (req, res) => {
       dispensaryFee: populatedFee?.dispensaryFee || Number(dispensaryFee),
       channelPartnerFee: populatedFee?.channelPartnerFee || Number(channelPartnerFee || 0),
       onlineFee: populatedFee?.bookingCommission || (onlineFee !== undefined ? Number(onlineFee) : 0),
-      bookingVisibleDays: populatedFee?.bookingVisibleDays || (bookingVisibleDays !== undefined && bookingVisibleDays !== null && bookingVisibleDays !== '' ? Number(bookingVisibleDays) : undefined),
+      bookingVisibleDays: populatedFee?.bookingVisibleDays ?? (bookingVisibleDays !== undefined && bookingVisibleDays !== null && bookingVisibleDays !== '' ? Number(bookingVisibleDays) : null),
       doctorName: populatedFee?.doctorId?.name || doctor.name,
       doctorSpecialization: populatedFee?.doctorId?.specialization || doctor.specialization,
       dispensaryName: populatedFee?.dispensaryId?.name || dispensary.name,
@@ -337,7 +346,16 @@ router.put('/:doctorId/:feeId', async (req, res) => {
     if (dispensaryFee !== undefined) updates.dispensaryFee = Number(dispensaryFee);
     if (channelPartnerFee !== undefined) updates.channelPartnerFee = Number(channelPartnerFee);
     if (onlineFee !== undefined) updates.bookingCommission = Number(onlineFee);
-    if (bookingVisibleDays !== undefined) updates.bookingVisibleDays = bookingVisibleDays !== null && bookingVisibleDays !== '' ? Number(bookingVisibleDays) : undefined;
+    
+    // Manage $unset for bookingVisibleDays if null/empty string is passed
+    const updateCommand = { $set: updates };
+    if (bookingVisibleDays !== undefined) {
+      if (bookingVisibleDays === null || bookingVisibleDays === '') {
+        updateCommand.$unset = { bookingVisibleDays: 1 };
+      } else {
+        updates.bookingVisibleDays = Number(bookingVisibleDays);
+      }
+    }
     
     // Find and update the fee configuration
     const updatedFee = await DoctorDispensary.findOneAndUpdate(
@@ -346,7 +364,7 @@ router.put('/:doctorId/:feeId', async (req, res) => {
         doctorId: doctorId,
         isActive: true
       },
-      updates,
+      updateCommand,
       { 
         new: true,
         runValidators: true
@@ -369,7 +387,7 @@ router.put('/:doctorId/:feeId', async (req, res) => {
       dispensaryFee: updatedFee?.dispensaryFee || 0,
       channelPartnerFee: updatedFee?.channelPartnerFee || 0,
       onlineFee: updatedFee?.bookingCommission || 0,
-      bookingVisibleDays: updatedFee?.bookingVisibleDays,
+      bookingVisibleDays: updatedFee?.bookingVisibleDays !== undefined ? updatedFee.bookingVisibleDays : null,
       doctorName: updatedFee?.doctorId?.name || '',
       doctorSpecialization: updatedFee?.doctorId?.specialization || '',
       dispensaryName: updatedFee?.dispensaryId?.name || '',
