@@ -40,6 +40,7 @@ class _FeeManagementScreenState extends ConsumerState<FeeManagementScreen> {
     
     _doctorFeeController.addListener(_checkIfModified);
     _dispensaryFeeController.addListener(_checkIfModified);
+    _bookingVisibleDaysController.addListener(_checkIfModified);
   }
 
   void _checkIfModified() {

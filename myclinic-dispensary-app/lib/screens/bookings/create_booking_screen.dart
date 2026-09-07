@@ -115,7 +115,7 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(Duration(days: visibleDays)),
+      lastDate: DateTime.now().add(Duration(days: (visibleDays - 1) > 0 ? (visibleDays - 1) : 0)),
     );
     if (picked != null && picked != _selectedDate) {
       setState(() => _selectedDate = picked);

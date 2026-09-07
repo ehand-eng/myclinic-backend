@@ -215,7 +215,9 @@ const HeroBookingForm = () => {
                 disabled={(date) => {
                   const today = new Date();
                   today.setHours(0, 0, 0, 0);
-                  if (date < today || date > addDays(today, maxBookingDays)) return true;
+                  // Subtract 1 since today counts as the first day in the horizon
+                  const finalHorizonDays = Math.max(0, maxBookingDays - 1);
+                  if (date < today || date > addDays(today, finalHorizonDays)) return true;
                   // Disable dates where doctor is absent
                   const dateStr = format(date, 'yyyy-MM-dd');
                   return disabledDates.has(dateStr);

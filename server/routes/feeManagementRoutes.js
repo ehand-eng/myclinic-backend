@@ -126,6 +126,7 @@ router.get('/:doctorId', async (req, res) => {
       doctorId: config.doctorId._id.toString(),
       dispensaryId: config.dispensaryId._id.toString(),
       bookingCode: config.bookingCode || '',
+      bookingVisibleDays: config.bookingVisibleDays,
       doctorFee: config.doctorFee || 0,
       dispensaryFee: config.dispensaryFee || 0,
       channelPartnerFee: config.channelPartnerFee || 0,
