@@ -217,9 +217,13 @@ class _BookingStep1ScreenState extends ConsumerState<BookingStep1Screen> {
                       child: TableCalendar(
                         firstDay: DateTime.now(),
                         lastDay: DateTime.now().add(Duration(
-                          days: state.selectedDoctor?.bookingVisibleDays
-                              ?? state.selectedDispensary?.bookingVisibleDays
-                              ?? 30,
+                          days: ((state.fees?.bookingVisibleDays
+                                  ?? state.selectedDoctor?.bookingVisibleDays
+                                  ?? state.selectedDispensary?.bookingVisibleDays
+                                  ?? 30) - 1) > 0 ? ((state.fees?.bookingVisibleDays
+                                  ?? state.selectedDoctor?.bookingVisibleDays
+                                  ?? state.selectedDispensary?.bookingVisibleDays
+                                  ?? 30) - 1) : 0,
                         )),
                         focusedDay: _focusedDay,
                         availableGestures: AvailableGestures.horizontalSwipe,

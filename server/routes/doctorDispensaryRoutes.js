@@ -243,6 +243,7 @@ router.get('/fees/:doctorId/:dispensaryId', async (req, res) => {
       dispensaryFee: docDisp.dispensaryFee || 0,
       bookingCommission: docDisp.bookingCommission || 0,
       channelPartnerFee: docDisp.channelPartnerFee || 0,
+      bookingVisibleDays: docDisp.bookingVisibleDays !== undefined ? docDisp.bookingVisibleDays : null,
       totalFee: (docDisp.doctorFee || 0) + (docDisp.dispensaryFee || 0) + (docDisp.bookingCommission || 0),
       createdAt: docDisp.createdAt,
       updatedAt: docDisp.updatedAt

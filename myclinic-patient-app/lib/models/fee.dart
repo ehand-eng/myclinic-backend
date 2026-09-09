@@ -9,6 +9,7 @@ class DoctorDispensaryFee {
   final double bookingCommission;
   final double? channelPartnerFee;
   final double totalFee;
+  final int? bookingVisibleDays;
 
   const DoctorDispensaryFee({
     required this.id,
@@ -21,6 +22,7 @@ class DoctorDispensaryFee {
     this.bookingCommission = 0,
     this.channelPartnerFee,
     this.totalFee = 0,
+    this.bookingVisibleDays,
   });
 
   factory DoctorDispensaryFee.fromJson(Map<String, dynamic> json) {
@@ -43,6 +45,7 @@ class DoctorDispensaryFee {
       bookingCommission: bc,
       channelPartnerFee: cpf,
       totalFee: (json['totalFee'] ?? (df + dpf + bc)).toDouble(),
+      bookingVisibleDays: json['bookingVisibleDays'],
     );
   }
 
