@@ -266,8 +266,8 @@ class _AppDrawer extends ConsumerWidget {
                   },
                 ),
                 _DrawerItem(
-                  icon: Icons.monetization_on_outlined,
-                  label: 'Fee Management',
+                  icon: Icons.settings_suggest_outlined,
+                  label: 'Doctor Settings',
                   onTap: () {
                     Navigator.pop(context);
                     context.push('/fee-management');

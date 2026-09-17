@@ -13,14 +13,22 @@ class BookingFees {
     this.totalFee = 0,
   });
 
-  factory BookingFees.fromJson(Map<String, dynamic> json) {
+  factory BookingFees.fromJson(dynamic json) {
+    if (json == null || json is! Map) return const BookingFees();
     return BookingFees(
-      doctorFee: (json['doctorFee'] ?? 0).toDouble(),
-      dispensaryFee: (json['dispensaryFee'] ?? 0).toDouble(),
-      bookingCommission: (json['bookingCommission'] ?? 0).toDouble(),
-      channelPartnerFee: json['channelPartnerFee']?.toDouble(),
-      totalFee: (json['totalFee'] ?? 0).toDouble(),
+      doctorFee: _parseDouble(json['doctorFee']),
+      dispensaryFee: _parseDouble(json['dispensaryFee']),
+      bookingCommission: _parseDouble(json['bookingCommission']),
+      channelPartnerFee: json['channelPartnerFee'] != null ? _parseDouble(json['channelPartnerFee']) : null,
+      totalFee: _parseDouble(json['totalFee']),
     );
+  }
+
+  static double _parseDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
   }
 
   Map<String, dynamic> toJson() => {
@@ -87,33 +95,47 @@ class Booking {
     required this.createdAt,
   });
 
+  static String _parseStr(dynamic value) {
+    if (value == null) return '';
+    if (value is String) return value;
+    return value.toString();
+  }
+
+  static int _parseInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
+
   factory Booking.fromJson(Map<String, dynamic> json) {
     return Booking(
-      id: json['_id'] ?? json['id'] ?? '',
-      transactionId: json['transactionId'] ?? '',
-      patientId: json['patientId'],
-      patientName: json['patientName'] ?? '',
-      patientPhone: json['patientPhone'] ?? '',
-      patientEmail: json['patientEmail'],
+      id: _parseStr(json['_id'] ?? json['id']),
+      transactionId: _parseStr(json['transactionId']),
+      patientId: json['patientId']?.toString(),
+      patientName: _parseStr(json['patientName']),
+      patientPhone: _parseStr(json['patientPhone']),
+      patientEmail: json['patientEmail']?.toString(),
       doctorId: json['doctorId'] ?? json['doctor'],
       dispensaryId: json['dispensaryId'] ?? json['dispensary'],
-      appointmentNumber: json['appointmentNumber'] ?? 0,
-      bookingDate: json['bookingDate'] ?? '',
-      timeSlot: json['timeSlot'] ?? '',
-      timeSlotConfigId: json['timeSlotConfigId'],
-      estimatedTime: json['estimatedTime'] ?? '',
-      status: json['status'] ?? 'scheduled',
-      symptoms: json['symptoms'],
-      notes: json['notes'],
-      checkedInTime: json['checkedInTime'],
-      completedTime: json['completedTime'],
-      fees: BookingFees.fromJson(json['fees'] ?? {}),
-      isPaid: json['isPaid'] ?? false,
-      paymentStatus: json['paymentStatus'],
-      paymentMethod: json['paymentMethod'],
-      isPatientVisited: json['isPatientVisited'] ?? false,
-      bookedBy: json['bookedBy'],
-      createdAt: json['createdAt'] ?? '',
+      appointmentNumber: _parseInt(json['appointmentNumber']),
+      bookingDate: _parseStr(json['bookingDate']),
+      timeSlot: _parseStr(json['timeSlot']),
+      timeSlotConfigId: json['timeSlotConfigId']?.toString(),
+      estimatedTime: _parseStr(json['estimatedTime']),
+      status: _parseStr(json['status'] ?? 'scheduled'),
+      symptoms: json['symptoms']?.toString(),
+      notes: json['notes']?.toString(),
+      checkedInTime: json['checkedInTime']?.toString(),
+      completedTime: json['completedTime']?.toString(),
+      fees: BookingFees.fromJson(json['fees']),
+      isPaid: json['isPaid'] == true || json['isPaid'] == 'true',
+      paymentStatus: json['paymentStatus']?.toString(),
+      paymentMethod: json['paymentMethod']?.toString(),
+      isPatientVisited: json['isPatientVisited'] == true || json['isPatientVisited'] == 'true',
+      bookedBy: json['bookedBy']?.toString(),
+      createdAt: _parseStr(json['createdAt']),
     );
   }
 

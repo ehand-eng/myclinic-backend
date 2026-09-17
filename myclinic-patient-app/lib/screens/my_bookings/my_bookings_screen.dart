@@ -153,7 +153,10 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
                     title: context.tr('noBookingsFound'),
                     subtitle: filter == 'all' ? context.tr('bookFirst') : null,
                     actionText: filter == 'all' ? context.tr('bookNow') : null,
-                    onAction: filter == 'all' ? () => context.push('/booking') : null,
+                    onAction: filter == 'all' ? () {
+                      ref.read(bookingFlowProvider.notifier).reset();
+                      context.push('/booking');
+                    } : null,
                   );
                 }
                 return RefreshIndicator(
@@ -179,7 +182,10 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/booking'),
+        onPressed: () {
+          ref.read(bookingFlowProvider.notifier).reset();
+          context.push('/booking');
+        },
         backgroundColor: AppTheme.primary,
         foregroundColor: Colors.white,
         child: const Icon(Icons.add_rounded, size: 28),

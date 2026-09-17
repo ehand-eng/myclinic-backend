@@ -226,16 +226,16 @@ class _RegularScheduleTab extends ConsumerWidget {
 
   void _showSlotDialog(
       BuildContext context, WidgetRef ref, TimeSlotConfig? existing) {
-    int dayOfWeek = existing?.dayOfWeek ?? 1;
+    int? dayOfWeek = existing?.dayOfWeek;
     final startCtrl =
-        TextEditingController(text: existing?.startTime ?? '09:00');
+        TextEditingController(text: existing?.startTime ?? '');
     final endCtrl =
-        TextEditingController(text: existing?.endTime ?? '12:00');
+        TextEditingController(text: existing?.endTime ?? '');
     final maxCtrl =
-        TextEditingController(text: '${existing?.maxPatients ?? 20}');
+        TextEditingController(text: existing != null ? '${existing.maxPatients}' : '');
     final minCtrl =
-        TextEditingController(text: '${existing?.minutesPerPatient ?? 15}');
-    int bookingCutoffMinutes = existing?.bookingCutoffMinutes ?? -60;
+        TextEditingController(text: existing != null ? '${existing.minutesPerPatient}' : '');
+    int bookingCutoffMinutes = existing?.bookingCutoffMinutes ?? 0;
 
     showFullDialog(
       context: context,
@@ -245,27 +245,48 @@ class _RegularScheduleTab extends ConsumerWidget {
         children: [
           DropdownButtonFormField<int>(
             value: dayOfWeek,
+            hint: const Text('Select Day'),
             decoration: const InputDecoration(labelText: 'Day of Week'),
             items: List.generate(
               7,
               (i) => DropdownMenuItem(value: i, child: Text(_dayNames[i])),
             ),
             onChanged: (v) =>
-                setDialogState(() => dayOfWeek = v ?? dayOfWeek),
+                setDialogState(() => dayOfWeek = v),
           ),
           const SizedBox(height: 16),
           TextField(
             controller: startCtrl,
-            keyboardType: TextInputType.number,
-            inputFormatters: [TimeTextInputFormatter()],
+            readOnly: true,
+            onTap: () async {
+              TimeOfDay initial = TimeOfDay.now();
+              try {
+                final p = startCtrl.text.split(':');
+                if (p.length == 2) initial = TimeOfDay(hour: int.parse(p[0]), minute: int.parse(p[1]));
+              } catch (_) {}
+              final picked = await showTimePicker(context: ctx, initialTime: initial);
+              if (picked != null) {
+                startCtrl.text = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+              }
+            },
             decoration:
                 const InputDecoration(labelText: 'Start Time (HH:MM)'),
           ),
           const SizedBox(height: 16),
           TextField(
             controller: endCtrl,
-            keyboardType: TextInputType.number,
-            inputFormatters: [TimeTextInputFormatter()],
+            readOnly: true,
+            onTap: () async {
+              TimeOfDay initial = TimeOfDay.now();
+              try {
+                final p = endCtrl.text.split(':');
+                if (p.length == 2) initial = TimeOfDay(hour: int.parse(p[0]), minute: int.parse(p[1]));
+              } catch (_) {}
+              final picked = await showTimePicker(context: ctx, initialTime: initial);
+              if (picked != null) {
+                endCtrl.text = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+              }
+            },
             decoration:
                 const InputDecoration(labelText: 'End Time (HH:MM)'),
           ),
@@ -303,10 +324,14 @@ class _RegularScheduleTab extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    '$bookingCutoffMinutes min',
+                    bookingCutoffMinutes < 0
+                        ? '${bookingCutoffMinutes.abs()} min before'
+                        : bookingCutoffMinutes > 0
+                            ? '$bookingCutoffMinutes min after'
+                            : 'At start time',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w600),
+                        fontSize: 14, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -328,6 +353,12 @@ class _RegularScheduleTab extends ConsumerWidget {
         const SizedBox(width: 8),
         ElevatedButton(
           onPressed: () async {
+            if (dayOfWeek == null || startCtrl.text.isEmpty || endCtrl.text.isEmpty || maxCtrl.text.isEmpty || minCtrl.text.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Please fill all fields')),
+              );
+              return;
+            }
             Navigator.pop(ctx);
             try {
               final data = {
@@ -336,8 +367,8 @@ class _RegularScheduleTab extends ConsumerWidget {
                 'dayOfWeek': dayOfWeek,
                 'startTime': startCtrl.text,
                 'endTime': endCtrl.text,
-                'maxPatients': int.tryParse(maxCtrl.text) ?? 20,
-                'minutesPerPatient': int.tryParse(minCtrl.text) ?? 15,
+                'maxPatients': int.parse(maxCtrl.text),
+                'minutesPerPatient': int.parse(minCtrl.text),
                 'bookingCutoffMinutes': bookingCutoffMinutes,
               };
               if (existing != null) {
@@ -802,8 +833,18 @@ class _AbsencesTab extends ConsumerWidget {
                               Expanded(
                                 child: TextField(
                                   controller: mod.startTimeCtrl,
-                                  keyboardType: TextInputType.number,
-                                  inputFormatters: [TimeTextInputFormatter()],
+                                  readOnly: true,
+                                  onTap: () async {
+                                    TimeOfDay initial = TimeOfDay.now();
+                                    try {
+                                      final p = mod.startTimeCtrl.text.split(':');
+                                      if (p.length == 2) initial = TimeOfDay(hour: int.parse(p[0]), minute: int.parse(p[1]));
+                                    } catch (_) {}
+                                    final picked = await showTimePicker(context: ctx, initialTime: initial);
+                                    if (picked != null) {
+                                      mod.startTimeCtrl.text = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+                                    }
+                                  },
                                   decoration: const InputDecoration(
                                     labelText: 'Start',
                                     contentPadding: EdgeInsets.symmetric(
@@ -815,8 +856,18 @@ class _AbsencesTab extends ConsumerWidget {
                               Expanded(
                                 child: TextField(
                                   controller: mod.endTimeCtrl,
-                                  keyboardType: TextInputType.number,
-                                  inputFormatters: [TimeTextInputFormatter()],
+                                  readOnly: true,
+                                  onTap: () async {
+                                    TimeOfDay initial = TimeOfDay.now();
+                                    try {
+                                      final p = mod.endTimeCtrl.text.split(':');
+                                      if (p.length == 2) initial = TimeOfDay(hour: int.parse(p[0]), minute: int.parse(p[1]));
+                                    } catch (_) {}
+                                    final picked = await showTimePicker(context: ctx, initialTime: initial);
+                                    if (picked != null) {
+                                      mod.endTimeCtrl.text = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+                                    }
+                                  },
                                   decoration: const InputDecoration(
                                     labelText: 'End',
                                     contentPadding: EdgeInsets.symmetric(

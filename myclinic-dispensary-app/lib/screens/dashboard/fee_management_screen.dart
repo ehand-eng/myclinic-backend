@@ -198,7 +198,7 @@ class _FeeManagementScreenState extends ConsumerState<FeeManagementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Fee Management'),
+        title: const Text('Doctor Settings'),
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.textWhite,
       ),
@@ -254,7 +254,7 @@ class _FeeManagementScreenState extends ConsumerState<FeeManagementScreen> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Text(
-                              _currentFee != null ? 'Update Fees' : 'Configure New Fees',
+                              _currentFee != null ? 'Update Settings' : 'Configure New Settings',
                               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 16),
@@ -302,7 +302,7 @@ class _FeeManagementScreenState extends ConsumerState<FeeManagementScreen> {
                                       height: 24,
                                       child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                                     )
-                                  : const Text('Save Fees', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                                  : const Text('Save Settings', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                             ),
                           ],
                         ),

@@ -9,6 +9,7 @@ import 'package:myclinic_patient_app/providers/dispensary_provider.dart';
 import 'package:myclinic_patient_app/l10n/translations.dart';
 import 'package:myclinic_patient_app/utils/formatters.dart';
 import 'package:myclinic_patient_app/widgets/buttons/primary_button.dart';
+import 'package:myclinic_patient_app/providers/booking_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -79,7 +80,10 @@ class HomeScreen extends ConsumerWidget {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: () => context.push('/booking'),
+                        onPressed: () { 
+                          ref.read(bookingFlowProvider.notifier).reset();
+                          context.push('/booking'); 
+                        },
                         icon: const Icon(Icons.calendar_month_rounded),
                         label: Text(context.tr('bookNow')),
                         style: ElevatedButton.styleFrom(
@@ -142,7 +146,10 @@ class HomeScreen extends ConsumerWidget {
                       text: context.tr('bookAppointment'),
                       icon: Icons.arrow_forward_rounded,
                       useGradient: true,
-                      onPressed: () => context.push('/booking'),
+                      onPressed: () {
+                        ref.read(bookingFlowProvider.notifier).reset();
+                        context.push('/booking');
+                      },
                     ),
                   ],
                 ),
@@ -244,7 +251,10 @@ class HomeScreen extends ConsumerWidget {
       ),
       // Floating Book Now button
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/booking'),
+        onPressed: () {
+          ref.read(bookingFlowProvider.notifier).reset();
+          context.push('/booking');
+        },
         backgroundColor: AppTheme.primary,
         foregroundColor: Colors.white,
         elevation: 6,
