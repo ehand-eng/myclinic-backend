@@ -311,8 +311,22 @@ router.post('/:doctorId', async (req, res) => {
     
     // Since we are creating a new configuration, grab the defaults from Dispensary model
     // This allows Dispensary Admins to inherit the Super Admin configured global fees.
-    let defaultOnlineFee = onlineFee !== undefined ? Number(onlineFee) : (dispensary.bookingCommission || 0);
-    let defaultChannelPartnerFee = channelPartnerFee !== undefined ? Number(channelPartnerFee) : (dispensary.channelPartnerFee || 0);
+    let defaultOnlineFee = onlineFee !== undefined && onlineFee !== null ? Number(onlineFee) : (dispensary.bookingCommission || 0);
+    let defaultChannelPartnerFee = channelPartnerFee !== undefined && channelPartnerFee !== null ? Number(channelPartnerFee) : (dispensary.channelPartnerFee || 0);
+
+    // Fallback: If global fees are still 0 (e.g. they were never seeded by Super Admin), 
+    // inherit them from any existing doctor in the same dispensary to preserve legacy configurations.
+    if ((defaultOnlineFee === 0 && defaultChannelPartnerFee === 0) && (onlineFee === undefined || onlineFee === null)) {
+      const siblingConfig = await DoctorDispensary.findOne({ 
+        dispensaryId, 
+        $or: [{ bookingCommission: { $gt: 0 } }, { channelPartnerFee: { $gt: 0 } }] 
+      }).lean();
+      
+      if (siblingConfig) {
+        defaultOnlineFee = siblingConfig.bookingCommission || 0;
+        defaultChannelPartnerFee = siblingConfig.channelPartnerFee || 0;
+      }
+    }
 
     const newFeeConfig = new DoctorDispensary({
       doctorId,
