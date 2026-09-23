@@ -556,7 +556,7 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             {/* <Calendar className="h-5 w-5" /> */}
-            Admin Booking Management11
+            Admin Booking Management
           </CardTitle>
           <p className="text-sm text-muted-foreground">
             Create, adjust, and check booking status as an administrator
@@ -1009,52 +1009,52 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
                               </Alert>
                             )}
                             {getActiveSlot() ? (
-                            <Card className="border-2 border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 shadow-lg hover:shadow-xl transition-all duration-300">
-                              <CardContent className="p-6">
-                                <div className="flex items-center justify-between mb-4">
-                                  <div className="flex items-center space-x-3">
-                                    <div className="bg-green-500 p-2 rounded-full">
-                                      <User className="h-5 w-5 text-white" />
+                              <Card className="border-2 border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 shadow-lg hover:shadow-xl transition-all duration-300">
+                                <CardContent className="p-6">
+                                  <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center space-x-3">
+                                      <div className="bg-green-500 p-2 rounded-full">
+                                        <User className="h-5 w-5 text-white" />
+                                      </div>
+                                      <div>
+                                        <h3 className="font-bold text-lg text-green-800">Appointment #{getActiveSlot()!.appointmentNumber}</h3>
+                                      </div>
                                     </div>
-                                    <div>
-                                      <h3 className="font-bold text-lg text-green-800">Appointment #{getActiveSlot()!.appointmentNumber}</h3>
-                                    </div>
-                                  </div>
-                                  <div className="bg-green-100 px-3 py-1 rounded-full">
-                                    <span className="text-sm font-semibold text-green-800">Available</span>
-                                  </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div className="flex items-center space-x-3">
-                                    <div className="bg-blue-100 p-2 rounded-lg">
-                                      <Clock className="h-5 w-5 text-blue-600" />
-                                    </div>
-                                    <div>
-                                      <p className="text-sm text-gray-600">Appointment Time</p>
-                                      <p className="font-bold text-lg text-blue-700">{getActiveSlot()!.estimatedTime}</p>
+                                    <div className="bg-green-100 px-3 py-1 rounded-full">
+                                      <span className="text-sm font-semibold text-green-800">Available</span>
                                     </div>
                                   </div>
 
-                                  <div className="flex items-center space-x-3">
-                                    <div className="bg-orange-100 p-2 rounded-lg">
-                                      <Clock className="h-5 w-5 text-orange-600" />
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div className="flex items-center space-x-3">
+                                      <div className="bg-blue-100 p-2 rounded-lg">
+                                        <Clock className="h-5 w-5 text-blue-600" />
+                                      </div>
+                                      <div>
+                                        <p className="text-sm text-gray-600">Appointment Time</p>
+                                        <p className="font-bold text-lg text-blue-700">{getActiveSlot()!.estimatedTime}</p>
+                                      </div>
                                     </div>
-                                    <div>
-                                      <p className="text-sm text-gray-600">Duration</p>
-                                      <p className="font-bold text-lg text-orange-700">{getActiveSlot()!.minutesPerPatient} minutes</p>
-                                    </div>
-                                  </div>
-                                </div>
 
-                                <div className="mt-4 pt-4 border-t border-green-200">
-                                  <div className="flex items-center justify-center space-x-2 text-green-700">
-                                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                    <span className="text-sm font-medium">Ready for booking</span>
+                                    <div className="flex items-center space-x-3">
+                                      <div className="bg-orange-100 p-2 rounded-lg">
+                                        <Clock className="h-5 w-5 text-orange-600" />
+                                      </div>
+                                      <div>
+                                        <p className="text-sm text-gray-600">Duration</p>
+                                        <p className="font-bold text-lg text-orange-700">{getActiveSlot()!.minutesPerPatient} minutes</p>
+                                      </div>
+                                    </div>
                                   </div>
-                                </div>
-                              </CardContent>
-                            </Card>
+
+                                  <div className="mt-4 pt-4 border-t border-green-200">
+                                    <div className="flex items-center justify-center space-x-2 text-green-700">
+                                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                      <span className="text-sm font-medium">Ready for booking</span>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
                             ) : (
                               <p className="text-center py-4 text-gray-500">Select a session with available slots</p>
                             )}
@@ -1083,7 +1083,7 @@ const AdminBookingForm = ({ initialDoctorId, initialDispensaryId, initialDate }:
                           setPhone={setPhone}
                           setEmail={setEmail}
                           isLoading={isLoading}
-                          onBack={() => {}} 
+                          onBack={() => { }}
                           onConfirm={handleBooking}
                           doctorId={selectedDoctor}
                           dispensaryId={selectedDispensary}

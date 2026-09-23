@@ -150,6 +150,53 @@ router.get('/:doctorId', async (req, res) => {
   }
 });
 
+// PUT /api/fees/dispensary-fees/:dispensaryId - Update dispensary fees globally (Super Admin)
+router.put('/dispensary-fees/:dispensaryId', async (req, res) => {
+  try {
+    const { dispensaryId } = req.params;
+    const { onlineFee, channelPartnerFee } = req.body;
+    
+    if (onlineFee === undefined) {
+      return res.status(400).json({ message: 'onlineFee parameter is required' });
+    }
+    
+    // 1. Update the parent Dispensary configuration
+    const updatedDispensary = await Dispensary.findByIdAndUpdate(
+      dispensaryId,
+      {
+        $set: {
+          bookingCommission: Number(onlineFee),
+          channelPartnerFee: channelPartnerFee !== undefined ? Number(channelPartnerFee) : 0
+        }
+      },
+      { new: true }
+    );
+    
+    if (!updatedDispensary) {
+      return res.status(404).json({ message: 'Dispensary not found' });
+    }
+
+    // 2. Cascade changes to all DoctorDispensary records linked to this dispensary
+    await DoctorDispensary.updateMany(
+      { dispensaryId },
+      {
+        $set: {
+          bookingCommission: Number(onlineFee),
+          channelPartnerFee: channelPartnerFee !== undefined ? Number(channelPartnerFee) : 0
+        }
+      }
+    );
+
+    res.status(200).json({
+      message: 'Dispensary global fees updated and cascaded successfully',
+      dispensary: updatedDispensary
+    });
+  } catch (error) {
+    console.error('Error updating dispensary global fees:', error);
+    res.status(500).json({ message: 'Failed to update dispensary fees', error: error.message });
+  }
+});
+
 // POST /api/fees/:doctorId - Add new fee
 router.post('/:doctorId', async (req, res) => {
   try {
@@ -253,21 +300,29 @@ router.post('/:doctorId', async (req, res) => {
         const number = (seqIndex % 999) + 1;
         finalBookingCode = `${letter}${String(number).padStart(3, '0')}`;
         seqIndex++;
-      } while (usedCodes.has(finalBookingCode));
+      } while (usedCodes.has(finalBookingCode) && seqIndex < 26 * 999);
+      
+      if (usedCodes.has(finalBookingCode)) {
+        return res.status(500).json({ message: 'Failed to generate a unique booking code. Maximum limit reached.' });
+      }
     } else {
       finalBookingCode = finalBookingCode.toUpperCase();
     }
     
-    // Create new fee configuration
+    // Since we are creating a new configuration, grab the defaults from Dispensary model
+    // This allows Dispensary Admins to inherit the Super Admin configured global fees.
+    let defaultOnlineFee = onlineFee !== undefined ? Number(onlineFee) : (dispensary.bookingCommission || 0);
+    let defaultChannelPartnerFee = channelPartnerFee !== undefined ? Number(channelPartnerFee) : (dispensary.channelPartnerFee || 0);
+
     const newFeeConfig = new DoctorDispensary({
       doctorId,
       dispensaryId,
       bookingCode: finalBookingCode,
       doctorFee: doctorFee !== undefined ? Number(doctorFee) : 0,
       dispensaryFee: dispensaryFee !== undefined ? Number(dispensaryFee) : 0,
-      channelPartnerFee: channelPartnerFee !== undefined ? Number(channelPartnerFee) : 0,
-      bookingCommission: onlineFee !== undefined ? Number(onlineFee) : 0,
-      bookingVisibleDays: bookingVisibleDays !== undefined && bookingVisibleDays !== null && bookingVisibleDays !== '' ? Number(bookingVisibleDays) : undefined,
+      bookingCommission: defaultOnlineFee,
+      channelPartnerFee: defaultChannelPartnerFee,
+      bookingVisibleDays: bookingVisibleDays !== undefined && bookingVisibleDays !== '' ? Number(bookingVisibleDays) : undefined,
       isActive: true
     });
     
