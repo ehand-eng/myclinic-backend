@@ -662,11 +662,11 @@ router.post('/', async (req, res) => {
         doctorId,
         dispensaryId,
         isActive: true
-      });
+      }).populate('dispensaryId', 'bookingCommission channelPartnerFee').lean();
 
-      if (bookedBy === 'CHANNEL-PARTNER' && feeConfig && feeConfig.channelPartnerFee > 0) {
-        const originalBookingCommission = processedFees.bookingCommission || 0;
-        const channelPartnerFee = feeConfig.channelPartnerFee;
+      if (bookedBy === 'CHANNEL-PARTNER' && feeConfig && feeConfig.dispensaryId?.channelPartnerFee > 0) {
+        const originalBookingCommission = processedFees.bookingCommission || feeConfig.dispensaryId?.bookingCommission || 0;
+        const channelPartnerFee = feeConfig.dispensaryId?.channelPartnerFee || 0;
         const adjustedBookingCommission = Math.max(0, originalBookingCommission - channelPartnerFee);
 
         processedFees = {
@@ -1008,7 +1008,7 @@ router.get('/summary/:transactionId', async (req, res) => {
       doctorId: booking.doctorId._id,
       dispensaryId: booking.dispensaryId._id,
       isActive: true
-    });
+    }).populate('dispensaryId', 'bookingCommission channelPartnerFee').lean();
 
     const summary = {
       _id: booking._id,
@@ -1038,8 +1038,8 @@ router.get('/summary/:transactionId', async (req, res) => {
       fees: feeInfo ? {
         doctorFee: feeInfo.doctorFee,
         dispensaryFee: feeInfo.dispensaryFee,
-        bookingCommission: feeInfo.bookingCommission,
-        totalAmount: feeInfo.doctorFee + feeInfo.dispensaryFee + feeInfo.bookingCommission
+        bookingCommission: feeInfo.dispensaryId?.bookingCommission || 0,
+        totalAmount: feeInfo.doctorFee + feeInfo.dispensaryFee + (feeInfo.dispensaryId?.bookingCommission || 0)
       } : null,
       symptoms: booking.symptoms,
       bookedUser: booking.bookedUser,

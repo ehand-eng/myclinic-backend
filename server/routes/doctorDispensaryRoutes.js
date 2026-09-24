@@ -57,8 +57,6 @@ router.post('/assign-fees', async (req, res) => {
       {
         doctorFee: Number(doctorFee),
         dispensaryFee: Number(dispensaryFee),
-        bookingCommission: Number(bookingCommission),
-        channelPartnerFee: validatedChannelPartnerFee,
         isActive: true
       },
       { upsert: true, new: true }
@@ -127,8 +125,8 @@ router.get('/dispensary/:dispensaryId/fees', async (req, res) => {
       dispensaryName: dd.dispensaryId.name,
       doctorFee: dd.doctorFee || 0,
       dispensaryFee: dd.dispensaryFee || 0,
-      bookingCommission: dd.bookingCommission || 0,
-      channelPartnerFee: dd.channelPartnerFee || 0,
+      bookingCommission: dd.dispensaryId.bookingCommission || 0,
+      channelPartnerFee: dd.dispensaryId.channelPartnerFee || 0,
       createdAt: dd.createdAt,
       updatedAt: dd.updatedAt
     }));
@@ -161,8 +159,6 @@ router.get('/dispensary/:dispensaryId/fees', async (req, res) => {
       { 
         doctorFee,
         dispensaryFee,
-        bookingCommission,
-        channelPartnerFee: validatedChannelPartnerFee,
         updatedAt: new Date()
       },
       { new: true }
@@ -181,8 +177,8 @@ router.get('/dispensary/:dispensaryId/fees', async (req, res) => {
       dispensaryName: doctorDispensary.dispensaryId.name,
       doctorFee: doctorDispensary.doctorFee || 0,
       dispensaryFee: doctorDispensary.dispensaryFee || 0,
-      bookingCommission: doctorDispensary.bookingCommission || 0,
-      channelPartnerFee: doctorDispensary.channelPartnerFee || 0,
+      bookingCommission: doctorDispensary.dispensaryId.bookingCommission || 0,
+      channelPartnerFee: doctorDispensary.dispensaryId.channelPartnerFee || 0,
       createdAt: doctorDispensary.createdAt,
       updatedAt: doctorDispensary.updatedAt
     });
@@ -203,7 +199,6 @@ router.delete('/fees/:doctorId/:dispensaryId', async (req, res) => {
       { 
         doctorFee: 0,
         dispensaryFee: 0,
-        bookingCommission: 0,
         updatedAt: new Date()
       },
       { new: true }
@@ -227,7 +222,7 @@ router.get('/fees/:doctorId/:dispensaryId', async (req, res) => {
     
     const docDisp = await DoctorDispensary.findOne({ doctorId, dispensaryId })
       .populate('doctorId', 'name')
-      .populate('dispensaryId', 'name');
+      .populate('dispensaryId', 'name bookingCommission channelPartnerFee');
       
     if (!docDisp) {
       return res.status(404).json({ message: 'Fee configuration not found' });
@@ -241,10 +236,10 @@ router.get('/fees/:doctorId/:dispensaryId', async (req, res) => {
       dispensaryName: docDisp.dispensaryId.name,
       doctorFee: docDisp.doctorFee || 0,
       dispensaryFee: docDisp.dispensaryFee || 0,
-      bookingCommission: docDisp.bookingCommission || 0,
-      channelPartnerFee: docDisp.channelPartnerFee || 0,
+      bookingCommission: docDisp.dispensaryId.bookingCommission || 0,
+      channelPartnerFee: docDisp.dispensaryId.channelPartnerFee || 0,
       bookingVisibleDays: docDisp.bookingVisibleDays !== undefined ? docDisp.bookingVisibleDays : null,
-      totalFee: (docDisp.doctorFee || 0) + (docDisp.dispensaryFee || 0) + (docDisp.bookingCommission || 0),
+      totalFee: (docDisp.doctorFee || 0) + (docDisp.dispensaryFee || 0) + (docDisp.dispensaryId.bookingCommission || 0),
       createdAt: docDisp.createdAt,
       updatedAt: docDisp.updatedAt
     };
@@ -279,8 +274,6 @@ router.patch('/fees/:feeId', async (req, res) => {
     const updateData = {};
     if (doctorFee !== undefined) updateData.doctorFee = Number(doctorFee);
     if (dispensaryFee !== undefined) updateData.dispensaryFee = Number(dispensaryFee);
-    if (bookingCommission !== undefined) updateData.bookingCommission = Number(bookingCommission);
-    if (channelPartnerFee !== undefined) updateData.channelPartnerFee = Number(channelPartnerFee);
     updateData.updatedAt = new Date();
     
     const updatedFee = await DoctorDispensary.findByIdAndUpdate(
