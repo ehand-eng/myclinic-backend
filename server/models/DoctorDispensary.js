@@ -3,8 +3,7 @@ const mongoose = require('mongoose');
 const doctorDispensarySchema = new mongoose.Schema({
   doctorId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Doctor',
-    required: true
+    ref: 'Doctor'
   },
   dispensaryId: {
     type: mongoose.Schema.Types.ObjectId,

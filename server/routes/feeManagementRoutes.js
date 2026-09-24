@@ -160,36 +160,36 @@ router.put('/dispensary-fees/:dispensaryId', async (req, res) => {
       return res.status(400).json({ message: 'onlineFee parameter is required' });
     }
     
-    // 1. Update the parent Dispensary configuration
-    const updatedDispensary = await Dispensary.findByIdAndUpdate(
-      dispensaryId,
-      {
-        $set: {
-          bookingCommission: Number(onlineFee),
-          channelPartnerFee: channelPartnerFee !== undefined ? Number(channelPartnerFee) : 0
-        }
-      },
-      { new: true }
-    );
-    
-    if (!updatedDispensary) {
+    const dispensary = await Dispensary.findById(dispensaryId);
+    if (!dispensary) {
       return res.status(404).json({ message: 'Dispensary not found' });
     }
 
-    // 2. Cascade changes to all DoctorDispensary records linked to this dispensary
-    await DoctorDispensary.updateMany(
-      { dispensaryId },
-      {
-        $set: {
-          bookingCommission: Number(onlineFee),
-          channelPartnerFee: channelPartnerFee !== undefined ? Number(channelPartnerFee) : 0
+    const count = await DoctorDispensary.countDocuments({ dispensaryId });
+    if (count > 0) {
+      // 1. Cascade changes to all DoctorDispensary records linked to this dispensary (including any template rows)
+      await DoctorDispensary.updateMany(
+        { dispensaryId },
+        {
+          $set: {
+            bookingCommission: Number(onlineFee),
+            channelPartnerFee: channelPartnerFee !== undefined ? Number(channelPartnerFee) : 0
+          }
         }
-      }
-    );
+      );
+    } else {
+      // 2. No records exist, create a generic Template Row so Dispensary Admins can inherit this configuration later
+      await DoctorDispensary.create({
+        dispensaryId,
+        bookingCommission: Number(onlineFee),
+        channelPartnerFee: channelPartnerFee !== undefined ? Number(channelPartnerFee) : 0,
+        isActive: true
+      }); // doctorId left implicitly empty/null
+    }
 
     res.status(200).json({
       message: 'Dispensary global fees updated and cascaded successfully',
-      dispensary: updatedDispensary
+      dispensary // Return original unmutated to satisfy frontend object expectations
     });
   } catch (error) {
     console.error('Error updating dispensary global fees:', error);
@@ -309,14 +309,13 @@ router.post('/:doctorId', async (req, res) => {
       finalBookingCode = finalBookingCode.toUpperCase();
     }
     
-    // Since we are creating a new configuration, grab the defaults from Dispensary model
-    // This allows Dispensary Admins to inherit the Super Admin configured global fees.
-    let defaultOnlineFee = onlineFee !== undefined && onlineFee !== null ? Number(onlineFee) : (dispensary.bookingCommission || 0);
-    let defaultChannelPartnerFee = channelPartnerFee !== undefined && channelPartnerFee !== null ? Number(channelPartnerFee) : (dispensary.channelPartnerFee || 0);
+    // We grab defaults directly from any existing DoctorDispensary configs for that dispensary. 
+    // This allows Dispensary Admins to inherit the Super Admin configured global fees natively.
+    let defaultOnlineFee = onlineFee !== undefined && onlineFee !== null ? Number(onlineFee) : 0;
+    let defaultChannelPartnerFee = channelPartnerFee !== undefined && channelPartnerFee !== null ? Number(channelPartnerFee) : 0;
+    let fallbackHit = false;
 
-    // Fallback: If global fees are still 0 (e.g. they were never seeded by Super Admin), 
-    // inherit them from any existing doctor in the same dispensary to preserve legacy configurations.
-    if ((defaultOnlineFee === 0 && defaultChannelPartnerFee === 0) && (onlineFee === undefined || onlineFee === null)) {
+    if (defaultOnlineFee === 0 && defaultChannelPartnerFee === 0 && (onlineFee === undefined || onlineFee === null)) {
       const siblingConfig = await DoctorDispensary.findOne({ 
         dispensaryId, 
         $or: [{ bookingCommission: { $gt: 0 } }, { channelPartnerFee: { $gt: 0 } }] 
@@ -325,7 +324,35 @@ router.post('/:doctorId', async (req, res) => {
       if (siblingConfig) {
         defaultOnlineFee = siblingConfig.bookingCommission || 0;
         defaultChannelPartnerFee = siblingConfig.channelPartnerFee || 0;
+        fallbackHit = true;
       }
+    }
+
+    // Check if the only row in DB is actually an empty Template Row for this dispensary
+    // If it is, we can directly OVERWRITE it instead of creating a second row.
+    const isFirstTime = await DoctorDispensary.countDocuments({ dispensaryId });
+    if (isFirstTime === 1) {
+       const templateRow = await DoctorDispensary.findOne({ dispensaryId, doctorId: null });
+       if (templateRow) {
+         templateRow.doctorId = doctorId;
+         templateRow.bookingCode = finalBookingCode;
+         templateRow.doctorFee = doctorFee !== undefined ? Number(doctorFee) : 0;
+         templateRow.dispensaryFee = dispensaryFee !== undefined ? Number(dispensaryFee) : 0;
+         if (bookingVisibleDays !== undefined && bookingVisibleDays !== '') {
+           templateRow.bookingVisibleDays = Number(bookingVisibleDays);
+         }
+         await templateRow.save();
+         
+         const populatedFee = await DoctorDispensary.findById(templateRow._id)
+          .populate('doctorId', 'name specialization')
+          .populate('dispensaryId', 'name address')
+          .lean();
+         
+         return res.status(201).json({
+           id: populatedFee?._id?.toString() || templateRow._id.toString(),
+           ...populatedFee
+         });
+       }
     }
 
     const newFeeConfig = new DoctorDispensary({

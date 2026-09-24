@@ -3,6 +3,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const Dispensary = require('../models/Dispensary');
 const Doctor = require('../models/Doctor');
+const DoctorDispensary = require('../models/DoctorDispensary');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -70,8 +71,30 @@ const requireDispensaryEditAccess = async (req, res, next) => {
  */
 router.get('/', async (req, res) => {
   try {
-    const dispensaries = await Dispensary.find().populate('doctors', 'name specialization');
-    res.status(200).json(dispensaries);
+    const dispensaries = await Dispensary.find().populate('doctors', 'name specialization').lean();
+    
+    // Dynamically append the global fees by peeking into DoctorDispensary
+    const feeRecords = await DoctorDispensary.find({ 
+      $or: [{ bookingCommission: { $gt: 0 } }, { channelPartnerFee: { $gt: 0 } }] 
+    }).select('dispensaryId bookingCommission channelPartnerFee').lean();
+
+    const feesMap = new Map();
+    for (const record of feeRecords) {
+        if (!feesMap.has(record.dispensaryId.toString())) {
+            feesMap.set(record.dispensaryId.toString(), {
+                bookingCommission: record.bookingCommission || 0,
+                channelPartnerFee: record.channelPartnerFee || 0
+            });
+        }
+    }
+
+    const dispensariesWithFees = dispensaries.map(disp => ({
+        ...disp,
+        bookingCommission: feesMap.get(disp._id.toString())?.bookingCommission || 0,
+        channelPartnerFee: feesMap.get(disp._id.toString())?.channelPartnerFee || 0,
+    }));
+
+    res.status(200).json(dispensariesWithFees);
   } catch (error) {
     console.error('Error getting dispensaries:', error);
     res.status(500).json({ message: 'Error fetching dispensaries', error: error.message });
@@ -83,10 +106,19 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     console.log("======== dispensary ============== "+req.params.id);
-    const dispensary = await Dispensary.findById(req.params.id).populate('doctors', 'name specialization');
+    const dispensary = await Dispensary.findById(req.params.id).populate('doctors', 'name specialization').lean();
     if (!dispensary) {
       return res.status(404).json({ message: 'Dispensary not found' });
     }
+
+    const siblingConfig = await DoctorDispensary.findOne({ 
+      dispensaryId: dispensary._id, 
+      $or: [{ bookingCommission: { $gt: 0 } }, { channelPartnerFee: { $gt: 0 } }] 
+    }).lean();
+
+    dispensary.bookingCommission = siblingConfig?.bookingCommission || 0;
+    dispensary.channelPartnerFee = siblingConfig?.channelPartnerFee || 0;
+
     res.status(200).json(dispensary);
   } catch (error) {
     console.error('Error getting dispensary:', error);
