@@ -1213,8 +1213,7 @@ router.get('/fees/:timeSlotId', async (req, res) => {
 
     res.json({
       doctorFee: timeSlot.doctorFee || 0,
-      dispensaryFee: timeSlot.dispensaryFee || 0,
-      bookingCommission: timeSlot.bookingCommission || 0
+      dispensaryFee: timeSlot.dispensaryFee || 0
     });
   } catch (error) {
     console.error('Error fetching time slot fees:', error);
@@ -1226,25 +1225,22 @@ router.get('/fees/:timeSlotId', async (req, res) => {
 router.put('/fees/:timeSlotId', requireRole([ROLES.SUPER_ADMIN, ROLES.hospital_admin]), async (req, res) => {
   try {
     const { timeSlotId } = req.params;
-    const { doctorFee, dispensaryFee, bookingCommission } = req.body;
+    const { doctorFee, dispensaryFee } = req.body;
 
     const timeSlot = await TimeSlotConfig.findById(timeSlotId);
     if (!timeSlot) {
       return res.status(404).json({ message: 'Time slot not found' });
     }
 
-    // Update fees
     timeSlot.doctorFee = doctorFee;
     timeSlot.dispensaryFee = dispensaryFee;
-    timeSlot.bookingCommission = bookingCommission;
     await timeSlot.save();
 
     res.json({
       message: 'Fees updated successfully',
       fees: {
         doctorFee: timeSlot.doctorFee,
-        dispensaryFee: timeSlot.dispensaryFee,
-        bookingCommission: timeSlot.bookingCommission
+        dispensaryFee: timeSlot.dispensaryFee
       }
     });
   } catch (error) {
@@ -1263,10 +1259,8 @@ router.delete('/fees/:timeSlotId', requireRole([ROLES.SUPER_ADMIN, ROLES.hospita
       return res.status(404).json({ message: 'Time slot not found' });
     }
 
-    // Reset fees to default values
     timeSlot.doctorFee = 0;
     timeSlot.dispensaryFee = 0;
-    timeSlot.bookingCommission = 0;
     await timeSlot.save();
 
     res.json({ message: 'Fees reset successfully' });

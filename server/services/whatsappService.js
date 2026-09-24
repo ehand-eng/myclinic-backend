@@ -836,15 +836,15 @@ async function handleConfirmation(from, session, selectedId) {
         try {
             const feeConfig = await DoctorDispensary.findOne({
                 doctorId, dispensaryId, isActive: true
-            }).lean();
+            }).populate('dispensaryId', 'bookingCommission channelPartnerFee').lean();
 
             if (feeConfig) {
                 fees = {
                     doctorFee: feeConfig.doctorFee || 0,
                     dispensaryFee: feeConfig.dispensaryFee || 0,
-                    bookingCommission: feeConfig.bookingCommission || 0,
+                    bookingCommission: feeConfig.dispensaryId?.bookingCommission || 0,
                     channelPartnerFee: 0,
-                    totalFee: (feeConfig.doctorFee || 0) + (feeConfig.dispensaryFee || 0) + (feeConfig.bookingCommission || 0)
+                    totalFee: (feeConfig.doctorFee || 0) + (feeConfig.dispensaryFee || 0) + (feeConfig.dispensaryId?.bookingCommission || 0)
                 };
             }
         } catch (feeErr) {
