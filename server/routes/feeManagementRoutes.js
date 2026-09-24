@@ -310,49 +310,46 @@ router.post('/:doctorId', async (req, res) => {
     }
     
     // We grab defaults directly from any existing DoctorDispensary configs for that dispensary. 
-    // This allows Dispensary Admins to inherit the Super Admin configured global fees natively.
+    // The very first row (template row or first doctor) acts as the source of truth for global fees.
     let defaultOnlineFee = onlineFee !== undefined && onlineFee !== null ? Number(onlineFee) : 0;
     let defaultChannelPartnerFee = channelPartnerFee !== undefined && channelPartnerFee !== null ? Number(channelPartnerFee) : 0;
-    let fallbackHit = false;
 
-    if (defaultOnlineFee === 0 && defaultChannelPartnerFee === 0 && (onlineFee === undefined || onlineFee === null)) {
-      const siblingConfig = await DoctorDispensary.findOne({ 
-        dispensaryId, 
-        $or: [{ bookingCommission: { $gt: 0 } }, { channelPartnerFee: { $gt: 0 } }] 
-      }).lean();
-      
-      if (siblingConfig) {
-        defaultOnlineFee = siblingConfig.bookingCommission || 0;
-        defaultChannelPartnerFee = siblingConfig.channelPartnerFee || 0;
-        fallbackHit = true;
+    if ((onlineFee === undefined || onlineFee === null)) {
+      const anySiblingConfig = await DoctorDispensary.findOne({ dispensaryId }).sort({ createdAt: 1 }).lean();
+      if (anySiblingConfig) {
+        defaultOnlineFee = anySiblingConfig.bookingCommission || 0;
+        defaultChannelPartnerFee = anySiblingConfig.channelPartnerFee || 0;
       }
     }
 
-    // Check if the only row in DB is actually an empty Template Row for this dispensary
+    // Check if there is an empty Template Row for this dispensary (where doctorId is missing/null)
     // If it is, we can directly OVERWRITE it instead of creating a second row.
-    const isFirstTime = await DoctorDispensary.countDocuments({ dispensaryId });
-    if (isFirstTime === 1) {
-       const templateRow = await DoctorDispensary.findOne({ dispensaryId, doctorId: null });
-       if (templateRow) {
-         templateRow.doctorId = doctorId;
-         templateRow.bookingCode = finalBookingCode;
-         templateRow.doctorFee = doctorFee !== undefined ? Number(doctorFee) : 0;
-         templateRow.dispensaryFee = dispensaryFee !== undefined ? Number(dispensaryFee) : 0;
-         if (bookingVisibleDays !== undefined && bookingVisibleDays !== '') {
-           templateRow.bookingVisibleDays = Number(bookingVisibleDays);
-         }
-         await templateRow.save();
-         
-         const populatedFee = await DoctorDispensary.findById(templateRow._id)
-          .populate('doctorId', 'name specialization')
-          .populate('dispensaryId', 'name address')
-          .lean();
-         
-         return res.status(201).json({
-           id: populatedFee?._id?.toString() || templateRow._id.toString(),
-           ...populatedFee
-         });
-       }
+    const templateRow = await DoctorDispensary.findOne({ 
+      dispensaryId, 
+      $or: [{ doctorId: null }, { doctorId: { $exists: false } }] 
+    });
+    
+    if (templateRow) {
+      templateRow.doctorId = doctorId;
+      templateRow.bookingCode = finalBookingCode;
+      templateRow.doctorFee = doctorFee !== undefined ? Number(doctorFee) : 0;
+      templateRow.dispensaryFee = dispensaryFee !== undefined ? Number(dispensaryFee) : 0;
+      templateRow.bookingCommission = defaultOnlineFee;
+      templateRow.channelPartnerFee = defaultChannelPartnerFee;
+      if (bookingVisibleDays !== undefined && bookingVisibleDays !== '') {
+        templateRow.bookingVisibleDays = Number(bookingVisibleDays);
+      }
+      await templateRow.save();
+      
+      const populatedFee = await DoctorDispensary.findById(templateRow._id)
+      .populate('doctorId', 'name specialization')
+      .populate('dispensaryId', 'name address')
+      .lean();
+      
+      return res.status(201).json({
+        id: populatedFee?._id?.toString() || templateRow._id.toString(),
+        ...populatedFee
+      });
     }
 
     const newFeeConfig = new DoctorDispensary({
