@@ -6,32 +6,12 @@ const Role = require('../models/Role');
 const otpService = require('../services/OTPService');
 const smsService = require('../services/smsService');
 
+const { rejectWeakPassword } = require('../utils/passwordPolicy');
+
 const router = express.Router();
 
 // JWT Secret (should be in env vars)
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-
-// Password strength helper
-// Rule: at least 8 chars and at least 3 of 4 categories:
-// - lowercase letters
-// - uppercase letters
-// - digits
-// - special characters
-const isStrongPassword = (password) => {
-  if (typeof password !== 'string') return false;
-  if (password.length < 8) return false;
-
-  const hasLower = /[a-z]/.test(password);
-  const hasUpper = /[A-Z]/.test(password);
-  const hasDigit = /[0-9]/.test(password);
-  const hasSpecial = /[^A-Za-z0-9]/.test(password);
-
-  const categories = [hasLower, hasUpper, hasDigit, hasSpecial].filter(Boolean).length;
-  return categories >= 3;
-};
-
-const PASSWORD_RULE_MESSAGE =
-  'Password must be at least 8 characters and include at least three of the following: lowercase letters, uppercase letters, numbers, and special characters.';
 
 // Register endpoint
 router.post('/register', async (req, res) => {
@@ -43,8 +23,8 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'Name, email, phone number, and password are required' });
     }
 
-    if (!isStrongPassword(password)) {
-      return res.status(400).json({ message: PASSWORD_RULE_MESSAGE });
+    if (rejectWeakPassword(password, res)) {
+      return;
     }
 
     // Check if user already exists by email or mobile
@@ -269,8 +249,8 @@ router.post('/forgot-password/reset', async (req, res) => {
       return res.status(400).json({ message: 'Mobile number or email, OTP, and new password are required' });
     }
 
-    if (!isStrongPassword(newPassword)) {
-      return res.status(400).json({ message: PASSWORD_RULE_MESSAGE });
+    if (rejectWeakPassword(newPassword, res)) {
+      return;
     }
 
     const OTPService = require('../services/OTPService');
@@ -609,8 +589,8 @@ router.post('/change-password', async (req, res) => {
       return res.status(400).json({ message: 'New password must be different from the current password' });
     }
 
-    if (!isStrongPassword(newPassword)) {
-      return res.status(400).json({ message: PASSWORD_RULE_MESSAGE });
+    if (rejectWeakPassword(newPassword, res)) {
+      return;
     }
 
     if (!user.passwordHash) {
@@ -728,8 +708,8 @@ router.post('/admin-forgot-password/reset', async (req, res) => {
       return res.status(400).json({ message: 'Passwords do not match' });
     }
 
-    if (!isStrongPassword(newPassword)) {
-      return res.status(400).json({ message: PASSWORD_RULE_MESSAGE });
+    if (rejectWeakPassword(newPassword, res)) {
+      return;
     }
 
     const verification = otpService.verifyOTP(email, otp);

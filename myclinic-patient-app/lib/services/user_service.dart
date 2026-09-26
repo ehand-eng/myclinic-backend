@@ -28,7 +28,7 @@ class UserService {
   }
 
   Future<void> changePassword(String id, String currentPassword, String newPassword) async {
-    await _api.put(ApiConfig.userById(id), data: {
+    await _api.post('/api/custom-auth/change-password', data: {
       'currentPassword': currentPassword,
       'newPassword': newPassword,
     });

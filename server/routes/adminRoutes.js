@@ -4,20 +4,9 @@ const User = require('../models/User');
 const Role = require('../models/Role');
 const Dispensary = require('../models/Dispensary');
 
+const { rejectWeakPassword } = require('../utils/passwordPolicy');
+
 const router = express.Router();
-
-const isStrongPassword = (password) => {
-  if (typeof password !== 'string' || password.length < 8) return false;
-  const hasLower = /[a-z]/.test(password);
-  const hasUpper = /[A-Z]/.test(password);
-  const hasDigit = /[0-9]/.test(password);
-  const hasSpecial = /[^A-Za-z0-9]/.test(password);
-  const categories = [hasLower, hasUpper, hasDigit, hasSpecial].filter(Boolean).length;
-  return categories >= 3;
-};
-
-const PASSWORD_RULE_MESSAGE =
-  'Password must be at least 8 characters and include at least three of the following: lowercase letters, uppercase letters, numbers, and special characters.';
 
 // Custom middleware to verify admin access (temporary until Auth0 is fully removed)
 const requireSuperAdmin = async (req, res, next) => {
@@ -114,8 +103,8 @@ router.post('/users', requireSuperAdmin, async (req, res) => {
       return res.status(400).json({ message: 'Name, email, mobile, password, and role are required' });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+    if (rejectWeakPassword(password, res)) {
+      return;
     }
 
     // Check if user already exists
@@ -189,8 +178,8 @@ router.patch('/users/:userId/password', requireSuperAdmin, async (req, res) => {
       return res.status(400).json({ message: 'Password is required' });
     }
 
-    if (!isStrongPassword(password)) {
-      return res.status(400).json({ message: PASSWORD_RULE_MESSAGE });
+    if (rejectWeakPassword(password, res)) {
+      return;
     }
 
     const user = await User.findById(userId);

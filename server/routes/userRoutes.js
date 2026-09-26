@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const { rejectWeakPassword } = require('../utils/passwordPolicy');
 const { validateJwt, requireRole, ROLES } = require('../middleware/authMiddleware');
 const { ManagementClient } = require('auth0');
 
@@ -91,6 +92,10 @@ router.post('/', validateJwt, requireRole([ROLES.SUPER_ADMIN]), async (req, res)
     // Validate role
     if (!['super_admin', 'hospital_admin', 'hospital_staff'].includes(role)) {
       return res.status(400).json({ message: 'Invalid role' });
+    }
+
+    if (rejectWeakPassword(password, res)) {
+      return;
     }
 
     // Create user in Auth0
