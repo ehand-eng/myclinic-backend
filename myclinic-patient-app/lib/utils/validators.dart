@@ -1,3 +1,5 @@
+import 'package:myclinic_patient_app/utils/password_policy.dart';
+
 class Validators {
   static String? validateEmail(String? value) {
     if (value == null || value.isEmpty) return 'Email is required';
@@ -9,6 +11,14 @@ class Validators {
   static String? validatePassword(String? value) {
     if (value == null || value.isEmpty) return 'Password is required';
     if (value.length < 8) return 'Password must be at least 8 characters';
+    return null;
+  }
+
+  static String? validateStrongPassword(String? value) {
+    if (value == null || value.isEmpty) return 'Password is required';
+    if (!isStrongPassword(value)) {
+      return 'Use at least 8 characters and three of: lowercase, uppercase, number, special character';
+    }
     return null;
   }
 

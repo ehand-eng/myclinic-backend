@@ -5,6 +5,8 @@ import 'package:dio/dio.dart';
 import '../../config/theme.dart';
 import '../../services/auth_service.dart';
 import '../../providers/auth_provider.dart';
+import '../../utils/password_policy.dart';
+import '../../widgets/password_policy_checklist.dart';
 
 class ChangePasswordScreen extends ConsumerStatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -30,16 +32,6 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
     _newController.dispose();
     _confirmController.dispose();
     super.dispose();
-  }
-
-  int _passwordStrength(String password) {
-    int score = 0;
-    if (password.length >= 8) score++;
-    if (password.contains(RegExp(r'[a-z]'))) score++;
-    if (password.contains(RegExp(r'[A-Z]'))) score++;
-    if (password.contains(RegExp(r'[0-9]'))) score++;
-    if (password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) score++;
-    return score;
   }
 
   Future<void> _changePassword() async {
@@ -147,26 +139,14 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                 },
                 validator: (v) {
                   if (v == null || v.isEmpty) return 'Required';
-                  if (v.length < 8) return 'Minimum 8 characters';
-                  if (_passwordStrength(v) < 4) {
-                    return 'Use uppercase, lowercase, numbers, and symbols';
+                  if (!isStrongPassword(v)) {
+                    return 'Use at least 8 characters and three of: lowercase, uppercase, number, special character';
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 8),
-
-              // Strength indicator
-              if (_newController.text.isNotEmpty)
-                LinearProgressIndicator(
-                  value: _passwordStrength(_newController.text) / 5,
-                  backgroundColor: AppColors.border,
-                  color: _passwordStrength(_newController.text) >= 4
-                      ? AppColors.success
-                      : _passwordStrength(_newController.text) >= 3
-                          ? AppColors.warning
-                          : AppColors.error,
-                ),
+              PasswordPolicyChecklist(password: _newController.text),
               const SizedBox(height: 16),
 
               TextFormField(

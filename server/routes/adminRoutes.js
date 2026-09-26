@@ -6,8 +6,6 @@ const Dispensary = require('../models/Dispensary');
 
 const router = express.Router();
 
-// test comment
-
 const isStrongPassword = (password) => {
   if (typeof password !== 'string' || password.length < 8) return false;
   const hasLower = /[a-z]/.test(password);

@@ -7,9 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, Lock, Building2 } from 'lucide-react';
 import api from '@/lib/axios';
-
-const PASSWORD_HINT =
-  'At least 8 characters with three of: lowercase, uppercase, numbers, special characters.';
+import { PasswordPolicyChecklist } from '@/components/PasswordPolicyChecklist';
+import { isStrongPassword } from '@/lib/passwordPolicy';
 
 const AdminChangePassword = () => {
   const { toast } = useToast();
@@ -53,6 +52,16 @@ const AdminChangePassword = () => {
       toast({
         title: 'Error',
         description: 'New password must be different from current password',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!isStrongPassword(newPassword)) {
+      toast({
+        title: 'Weak password',
+        description:
+          'Use at least 8 characters and include three of: lowercase, uppercase, number, special character.',
         variant: 'destructive'
       });
       return;
@@ -170,7 +179,7 @@ const AdminChangePassword = () => {
                       )}
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-500">{PASSWORD_HINT}</p>
+                  <PasswordPolicyChecklist password={newPassword} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirm-password">Confirm new password</Label>

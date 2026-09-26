@@ -4,6 +4,8 @@ import 'package:dio/dio.dart';
 import '../../config/theme.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/loading_widget.dart';
+import '../../utils/password_policy.dart';
+import '../../widgets/password_policy_checklist.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -113,6 +115,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     if (!_formKey.currentState!.validate()) return;
     
     final newPassword = _newPasswordController.text;
+    if (!isStrongPassword(newPassword)) {
+      setState(() => _errorMessage =
+          'Use at least 8 characters and three of: lowercase, uppercase, number, special character');
+      return;
+    }
     if (newPassword != _confirmPasswordController.text) {
       setState(() => _errorMessage = 'Passwords do not match');
       return;
@@ -357,11 +364,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                 onPressed: () => setState(() => _obscureNew = !_obscureNew),
                               ),
                             ),
+                            onChanged: (_) => setState(() {}),
                             validator: (value) {
                               if (value == null || value.isEmpty) return 'Required';
+                              if (!isStrongPassword(value)) {
+                                return 'Password does not meet the requirements below';
+                              }
                               return null;
                             },
                           ),
+                          const SizedBox(height: 8),
+                          PasswordPolicyChecklist(password: _newPasswordController.text),
                           const SizedBox(height: 16),
                           TextFormField(
                             controller: _confirmPasswordController,

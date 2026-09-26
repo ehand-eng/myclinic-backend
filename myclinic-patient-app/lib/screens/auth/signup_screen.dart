@@ -13,6 +13,7 @@ import 'package:myclinic_patient_app/utils/validators.dart';
 import 'package:myclinic_patient_app/widgets/buttons/primary_button.dart';
 import 'package:myclinic_patient_app/widgets/inputs/otp_input.dart';
 import 'package:myclinic_patient_app/widgets/inputs/text_input.dart';
+import 'package:myclinic_patient_app/widgets/password_policy_checklist.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
@@ -129,7 +130,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
     }
     // Password is optional — validate only if provided
     if (_phonePasswordCtrl.text.isNotEmpty) {
-      final pwError = Validators.validatePassword(_phonePasswordCtrl.text);
+      final pwError = Validators.validateStrongPassword(_phonePasswordCtrl.text);
       if (pwError != null) {
         showSnackBar(context, pwError, isError: true);
         return;
@@ -415,10 +416,11 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
                                 ),
                                 onChanged: (_) => setState(() {}),
                               ),
-                              if (_phonePasswordCtrl.text.isNotEmpty) ...[
-                                const SizedBox(height: 8),
-                                _PasswordStrength(password: _phonePasswordCtrl.text),
-                              ],
+                              const SizedBox(height: 8),
+                              PasswordPolicyChecklist(
+                                password: _phonePasswordCtrl.text,
+                                onDarkBackground: true,
+                              ),
                               const SizedBox(height: 14),
                               AppTextInput(
                                 onDarkBackground: true,
@@ -529,7 +531,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
                               controller: _passwordCtrl,
                               prefixIcon: Icons.lock_rounded,
                               obscureText: _obscurePassword,
-                              validator: Validators.validatePassword,
+                              validator: Validators.validateStrongPassword,
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
@@ -539,10 +541,11 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
                               ),
                               onChanged: (_) => setState(() {}),
                             ),
-                            if (_passwordCtrl.text.isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              _PasswordStrength(password: _passwordCtrl.text),
-                            ],
+                            const SizedBox(height: 8),
+                            PasswordPolicyChecklist(
+                              password: _passwordCtrl.text,
+                              onDarkBackground: true,
+                            ),
                             const SizedBox(height: 14),
                             AppTextInput(onDarkBackground: true, 
                               label: context.tr('confirmPassword'),
@@ -670,37 +673,3 @@ class _SignupTabButton extends StatelessWidget {
   }
 }
 
-class _PasswordStrength extends StatelessWidget {
-  final String password;
-  const _PasswordStrength({required this.password});
-
-  @override
-  Widget build(BuildContext context) {
-    final strength = Validators.passwordStrength(password);
-    final color = strength <= 2 ? AppTheme.error : strength <= 3 ? AppTheme.warning : AppTheme.success;
-    final label = strength <= 2 ? 'Weak' : strength <= 3 ? 'Medium' : 'Strong';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: strength / 5,
-                  backgroundColor: Colors.white.withValues(alpha: 0.3),
-                  color: color,
-                  minHeight: 4,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(label, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600)),
-          ],
-        ),
-      ],
-    );
-  }
-}

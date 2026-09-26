@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:myclinic_patient_app/config/theme.dart';
 import 'package:myclinic_patient_app/l10n/translations.dart';
 import 'package:myclinic_patient_app/providers/auth_provider.dart';
 import 'package:myclinic_patient_app/services/user_service.dart';
@@ -9,6 +8,8 @@ import 'package:myclinic_patient_app/utils/helpers.dart';
 import 'package:myclinic_patient_app/utils/validators.dart';
 import 'package:myclinic_patient_app/widgets/buttons/primary_button.dart';
 import 'package:myclinic_patient_app/widgets/inputs/text_input.dart';
+import 'package:myclinic_patient_app/widgets/password_policy_checklist.dart';
+import 'package:myclinic_patient_app/config/theme.dart';
 
 class ChangePasswordScreen extends ConsumerStatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -58,10 +59,6 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final strength = Validators.passwordStrength(_newPwCtrl.text);
-    final strengthColor = strength <= 2 ? AppTheme.error : strength <= 3 ? AppTheme.warning : AppTheme.success;
-    final strengthLabel = strength <= 2 ? 'Weak' : strength <= 3 ? 'Medium' : 'Strong';
-
     return Scaffold(
       appBar: AppBar(
         title: Text(context.tr('changePassword')),
@@ -91,34 +88,15 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                 controller: _newPwCtrl,
                 prefixIcon: Icons.lock_rounded,
                 obscureText: _obscureNew,
-                validator: Validators.validatePassword,
+                validator: Validators.validateStrongPassword,
                 onChanged: (_) => setState(() {}),
                 suffixIcon: IconButton(
                   icon: Icon(_obscureNew ? Icons.visibility_off_rounded : Icons.visibility_rounded, color: AppTheme.textLight),
                   onPressed: () => setState(() => _obscureNew = !_obscureNew),
                 ),
               ),
-              if (_newPwCtrl.text.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(value: strength / 5, backgroundColor: AppTheme.border, color: strengthColor, minHeight: 4),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(strengthLabel, style: TextStyle(fontSize: 12, color: strengthColor, fontWeight: FontWeight.w600)),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                _Criteria('8+ characters', _newPwCtrl.text.length >= 8),
-                _Criteria('Uppercase letter', _newPwCtrl.text.contains(RegExp(r'[A-Z]'))),
-                _Criteria('Lowercase letter', _newPwCtrl.text.contains(RegExp(r'[a-z]'))),
-                _Criteria('Number', _newPwCtrl.text.contains(RegExp(r'[0-9]'))),
-                _Criteria('Special character', _newPwCtrl.text.contains(RegExp(r'[!@#\$%\^&\*]'))),
-              ],
+              const SizedBox(height: 8),
+              PasswordPolicyChecklist(password: _newPwCtrl.text),
               const SizedBox(height: 16),
               AppTextInput(
                 label: context.tr('confirmPassword'),
@@ -136,26 +114,6 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _Criteria extends StatelessWidget {
-  final String text;
-  final bool met;
-  const _Criteria(this.text, this.met);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          Icon(met ? Icons.check_circle_rounded : Icons.circle_outlined, size: 16, color: met ? AppTheme.success : AppTheme.textLight),
-          const SizedBox(width: 8),
-          Flexible(child: Text(text, style: TextStyle(fontSize: 12, color: met ? AppTheme.success : AppTheme.textSecondary), overflow: TextOverflow.ellipsis)),
-        ],
       ),
     );
   }

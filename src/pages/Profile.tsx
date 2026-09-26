@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getRoleDisplayName } from '@/lib/roleUtils';
+import { PasswordPolicyChecklist } from '@/components/PasswordPolicyChecklist';
+import { isStrongPassword } from '@/lib/passwordPolicy';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
@@ -172,14 +174,7 @@ const Profile = () => {
       return;
     }
 
-    // Frontend mirror of backend password rules
-    const hasLower = /[a-z]/.test(newPassword);
-    const hasUpper = /[A-Z]/.test(newPassword);
-    const hasDigit = /[0-9]/.test(newPassword);
-    const hasSpecial = /[^A-Za-z0-9]/.test(newPassword);
-    const categories = [hasLower, hasUpper, hasDigit, hasSpecial].filter(Boolean).length;
-
-    if (newPassword.length < 8 || categories < 3) {
+    if (!isStrongPassword(newPassword)) {
       toast({
         title: 'Password too weak',
         description:
@@ -393,40 +388,7 @@ const Profile = () => {
                   )}
                 </Button>
               </div>
-              <div className="mt-1 text-xs text-gray-600 space-y-1">
-                <p>Password must meet all of the following:</p>
-                {(() => {
-                  const pwd = newPassword || '';
-                  const hasLower = /[a-z]/.test(pwd);
-                  const hasUpper = /[A-Z]/.test(pwd);
-                  const hasDigit = /[0-9]/.test(pwd);
-                  const hasSpecial = /[^A-Za-z0-9]/.test(pwd);
-                  const categories = [hasLower, hasUpper, hasDigit, hasSpecial].filter(Boolean).length;
-                  const strong = pwd.length >= 8 && categories >= 3;
-                  return (
-                    <ul className="space-y-0.5">
-                      <li className={pwd.length >= 8 ? 'text-green-600' : 'text-gray-500'}>
-                        • At least 8 characters
-                      </li>
-                      <li className={hasLower ? 'text-green-600' : 'text-gray-500'}>
-                        • Contains a lowercase letter
-                      </li>
-                      <li className={hasUpper ? 'text-green-600' : 'text-gray-500'}>
-                        • Contains an uppercase letter
-                      </li>
-                      <li className={hasDigit ? 'text-green-600' : 'text-gray-500'}>
-                        • Contains a number
-                      </li>
-                      <li className={hasSpecial ? 'text-green-600' : 'text-gray-500'}>
-                        • Contains a special character
-                      </li>
-                      <li className={strong ? 'text-green-600' : 'text-gray-500'}>
-                        • Uses at least three of the character types above
-                      </li>
-                    </ul>
-                  );
-                })()}
-              </div>
+              <PasswordPolicyChecklist password={newPassword} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm New Password</Label>

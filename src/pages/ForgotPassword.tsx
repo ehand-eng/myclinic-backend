@@ -10,6 +10,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PasswordPolicyChecklist } from '@/components/PasswordPolicyChecklist';
+import { isStrongPassword } from '@/lib/passwordPolicy';
 
 const ForgotPassword = () => {
   const { toast } = useToast();
@@ -23,14 +25,6 @@ const ForgotPassword = () => {
   const [maskedMobile, setMaskedMobile] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const validateStrongPassword = (password: string) => {
-    const hasLower = /[a-z]/.test(password);
-    const hasUpper = /[A-Z]/.test(password);
-    const hasDigit = /[0-9]/.test(password);
-    const hasSpecial = /[^A-Za-z0-9]/.test(password);
-    const categories = [hasLower, hasUpper, hasDigit, hasSpecial].filter(Boolean).length;
-    return password.length >= 8 && categories >= 3;
-  };
 
   const sendOtp = async () => {
     if (!email) {
@@ -85,7 +79,7 @@ const ForgotPassword = () => {
       return;
     }
 
-    if (!validateStrongPassword(newPassword)) {
+    if (!isStrongPassword(newPassword)) {
       toast({
         title: 'Weak password',
         description:
@@ -197,6 +191,7 @@ const ForgotPassword = () => {
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                       />
+                      <PasswordPolicyChecklist password={newPassword} />
                     </div>
 
                     <div className="space-y-2">

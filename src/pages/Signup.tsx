@@ -11,6 +11,8 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import axios from 'axios';
 import { API_URL } from '@/config';
+import { PasswordPolicyChecklist } from '@/components/PasswordPolicyChecklist';
+import { isStrongPassword } from '@/lib/passwordPolicy';
 
 interface FormData {
   nationality: string;
@@ -209,13 +211,7 @@ const Signup = () => {
     }
 
     // Password strength validation (mirror backend rules)
-    const hasLower = /[a-z]/.test(formData.password);
-    const hasUpper = /[A-Z]/.test(formData.password);
-    const hasDigit = /[0-9]/.test(formData.password);
-    const hasSpecial = /[^A-Za-z0-9]/.test(formData.password);
-    const categories = [hasLower, hasUpper, hasDigit, hasSpecial].filter(Boolean).length;
-
-    if (formData.password.length < 8 || categories < 3) {
+    if (!isStrongPassword(formData.password)) {
       toast({
         title: "Weak password",
         description: "Use at least 8 characters and include three of the following: lowercase, uppercase, number, special character.",
@@ -536,40 +532,7 @@ const Signup = () => {
               )}
             </Button>
           </div>
-          <div className="mt-1 text-xs text-gray-600 space-y-1">
-            <p>Password must meet all of the following:</p>
-            {(() => {
-              const pwd = formData.password || '';
-              const hasLower = /[a-z]/.test(pwd);
-              const hasUpper = /[A-Z]/.test(pwd);
-              const hasDigit = /[0-9]/.test(pwd);
-              const hasSpecial = /[^A-Za-z0-9]/.test(pwd);
-              const categories = [hasLower, hasUpper, hasDigit, hasSpecial].filter(Boolean).length;
-              const strong = pwd.length >= 8 && categories >= 3;
-              return (
-                <ul className="space-y-0.5">
-                  <li className={pwd.length >= 8 ? 'text-green-600' : 'text-gray-500'}>
-                    • At least 8 characters
-                  </li>
-                  <li className={hasLower ? 'text-green-600' : 'text-gray-500'}>
-                    • Contains a lowercase letter
-                  </li>
-                  <li className={hasUpper ? 'text-green-600' : 'text-gray-500'}>
-                    • Contains an uppercase letter
-                  </li>
-                  <li className={hasDigit ? 'text-green-600' : 'text-gray-500'}>
-                    • Contains a number
-                  </li>
-                  <li className={hasSpecial ? 'text-green-600' : 'text-gray-500'}>
-                    • Contains a special character
-                  </li>
-                  <li className={strong ? 'text-green-600' : 'text-gray-500'}>
-                    • Uses at least three of the character types above
-                  </li>
-                </ul>
-              );
-            })()}
-          </div>
+          <PasswordPolicyChecklist password={formData.password} />
         </div>
 
         <div className="space-y-2">
