@@ -626,13 +626,18 @@ router.post('/', async (req, res) => {
       });
 
       // --- ONGOING SESSION CUTOFF ENFORCEMENT ---
-      const isToday = startOfDay.toDateString() === new Date().toDateString();
+      const sriLankaNow = new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000));
+      const todayUTCStr = `${sriLankaNow.getUTCFullYear()}-${String(sriLankaNow.getUTCMonth() + 1).padStart(2, '0')}-${String(sriLankaNow.getUTCDate()).padStart(2, '0')}`;
+      const bookingDateStr = parsedBookingDate.toISOString().split('T')[0];
+      const isToday = bookingDateStr === todayUTCStr;
+
       if (isToday) {
         const [csh, csm] = startTime.split(':').map(Number);
-        const sessionStartForCutoff = new Date(startOfDay);
-        sessionStartForCutoff.setHours(csh, csm, 0, 0);
+        // Map local session start time to absolute UTC timestamp
+        const sessionStartUTC = new Date(parsedBookingDate.getTime() + (csh * 3600000) + (csm * 60000) - (5.5 * 3600000));
+        
         const cutoffOffset = timeSlotConfig.bookingCutoffMinutes ?? -60;
-        const cutoffTime = new Date(sessionStartForCutoff.getTime() + (cutoffOffset * 60000));
+        const cutoffTime = new Date(sessionStartUTC.getTime() + (cutoffOffset * 60000));
         
         if (new Date() > cutoffTime) {
           if (bookedBy === 'ONLINE') {
@@ -641,8 +646,7 @@ router.post('/', async (req, res) => {
               error: "CUTOFF_TIME_PASSED",
               message: "The booking cutoff time for this session has already passed."
             });
-          } else {
-            // For offline/assisted bookings, check if dispensary allows it
+          } else if (bookedBy === 'CHANNEL-PARTNER') {
             const dispensary = await Dispensary.findById(dispensaryId).lean();
             if (!dispensary || !dispensary.allowOngoingSessionBookings) {
               return res.status(400).json({
@@ -652,6 +656,7 @@ router.post('/', async (req, res) => {
               });
             }
           }
+          // Dispensary Admins & Super Admins bypass cutoff to allow physical walk-in handling.
         }
       }
       // ------------------------------------------
