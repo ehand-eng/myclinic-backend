@@ -65,10 +65,12 @@ router.get('/stats', validateCustomJwt, async (req, res) => {
 
     console.log('[Dashboard] Final dispensaryIds for query:', dispensaryIds);
 
-    const now = new Date();
-    // Use UTC consistently to match DB date parsing
-    const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
-    const todayEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
+    // Shift current UTC time by +5:30 to align with Sri Lanka local time
+    const sriLankaNow = new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000));
+
+    // Now construct the boundaries in UTC as before, BUT using the correct Sri Lanka calendar day
+    const todayStart = new Date(Date.UTC(sriLankaNow.getUTCFullYear(), sriLankaNow.getUTCMonth(), sriLankaNow.getUTCDate(), 0, 0, 0, 0));
+    const todayEnd = new Date(Date.UTC(sriLankaNow.getUTCFullYear(), sriLankaNow.getUTCMonth(), sriLankaNow.getUTCDate(), 23, 59, 59, 999));
 
     // Range filter: today | last_week | last_month
     const range = (req.query.range || 'today').toLowerCase();
@@ -135,7 +137,7 @@ router.get('/stats', validateCustomJwt, async (req, res) => {
         dailyStatsMap[date].checked_in += count;
       }
     });
-    
+
     // Sort array by date ascending
     const dailyStats = Object.values(dailyStatsMap).sort((a, b) => a.date.localeCompare(b.date));
 
@@ -156,9 +158,9 @@ router.get('/stats', validateCustomJwt, async (req, res) => {
         : Dispensary.countDocuments(),
       dispensaryIds.length
         ? Doctor.countDocuments({
-            dispensaries: { $in: dispensaryIds.map((id) => new mongoose.Types.ObjectId(id)) },
-            disabled: { $ne: true },
-          })
+          dispensaries: { $in: dispensaryIds.map((id) => new mongoose.Types.ObjectId(id)) },
+          disabled: { $ne: true },
+        })
         : Doctor.countDocuments({ disabled: { $ne: true } }),
       Booking.countDocuments({
         ...baseMatch,
@@ -188,30 +190,30 @@ router.get('/stats', validateCustomJwt, async (req, res) => {
         .lean(),
       dispensaryIds.length
         ? Booking.aggregate([
-            {
-              $match: {
-                dispensaryId: { $in: dispensaryIds.map((id) => new mongoose.Types.ObjectId(id)) },
-                ...dateFilterForRange(),
-                status: { $ne: 'cancelled' },
-              },
+          {
+            $match: {
+              dispensaryId: { $in: dispensaryIds.map((id) => new mongoose.Types.ObjectId(id)) },
+              ...dateFilterForRange(),
+              status: { $ne: 'cancelled' },
             },
-            { $group: { _id: '$dispensaryId', count: { $sum: 1 } } },
-            { $lookup: { from: 'dispensaries', localField: '_id', foreignField: '_id', as: 'dispensary' } },
-            { $unwind: '$dispensary' },
-            { $project: { name: '$dispensary.name', count: 1, _id: 0 } },
-          ])
+          },
+          { $group: { _id: '$dispensaryId', count: { $sum: 1 } } },
+          { $lookup: { from: 'dispensaries', localField: '_id', foreignField: '_id', as: 'dispensary' } },
+          { $unwind: '$dispensary' },
+          { $project: { name: '$dispensary.name', count: 1, _id: 0 } },
+        ])
         : Booking.aggregate([
-            {
-              $match: {
-                ...dateFilterForRange(),
-                status: { $ne: 'cancelled' },
-              },
+          {
+            $match: {
+              ...dateFilterForRange(),
+              status: { $ne: 'cancelled' },
             },
-            { $group: { _id: '$dispensaryId', count: { $sum: 1 } } },
-            { $lookup: { from: 'dispensaries', localField: '_id', foreignField: '_id', as: 'dispensary' } },
-            { $unwind: '$dispensary' },
-            { $project: { name: '$dispensary.name', count: 1, _id: 0 } },
-          ]),
+          },
+          { $group: { _id: '$dispensaryId', count: { $sum: 1 } } },
+          { $lookup: { from: 'dispensaries', localField: '_id', foreignField: '_id', as: 'dispensary' } },
+          { $unwind: '$dispensary' },
+          { $project: { name: '$dispensary.name', count: 1, _id: 0 } },
+        ]),
     ]);
 
     const bookingsByStatus = {};
@@ -222,7 +224,7 @@ router.get('/stats', validateCustomJwt, async (req, res) => {
     const exactCompleted = Number(statusAgg.find((g) => g._id === 'completed')?.count || 0);
     const checkedInCount = Number(statusAgg.find((g) => g._id === 'checked_in')?.count || 0);
     const periodCompleted = exactCompleted + checkedInCount;
-    
+
     // Safety check just in case
     console.log('[Dashboard] Status Aggregation:', JSON.stringify(statusAgg));
 
