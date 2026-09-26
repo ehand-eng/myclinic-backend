@@ -24,6 +24,13 @@ class ApiService {
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
+        
+        final user = await _storage.getUser();
+        if (user != null && user['role'] != null) {
+          final role = user['role'] is Map ? user['role']['name'] : user['role'];
+          options.headers['x-user-role'] = role.toString();
+        }
+
         return handler.next(options);
       },
       onError: (error, handler) async {
