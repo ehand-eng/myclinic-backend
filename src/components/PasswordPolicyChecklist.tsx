@@ -8,7 +8,7 @@ type PasswordPolicyChecklistProps = {
   showWhenEmpty?: boolean;
 };
 
-const ruleClass = (met: boolean) => (met ? 'text-green-600' : 'text-gray-500');
+const ruleClass = (met: boolean) => (met ? 'text-green-600' : 'text-red-600');
 
 export function PasswordPolicyChecklist({
   password,

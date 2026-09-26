@@ -59,7 +59,7 @@ class _Rule extends StatelessWidget {
           Icon(
             met ? Icons.check_circle_rounded : Icons.circle_outlined,
             size: 16,
-            color: met ? AppColors.success : AppColors.textSecondary,
+            color: met ? AppColors.success : AppColors.error,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -67,7 +67,7 @@ class _Rule extends StatelessWidget {
               text,
               style: TextStyle(
                 fontSize: 12,
-                color: met ? AppColors.success : AppColors.textSecondary,
+                color: met ? AppColors.success : AppColors.error,
                 height: 1.25,
               ),
             ),

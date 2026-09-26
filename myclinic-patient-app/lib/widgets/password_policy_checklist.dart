@@ -24,9 +24,7 @@ class PasswordPolicyChecklist extends StatelessWidget {
     final introColor = onDarkBackground
         ? Colors.white.withValues(alpha: 0.75)
         : AppTheme.textSecondary;
-    final unmetColor = onDarkBackground
-        ? Colors.white.withValues(alpha: 0.55)
-        : AppTheme.textLight;
+    final unmetColor = onDarkBackground ? const Color(0xFFFF8A80) : AppTheme.error;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

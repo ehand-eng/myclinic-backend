@@ -304,13 +304,13 @@ const UserManagement = () => {
                           const strong = pwd.length >= 8 && categories >= 3;
                           return (
                             <ul className="space-y-0.5">
-                              <li className={pwd.length >= 8 ? 'text-green-600' : 'text-gray-500'}>
+                              <li className={pwd.length >= 8 ? 'text-green-600' : 'text-red-600'}>
                                 • At least 8 characters
                               </li>
-                              <li className={hasLower ? 'text-green-600' : 'text-gray-500'}>
+                              <li className={hasLower ? 'text-green-600' : 'text-red-600'}>
                                 • Lowercase, uppercase, number, special (any 3 types)
                               </li>
-                              <li className={strong ? 'text-green-600' : 'text-gray-500'}>
+                              <li className={strong ? 'text-green-600' : 'text-red-600'}>
                                 • Overall password is strong
                               </li>
                             </ul>
