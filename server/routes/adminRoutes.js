@@ -6,6 +6,21 @@ const Dispensary = require('../models/Dispensary');
 
 const router = express.Router();
 
+// test comment
+
+const isStrongPassword = (password) => {
+  if (typeof password !== 'string' || password.length < 8) return false;
+  const hasLower = /[a-z]/.test(password);
+  const hasUpper = /[A-Z]/.test(password);
+  const hasDigit = /[0-9]/.test(password);
+  const hasSpecial = /[^A-Za-z0-9]/.test(password);
+  const categories = [hasLower, hasUpper, hasDigit, hasSpecial].filter(Boolean).length;
+  return categories >= 3;
+};
+
+const PASSWORD_RULE_MESSAGE =
+  'Password must be at least 8 characters and include at least three of the following: lowercase letters, uppercase letters, numbers, and special characters.';
+
 // Custom middleware to verify admin access (temporary until Auth0 is fully removed)
 const requireSuperAdmin = async (req, res, next) => {
   try {
@@ -163,6 +178,36 @@ router.post('/users', requireSuperAdmin, async (req, res) => {
   } catch (error) {
     console.error('Error creating user:', error);
     res.status(500).json({ message: 'Failed to create user' });
+  }
+});
+
+// Reset password for any user (Super Admin only)
+router.patch('/users/:userId/password', requireSuperAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({ message: 'Password is required' });
+    }
+
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({ message: PASSWORD_RULE_MESSAGE });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.passwordHash = await bcrypt.hash(password, 10);
+    user.mustChangePassword = true;
+    await user.save();
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Error resetting user password:', error);
+    res.status(500).json({ message: 'Failed to reset password' });
   }
 });
 

@@ -12,7 +12,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, Users, Shield, UserPlus, Edit, Trash2, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Users, Shield, UserPlus, Edit, Trash2, AlertCircle, Eye, EyeOff, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { API_URL } from '@/config';
 
@@ -78,6 +78,10 @@ const CustomRoleAssignment = () => {
   const [showCreatePassword, setShowCreatePassword] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [passwordResetUser, setPasswordResetUser] = useState<User | null>(null);
+  const [resetPasswordForm, setResetPasswordForm] = useState({ password: '', confirmPassword: '' });
+  const [showResetPasswordField, setShowResetPasswordField] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -249,6 +253,70 @@ const CustomRoleAssignment = () => {
     }
   };
 
+  const validatePasswordStrength = (password: string) => {
+    const hasLower = /[a-z]/.test(password);
+    const hasUpper = /[A-Z]/.test(password);
+    const hasDigit = /[0-9]/.test(password);
+    const hasSpecial = /[^A-Za-z0-9]/.test(password);
+    const categories = [hasLower, hasUpper, hasDigit, hasSpecial].filter(Boolean).length;
+    return password.length >= 8 && categories >= 3;
+  };
+
+  const handleOpenResetPassword = (user: User) => {
+    setPasswordResetUser(user);
+    setResetPasswordForm({ password: '', confirmPassword: '' });
+    setShowResetPasswordField(false);
+    setShowResetPassword(true);
+  };
+
+  const handleResetUserPassword = async () => {
+    if (!passwordResetUser) return;
+
+    if (!resetPasswordForm.password) {
+      toast.error('Password is required');
+      return;
+    }
+
+    if (!validatePasswordStrength(resetPasswordForm.password)) {
+      toast.error('Use at least 8 characters and include three of: lowercase, uppercase, number, special character.');
+      return;
+    }
+
+    if (resetPasswordForm.password !== resetPasswordForm.confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+
+    try {
+      setIsUpdating(true);
+      const token = localStorage.getItem('auth_token');
+
+      const response = await fetch(`${API_URL}/admin/users/${passwordResetUser._id}/password`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ password: resetPasswordForm.password })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to reset password');
+      }
+
+      toast.success(`Password updated for ${passwordResetUser.name}`);
+      setShowResetPassword(false);
+      setPasswordResetUser(null);
+      setResetPasswordForm({ password: '', confirmPassword: '' });
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to reset password');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const handleDeleteUser = (user: User) => {
     setUserToDelete(user);
     setDeleteDialogOpen(true);
@@ -366,6 +434,14 @@ const CustomRoleAssignment = () => {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenResetPassword(user)}
+                        title="Reset password"
+                      >
+                        <KeyRound className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
@@ -593,6 +669,69 @@ const CustomRoleAssignment = () => {
               >
                 {isUpdating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Update User
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Reset Password Modal */}
+        <Dialog open={showResetPassword} onOpenChange={setShowResetPassword}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reset password: {passwordResetUser?.name}</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-gray-600">
+              Set a new password for this user. They will be asked to change it on next login.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="resetPassword">New password</Label>
+                <div className="relative">
+                  <Input
+                    id="resetPassword"
+                    type={showResetPasswordField ? 'text' : 'password'}
+                    value={resetPasswordForm.password}
+                    onChange={(e) => setResetPasswordForm(prev => ({ ...prev, password: e.target.value }))}
+                    placeholder="Enter new password"
+                    autoComplete="new-password"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowResetPasswordField(!showResetPasswordField)}
+                  >
+                    {showResetPasswordField ? (
+                      <EyeOff className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="resetPasswordConfirm">Confirm new password</Label>
+                <Input
+                  id="resetPasswordConfirm"
+                  type="password"
+                  value={resetPasswordForm.confirmPassword}
+                  onChange={(e) => setResetPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  placeholder="Confirm new password"
+                  autoComplete="new-password"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowResetPassword(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleResetUserPassword}
+                disabled={isUpdating || !resetPasswordForm.password || !resetPasswordForm.confirmPassword}
+              >
+                {isUpdating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Update password
               </Button>
             </DialogFooter>
           </DialogContent>
